@@ -1,0 +1,34 @@
+=== FLARE PSI Server Simulation ===
+Starting distributed PSI server...
+
+📊 Server dataset size: 20 items
+🔧 Initializing PSI server...
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 9 (slots = 512)
+ - Load Factor: 0.039062 (items/slot)
+ - Estimated Collision Probability: 3.233662e-01
+
+🚀 FLARE Performance Report (Parallelized)
+=                                                  
+📊 CPU Cores Used: 8
+⏱️  Total Execution Time: 1.121194625s
+🔑 Key Generation Time: 35.446917ms (3.2%)
+🔗 Hashing Time: 0s (0.0%)
+📋 Witness Generation Time: 141.14825ms (12.6%)
+🎯 Intersection Detection Time: 0s (0.0%)
+=                                                  
+✅ Server initialized successfully!
+
+🌐 Server Endpoints:
+   GET  /api/status    - Server status
+   GET  /api/params    - Get PSI parameters
+   POST /api/intersect - Compute intersection
+
+🚀 Server listening on http://localhost:8080
+
+2025/10/22 16:17:36 📤 Sending parameters to [[::1]:53451]

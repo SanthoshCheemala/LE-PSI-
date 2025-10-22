@@ -1,0 +1,44 @@
+# Ignore data directory containing databases and CSV files
+data/
+
+# Database files
+*.db
+simulation_server.db
+
+# Compiled binaries and executables
+server_sim
+client_sim
+flare
+cmd/Flare/flare
+simulation/server/server_sim
+simulation/client/client_sim
+simulation/server_sim
+simulation/client_sim
+
+# Benchmark results
+benchmarks/benchmark_results_*/
+results/*.json
+
+# Go specific ignores
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# IDE specific files
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
