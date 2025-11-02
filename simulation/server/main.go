@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
-	psi "github.com/SanthoshCheemala/FLARE/internal/crypto/PSI"
-	"github.com/SanthoshCheemala/FLARE/utils"
+	"github.com/SanthoshCheemala/PSI/pkg/psi"
+	"github.com/SanthoshCheemala/PSI/utils"
 )
 
 var (
@@ -49,54 +50,57 @@ type IntersectionResponse struct {
 	Timestamp      time.Time `json:"timestamp"`
 }
 
+const serverDataFilePath = "../../data/server_data.json"
+
 func main() {
-	fmt.Println("=== FLARE PSI Server Simulation ===")
-	fmt.Println("Starting distributed PSI server...")
-	fmt.Println()
+	fmt.Println("=== LE-PSI Server Simulation ===")
 
-	serverData = []interface{}{
-		"alice@example.com", "bob@example.com", "charlie@example.com",
-		"david@example.com", "eve@example.com", "frank@example.com",
-		"grace@example.com", "henry@example.com", "iris@example.com",
-		"jack@example.com", "kate@example.com", "leo@example.com",
-		"mary@example.com", "nancy@example.com", "oliver@example.com",
-		"peter@example.com", "quinn@example.com", "rachel@example.com",
-		"steve@example.com", "tina@example.com",
+	// Load server dataset (generic JSON array)
+	items, err := loadArrayFromJSON(serverDataFilePath)
+	if err != nil {
+		log.Fatalf("failed to load server dataset from %s: %v", serverDataFilePath, err)
 	}
+	fmt.Printf("Server dataset size: %d items\n", len(items))
 
-	fmt.Printf("📊 Server dataset size: %d items\n", len(serverData))
-	fmt.Println("🔧 Initializing PSI server...")
+	// Use data as-is for PSI utils
+	serverData = items
 
 	serializedData, err := utils.PrepareDataForPSI(serverData)
 	if err != nil {
-		log.Fatal("❌ Data preparation failed:", err)
+		log.Fatal("Data preparation failed:", err)
 	}
 
 	serverHashes := utils.HashDataPoints(serializedData)
 
 	ctx, err := psi.ServerInitialize(serverHashes, "simulation_server.db")
 	if err != nil {
-		log.Fatal("❌ Server initialization failed:", err)
+		log.Fatal("Server initialization failed:", err)
 	}
 
 	serverCtx = ctx
 	serverStarted = time.Now()
 
-	fmt.Println("✅ Server initialized successfully!")
-	fmt.Println()
-	fmt.Println("🌐 Server Endpoints:")
-	fmt.Println("   GET  /api/status    - Server status")
-	fmt.Println("   GET  /api/params    - Get PSI parameters")
-	fmt.Println("   POST /api/intersect - Compute intersection")
-	fmt.Println()
-	fmt.Println("🚀 Server listening on http://localhost:8080")
-	fmt.Println()
+	fmt.Println("Server initialized successfully")
+	fmt.Println("Server listening on http://localhost:8080")
 
 	http.HandleFunc("/api/status", handleStatus)
 	http.HandleFunc("/api/params", handleGetParams)
 	http.HandleFunc("/api/intersect", handleIntersection)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+// loadArrayFromJSON loads a generic JSON array ([]interface{})
+func loadArrayFromJSON(path string) ([]interface{}, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var items []interface{}
+	if err := json.Unmarshal(b, &items); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +134,7 @@ func handleGetParams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	log.Printf("📤 Sending parameters to [%s]", r.RemoteAddr)
+	log.Printf("Sending parameters to [%s]", r.RemoteAddr)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -152,12 +156,12 @@ func handleIntersection(w http.ResponseWriter, r *http.Request) {
 		clientID = r.RemoteAddr
 	}
 
-	log.Printf("📥 Received %d ciphertexts from [%s]", len(request.Ciphertexts), clientID)
+	log.Printf("Received %d ciphertexts from [%s]", len(request.Ciphertexts), clientID)
 
 	matches, err := psi.DetectIntersectionWithContext(serverCtx, request.Ciphertexts)
 	if err != nil {
 		http.Error(w, "Detection failed", 500)
-		log.Printf("❌ Error: %v", err)
+		log.Printf("Error: %v", err)
 		return
 	}
 
@@ -171,5 +175,5 @@ func handleIntersection(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-	log.Printf("✅ Found %d matches for [%s] in %v\n", len(matches), clientID, time.Since(startTime))
+	log.Printf("Found %d matches for [%s] in %v\n", len(matches), clientID, time.Since(startTime))
 }

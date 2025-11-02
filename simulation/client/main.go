@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
-	psi "github.com/SanthoshCheemala/FLARE/internal/crypto/PSI"
-	"github.com/SanthoshCheemala/FLARE/utils"
+	"github.com/SanthoshCheemala/PSI/pkg/psi"
+	"github.com/SanthoshCheemala/PSI/utils"
 )
 
 const serverURL = "http://localhost:8080"
@@ -38,81 +39,83 @@ type IntersectionResponse struct {
 	Message string   `json:"message"`
 }
 
+const clientDataFilePath = "../../data/client_data.json"
+
 func main() {
-	fmt.Println("=== FLARE PSI Client Simulation ===")
-	fmt.Println()
+	fmt.Println("=== LE-PSI Client Simulation ===")
 
-	clientData := []interface{}{
-		"alice@example.com",
-		"bob@example.com",
-		"charlie@example.com",
-		"zoe@example.com",
-		"adam@example.com",
-		"kate@example.com",
-		"leo@example.com",
-		"unknown@test.com",
+	// Load client dataset (generic JSON array)
+	items, err := loadArrayFromJSON(clientDataFilePath)
+	if err != nil {
+		log.Fatalf("failed to load client dataset (%s): %v", clientDataFilePath, err)
 	}
+	clientData := items
 
-	fmt.Printf("📊 Client dataset: %d items\n", len(clientData))
-	fmt.Println()
+	fmt.Printf("Client dataset: %d items\n", len(clientData))
 
-	fmt.Println("🔍 Step 1: Checking server...")
+	fmt.Println("Checking server status...")
 	if !checkServerStatus() {
-		log.Fatal("❌ Server unavailable")
+		log.Fatal("Server unavailable")
 	}
-	fmt.Println("✅ Server is healthy")
-	fmt.Println()
+	fmt.Println("Server is healthy")
 
-	fmt.Println("🔍 Step 2: Getting PSI parameters...")
+	fmt.Println("Getting PSI parameters...")
 	paramsResp := requestParameters()
 	if paramsResp == nil {
-		log.Fatal("❌ Failed to get parameters")
+		log.Fatal("Failed to get parameters")
 	}
-	fmt.Printf("✅ Got params (D=%d, Layers=%d)\n", paramsResp.Params.D, paramsResp.Params.Layers)
-	fmt.Println()
+	fmt.Printf("Parameters received (D=%d, Layers=%d)\n", paramsResp.Params.D, paramsResp.Params.Layers)
 
-	fmt.Println("🔍 Step 3: Preparing and hashing data...")
+	fmt.Println("Preparing and hashing data...")
 	serializedData, err := utils.PrepareDataForPSI(clientData)
 	if err != nil {
-		log.Fatal("❌ Data preparation failed:", err)
+		log.Fatal("Data preparation failed:", err)
 	}
 	
 	clientHashes := utils.HashDataPoints(serializedData)
-	fmt.Printf("✅ Prepared and hashed %d items\n", len(clientHashes))
-	fmt.Println()
+	fmt.Printf("Prepared and hashed %d items\n", len(clientHashes))
 
-	fmt.Println("🔍 Step 4: Deserializing parameters...")
+	fmt.Println("Deserializing parameters...")
 	pp, msg, le, err := psi.DeserializeParameters(paramsResp.Params)
 	if err != nil {
-		log.Fatal("❌ Parameter deserialization failed:", err)
+		log.Fatal("Parameter deserialization failed:", err)
 	}
-	fmt.Println("✅ Parameters deserialized")
-	fmt.Println()
+	fmt.Println("Parameters deserialized")
 
-	fmt.Println("🔍 Step 5: Encrypting data...")
+	fmt.Println("Encrypting data...")
 	start := time.Now()
 	ciphertexts := psi.ClientEncrypt(clientHashes, pp, msg, le)
-	fmt.Printf("✅ Encrypted in %v\n", time.Since(start))
-	fmt.Println()
+	fmt.Printf("Encrypted in %v\n", time.Since(start))
 
-	fmt.Println("🔍 Step 6: Requesting intersection...")
+	fmt.Println("Requesting intersection...")
 	matches := requestIntersection(ciphertexts, clientHashes)
-	fmt.Println()
 
-	fmt.Println("📊 Results:")
-	fmt.Printf("   Matches: %d/%d\n", len(matches), len(clientData))
+	fmt.Println("\nResults:")
+	fmt.Printf("Matches: %d/%d\n", len(matches), len(clientData))
 	if len(matches) > 0 {
 		hashMap := make(map[uint64]string)
 		for i, h := range clientHashes {
 			hashMap[h] = serializedData[i]
 		}
-		fmt.Println("🎯 Matched:")
+		fmt.Println("Matched items:")
 		for _, h := range matches {
 			if data, ok := hashMap[h]; ok {
-				fmt.Printf("   - %s\n", data)
+				fmt.Printf("  - %s\n", data)
 			}
 		}
 	}
+}
+
+func loadArrayFromJSON(path string) ([]interface{}, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var items []interface{}
+	if err := json.Unmarshal(b, &items); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 func checkServerStatus() bool {
@@ -151,6 +154,6 @@ func requestIntersection(ciphertexts []psi.Cxtx, hashes []uint64) []uint64 {
 	defer resp.Body.Close()
 	var result IntersectionResponse
 	json.NewDecoder(resp.Body).Decode(&result)
-	fmt.Printf("✅ Found %d matches\n", result.Count)
+	fmt.Printf("Found %d matches\n", result.Count)
 	return result.Matches
 }
