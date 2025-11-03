@@ -1,6 +1,6 @@
 package LE
 
-import "github.com/SanthoshCheemala/FLARE/pkg/matrix"
+import "github.com/SanthoshCheemala/LE-PSI/pkg/matrix"
 
 /*
 KeyGen this is the KGen algorithm

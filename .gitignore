@@ -1,5 +1,8 @@
 # Ignore data directory containing databases and CSV files
+# Allow committing JSON datasets used by simulations
 data/
+!data/*.json
+!data/**/*.json
 
 # Database files
 *.db

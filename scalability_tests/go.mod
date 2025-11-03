@@ -2,10 +2,10 @@ module scalability_tests
 
 go 1.24.1
 
-replace github.com/SanthoshCheemala/PSI => ..
+replace github.com/SanthoshCheemala/LE-PSI => ..
 
 require (
-	github.com/SanthoshCheemala/PSI v0.0.0-00010101000000-000000000000
+	github.com/SanthoshCheemala/LE-PSI v0.0.0-00010101000000-000000000000
 	github.com/mattn/go-sqlite3 v1.14.32
 )
 

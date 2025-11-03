@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SanthoshCheemala/PSI/pkg/psi"
-	"github.com/SanthoshCheemala/PSI/utils"
+	"github.com/SanthoshCheemala/LE-PSI/pkg/psi"
+	"github.com/SanthoshCheemala/LE-PSI/utils"
 )
 
 var (

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SanthoshCheemala/FLARE/pkg/matrix"
+	"github.com/SanthoshCheemala/LE-PSI/pkg/matrix"
 )
 
 func SaveSecretkey(sk *matrix.Vector,dbPath string) error{

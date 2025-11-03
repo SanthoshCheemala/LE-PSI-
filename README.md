@@ -41,14 +41,14 @@ go build -o flare
 # Output: Matches: [bob]
 ```
 
-### Programmatic Usage
+### Programmatic Usage (Library)
 
 ```go
 package main
 
 import (
-    psi "github.com/SanthoshCheemala/LE-PSI/internal/crypto/PSI"
-    "github.com/SanthoshCheemala/LE-PSI/utils"
+    "github.com/SanthoshCheemala/PSI/pkg/psi"
+    "github.com/SanthoshCheemala/PSI/utils"
 )
 
 func main() {

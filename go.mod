@@ -1,4 +1,4 @@
-module github.com/SanthoshCheemala/FLARE
+module github.com/SanthoshCheemala/LE-PSI
 
 go 1.24.1
 
@@ -8,7 +8,6 @@ require (
 )
 
 require (
-	github.com/SanthoshCheemala/Crypto v0.0.0-20250626140338-80a9d2cfb0e4
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 )

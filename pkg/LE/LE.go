@@ -3,7 +3,7 @@ package LE
 import (
 	"math"
 
-	"github.com/SanthoshCheemala/FLARE/pkg/matrix"
+	"github.com/SanthoshCheemala/LE-PSI/pkg/matrix"
 	"github.com/tuneinsight/lattigo/v3/ring"
 	"github.com/tuneinsight/lattigo/v3/utils"
 )

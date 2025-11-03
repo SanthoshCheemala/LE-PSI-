@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/SanthoshCheemala/PSI/pkg/psi"
-	"github.com/SanthoshCheemala/PSI/utils"
+	"github.com/SanthoshCheemala/LE-PSI/pkg/psi"
+	"github.com/SanthoshCheemala/LE-PSI/utils"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -127,51 +127,51 @@ func main() {
 		{
 			Name:           "Small-Scale",
 			ServerSize:     100,
-			ClientSize:     25,
+			ClientSize:     10,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "100 records from transactions.db",
+			Description:    "100 server records, 10 client queries (10%)",
 		},
 		{
 			Name:           "Medium-Scale-1",
-			ServerSize:     500,
+			ServerSize:     1000,
 			ClientSize:     100,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "500 records from transactions.db",
+			Description:    "1K server records, 100 client queries (10%)",
 		},
 		{
 			Name:           "Medium-Scale-2",
-			ServerSize:     1000,
-			ClientSize:     200,
-			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "1K records from transactions.db",
-		},
-		{
-			Name:           "Large-Scale-1",
-			ServerSize:     5000,
-			ClientSize:     500,
-			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "5K records from transactions.db",
-		},
-		{
-			Name:           "Large-Scale-2",
 			ServerSize:     10000,
 			ClientSize:     1000,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "10K records from transactions.db",
+			Description:    "10K server records, 1K client queries (10%)",
 		},
 		{
-			Name:           "Very-Large-Scale",
-			ServerSize:     20000,
-			ClientSize:     2000,
-			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "20K records from transactions.db",
-		},
-		{
-			Name:           "Max-Scale",
+			Name:           "Large-Scale-1",
 			ServerSize:     50000,
 			ClientSize:     5000,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "50K records from transactions.db - maximum scale",
+			Description:    "50K server records, 5K client queries (10%)",
+		},
+		{
+			Name:           "Large-Scale-2",
+			ServerSize:     100000,
+			ClientSize:     10000,
+			OverlapPercent: 0.0, // Will be calculated from real data
+			Description:    "100K server records, 10K client queries (10%)",
+		},
+		{
+			Name:           "Very-Large-Scale",
+			ServerSize:     500000,
+			ClientSize:     50000,
+			OverlapPercent: 0.0, // Will be calculated from real data
+			Description:    "500K server records, 50K client queries (10%)",
+		},
+		{
+			Name:           "Max-Scale-Fraud-Detection",
+			ServerSize:     1000000,
+			ClientSize:     10000,
+			OverlapPercent: 0.0, // Will be calculated from real data
+			Description:    "1M server transactions, 10K suspicious client queries (1% - realistic fraud detection)",
 		},
 	}
 
