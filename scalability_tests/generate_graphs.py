@@ -170,30 +170,131 @@ def plot_time_breakdown(data, output_dir):
     plt.close()
 
 def plot_memory_usage(data, output_dir):
-    """Plot estimated memory usage"""
+    """Plot actual RAM usage analysis"""
     successful_tests = [t for t in data['test_results'] if t['success']]
     
     dataset_sizes = [t['server_dataset_size'] for t in successful_tests]
-    memory_mb = [t['memory_estimate_bytes'] / (1024 * 1024) for t in successful_tests]
+    peak_ram = [t['ram_analysis']['peak_ram_mb'] for t in successful_tests]
+    server_init_ram = [t['ram_analysis']['server_init_ram_delta_mb'] for t in successful_tests]
     
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
     
-    ax.plot(dataset_sizes, memory_mb, 'o-', linewidth=2, markersize=8, color='#9b59b6')
-    ax.set_xlabel('Server Dataset Size (records)', fontweight='bold')
-    ax.set_ylabel('Estimated Memory Usage (MB)', fontweight='bold')
-    ax.set_title('Memory Scaling with Dataset Size')
-    ax.grid(True, alpha=0.3)
-    ax.set_xscale('log')
+    # Plot 1: Peak RAM usage
+    ax1.plot(dataset_sizes, peak_ram, 'o-', linewidth=2, markersize=8, color='#9b59b6', label='Peak RAM')
+    ax1.plot(dataset_sizes, server_init_ram, 's-', linewidth=2, markersize=8, color='#e74c3c', label='Server Init RAM')
+    ax1.set_xlabel('Server Dataset Size (records)', fontweight='bold')
+    ax1.set_ylabel('RAM Usage (MB)', fontweight='bold')
+    ax1.set_title('RAM Consumption vs Dataset Size')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
     
-    # Add trend line
-    z = np.polyfit(np.log(dataset_sizes), memory_mb, 1)
-    p = np.poly1d(z)
-    ax.plot(dataset_sizes, p(np.log(dataset_sizes)), "--", alpha=0.5, color='red',
-            label=f'Trend: {z[0]:.2f}*log(n) + {z[1]:.2f}')
-    ax.legend()
+    # Add linear trend line for peak RAM
+    if len(dataset_sizes) > 1:
+        z = np.polyfit(dataset_sizes, peak_ram, 1)
+        p = np.poly1d(z)
+        ax1.plot(dataset_sizes, p(dataset_sizes), "--", alpha=0.5, color='purple',
+                label=f'Linear fit: {z[0]:.3f}*n + {z[1]:.1f}')
+        ax1.legend()
+    
+    # Plot 2: RAM per record
+    ram_per_record = [t['ram_analysis']['ram_per_server_record_mb'] for t in successful_tests]
+    ax2.bar(range(len(dataset_sizes)), ram_per_record, color='#3498db', alpha=0.8)
+    ax2.set_xlabel('Test Case', fontweight='bold')
+    ax2.set_ylabel('RAM per Server Record (MB)', fontweight='bold')
+    ax2.set_title('Memory Efficiency: RAM per Record')
+    ax2.set_xticks(range(len(dataset_sizes)))
+    ax2.set_xticklabels([f'{s}' for s in dataset_sizes], rotation=45)
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    # Add average line
+    avg_ram_per_record = np.mean(ram_per_record)
+    ax2.axhline(y=avg_ram_per_record, color='red', linestyle='--', alpha=0.7,
+                label=f'Avg: {avg_ram_per_record:.3f} MB/record')
+    ax2.legend()
     
     plt.tight_layout()
     output_file = os.path.join(output_dir, 'memory_usage.pdf')
+    plt.savefig(output_file, bbox_inches='tight')
+    plt.savefig(output_file.replace('.pdf', '.png'), bbox_inches='tight')
+    print(f"✓ Saved: {output_file}")
+    plt.close()
+
+def plot_ram_breakdown(data, output_dir):
+    """Plot RAM breakdown by stage"""
+    successful_tests = [t for t in data['test_results'] if t['success']]
+    
+    test_names = [t['test_name'] for t in successful_tests]
+    baseline_ram = [t['ram_analysis']['baseline_ram_mb'] for t in successful_tests]
+    data_load_delta = [t['ram_analysis']['data_load_ram_delta_mb'] for t in successful_tests]
+    server_init_delta = [t['ram_analysis']['server_init_ram_delta_mb'] for t in successful_tests]
+    encryption_delta = [t['ram_analysis']['encryption_ram_delta_mb'] for t in successful_tests]
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    x = np.arange(len(test_names))
+    width = 0.6
+    
+    # Stacked bar chart
+    p1 = ax.bar(x, baseline_ram, width, label='Baseline', color='#95a5a6', alpha=0.7)
+    p2 = ax.bar(x, data_load_delta, width, bottom=baseline_ram, label='Data Loading', color='#3498db', alpha=0.7)
+    p3 = ax.bar(x, server_init_delta, width, 
+                bottom=np.array(baseline_ram) + np.array(data_load_delta),
+                label='Server Init (Witnesses)', color='#e74c3c', alpha=0.7)
+    p4 = ax.bar(x, encryption_delta, width,
+                bottom=np.array(baseline_ram) + np.array(data_load_delta) + np.array(server_init_delta),
+                label='Client Encryption', color='#2ecc71', alpha=0.7)
+    
+    ax.set_xlabel('Test Case', fontweight='bold')
+    ax.set_ylabel('RAM Usage (MB)', fontweight='bold')
+    ax.set_title('RAM Breakdown by PSI Stage', fontweight='bold', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels(test_names, rotation=45, ha='right')
+    ax.legend(loc='upper left')
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    output_file = os.path.join(output_dir, 'ram_breakdown_stages.pdf')
+    plt.savefig(output_file, bbox_inches='tight')
+    plt.savefig(output_file.replace('.pdf', '.png'), bbox_inches='tight')
+    print(f"✓ Saved: {output_file}")
+    plt.close()
+
+def plot_ram_scaling_analysis(data, output_dir):
+    """Plot RAM scaling factor analysis"""
+    successful_tests = [t for t in data['test_results'] if t['success']]
+    
+    dataset_sizes = [t['server_dataset_size'] for t in successful_tests]
+    total_ram_delta = [t['ram_analysis']['total_ram_delta_mb'] for t in successful_tests]
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ax.scatter(dataset_sizes, total_ram_delta, s=100, alpha=0.6, color='#e74c3c', edgecolors='black', linewidth=1)
+    
+    # Fit and plot linear regression
+    if len(dataset_sizes) > 1:
+        z = np.polyfit(dataset_sizes, total_ram_delta, 1)
+        p = np.poly1d(z)
+        ax.plot(dataset_sizes, p(dataset_sizes), "--", linewidth=2, color='#c0392b',
+                label=f'Linear fit: {z[0]:.3f} MB/record')
+        
+        # Calculate R²
+        y_mean = np.mean(total_ram_delta)
+        ss_tot = np.sum((np.array(total_ram_delta) - y_mean) ** 2)
+        ss_res = np.sum((np.array(total_ram_delta) - p(dataset_sizes)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot)
+        
+        ax.text(0.05, 0.95, f'R² = {r_squared:.4f}\nRAM Scaling: {z[0]:.3f} MB/record', 
+                transform=ax.transAxes, fontsize=11, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    ax.set_xlabel('Server Dataset Size (records)', fontweight='bold')
+    ax.set_ylabel('Total RAM Increase from Baseline (MB)', fontweight='bold')
+    ax.set_title('RAM Scaling Factor Analysis', fontweight='bold', fontsize=14)
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    
+    plt.tight_layout()
+    output_file = os.path.join(output_dir, 'ram_scaling_factor.pdf')
     plt.savefig(output_file, bbox_inches='tight')
     plt.savefig(output_file.replace('.pdf', '.png'), bbox_inches='tight')
     print(f"✓ Saved: {output_file}")
@@ -420,6 +521,11 @@ def main():
     plot_memory_usage(data, output_dir)
     plot_scalability_score(data, output_dir)
     
+    # Generate RAM analysis graphs
+    print("\nGenerating RAM analysis...")
+    plot_ram_breakdown(data, output_dir)
+    plot_ram_scaling_analysis(data, output_dir)
+    
     # Generate Go runtime analysis graphs
     print("\nGenerating Go runtime analysis...")
     plot_go_runtime_analysis(data, output_dir)
@@ -438,7 +544,9 @@ def main():
     print("  - throughput_analysis.pdf/png")
     print("  - accuracy_analysis.pdf/png")
     print("  - time_breakdown.pdf/png")
-    print("  - memory_usage.pdf/png")
+    print("  - memory_usage.pdf/png (RAM analysis)")
+    print("  - ram_breakdown_stages.pdf/png (RAM by stage)")
+    print("  - ram_scaling_factor.pdf/png (RAM scaling)")
     print("  - scalability_score.pdf/png")
     print("  - go_runtime_analysis.pdf/png (Go performance)")
     print("  - go_memory_breakdown.pdf/png (Go memory)")

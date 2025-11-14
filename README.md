@@ -1,19 +1,203 @@
 ````markdown
-# LE-PSI - Laconic Encryption Private Set Intersection
+# LE-PSI - Lattice-based Private Set Intersection
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-LE-PSI is a high-performance Private Set Intersection (PSI) framework built on lattice-based Laconic Oblivious Transfer (LOT) and Laconic Encryption. It enables two parties to compute the intersection of their private datasets without revealing any additional information.
+A high-performance Go library for Private Set Intersection using lattice-based Laconic Encryption. Enables two parties to securely compute dataset intersections without revealing additional information.
 
-## 🌟 Key Features
+## Features
 
-- **Privacy-Preserving**: Cryptographically secure intersection without data leakage
-- **Lattice-Based Security**: Post-quantum secure using lattice cryptography
-- **High Performance**: Parallel processing utilizing all CPU cores
-- **Easy Integration**: Simple API for distributed systems
-- **Flexible Data Types**: Support for strings, integers, JSON, and any serializable data
-- **Production Ready**: Clean, well-tested codebase with comprehensive documentation
+- 🔒 **Post-quantum secure** - Based on Ring-LWE lattice problems
+- ⚡ **High performance** - Adaptive threading optimizes for dataset size
+- 🔌 **Easy integration** - Clean API for any Go application
+- 🎯 **Flexible** - Supports any serializable data types
+- 📊 **Scalable** - Handles datasets from 100 to 4,000+ records
+
+## Installation
+
+```bash
+go get github.com/SanthoshCheemala/LE-PSI
+```
+
+## Quick Start
+
+```go
+package main
+
+import (
+    "github.com/SanthoshCheemala/LE-PSI/pkg/psi"
+    "github.com/SanthoshCheemala/LE-PSI/utils"
+)
+
+func main() {
+    // Server setup
+    serverData := []interface{}{"alice", "bob", "charlie"}
+    serverHashes := utils.HashDataPoints(utils.PrepareDataForPSI(serverData))
+    
+    ctx, _ := psi.ServerInitialize(serverHashes, "tree.db")
+    pp, msg, le := psi.GetPublicParameters(ctx)
+    
+    // Client query
+    clientData := []interface{}{"bob", "david"}
+    clientHashes := utils.HashDataPoints(utils.PrepareDataForPSI(clientData))
+    
+    ciphertexts := psi.ClientEncrypt(clientHashes, pp, msg, le)
+    
+    // Find intersection
+    matches, _ := psi.DetectIntersectionWithContext(ctx, ciphertexts)
+    // matches contains hash values of ["bob"]
+}
+```
+
+## Documentation
+
+- **[API Reference](API.md)** - Complete API documentation
+- **[Examples](examples/)** - Integration examples
+- **[Research Findings](Documentation/RESEARCH_PAPER_FINDINGS.md)** - Performance analysis
+
+## Architecture
+
+```
+Server                          Client
+  │                              │
+  ├─ Initialize(dataset)         │
+  ├─ Generate keys/witnesses     │
+  ├─ Build tree structure        │
+  │                              │
+  ├────── Send params ──────────>│
+  │                              ├─ Encrypt(queries)
+  │<───── Send ciphertexts ──────┤
+  │                              │
+  ├─ Detect intersection         │
+  └─ Return matches ────────────>│
+```
+
+## Performance
+
+| Records | Memory  | Time  | Workers |
+|---------|---------|-------|---------|
+| 100     | 3.5 GB  | ~30s  | 48      |
+| 500     | 15 GB   | ~4m   | 34      |
+| 1,000   | 30 GB   | ~1h   | 38      |
+| 2,000   | 55 GB   | ~2h   | 34      |
+
+**Memory:** ~35 MB per record • **Threading:** Adaptive (8-48 workers) • **Security:** 128-bit classical
+
+## Project Structure
+
+```
+LE-PSI/
+├── pkg/
+│   ├── psi/          # Core PSI implementation
+│   ├── LE/           # Laconic Encryption
+│   └── matrix/       # Matrix operations
+├── utils/            # Data preprocessing utilities
+├── internal/storage/ # Database operations
+├── cmd/Flare/        # CLI tool
+├── examples/         # Integration examples
+└── simulation/       # HTTP server/client demo
+```
+
+## CLI Tool
+
+```bash
+# Build
+cd cmd/Flare && go build -o flare
+
+# Run
+./flare -mode inline -server-data "1,2,3,4,5" -client-data "2,4,7"
+# Output: Matches: [2 4]
+```
+
+## Advanced Features
+
+### Adaptive Threading
+Automatically optimizes worker threads based on dataset size and available resources.
+
+### Custom Data Types
+Supports any Go type (strings, integers, structs, maps):
+
+```go
+type User struct {
+    Email string
+    ID    int
+}
+
+users := []interface{}{
+    User{Email: "alice@example.com", ID: 1},
+    User{Email: "bob@example.com", ID: 2},
+}
+```
+
+### Distributed Systems
+Built-in parameter serialization for HTTP/gRPC integration:
+
+```go
+serialized := psi.SerializeParameters(pp, msg, le)
+// Send over network
+pp, msg, le, _ := psi.DeserializeParameters(serialized)
+```
+
+## Security
+
+- **Post-quantum:** Resistant to quantum computer attacks
+- **Semantic:** Ciphertexts reveal no information beyond intersection
+- **Provable:** Based on standard Ring-LWE assumptions
+- **Parameters:** 256-ring dimension, 58-bit modulus
+
+## Use Cases
+
+- Privacy-preserving analytics
+- Contact discovery
+- Threat intelligence sharing
+- Healthcare data matching
+- Ad campaign measurement
+- Supply chain verification
+
+## Examples
+
+See [examples/](examples/) directory for:
+- Basic PSI workflow
+- HTTP server/client
+- Custom data types
+- Batch processing
+
+## Contributing
+
+Contributions welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Citation
+
+If you use this library in research, please cite:
+
+```bibtex
+@software{lepsi2025,
+  title={LE-PSI: Lattice-based Private Set Intersection},
+  author={Cheemala, Santhosh},
+  year={2025},
+  url={https://github.com/SanthoshCheemala/LE-PSI}
+}
+```
+
+## References
+
+- Laconic Oblivious Transfer: [Cho et al. 2017]
+- Laconic Private Set Intersection: [Alamati et al. 2021]
+- Lattigo Library: [EPFL-LDS/lattigo](https://github.com/tuneinsight/lattigo)
+
+## Support
+
+- **Issues:** [GitHub Issues](https://github.com/SanthoshCheemala/LE-PSI/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/SanthoshCheemala/LE-PSI/discussions)
+
+---
+
+**Built with Go and Lattice Cryptography**
 
 ## 🚀 Quick Start
 

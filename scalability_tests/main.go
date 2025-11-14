@@ -43,6 +43,37 @@ type TestResult struct {
 	ErrorMessage         string        `json:"error_message,omitempty"`
 	CryptographicParams  CryptoParams  `json:"cryptographic_params"`
 	GoRuntimeStats       GoStats       `json:"go_runtime_stats"`
+	RAMAnalysis          RAMAnalysis   `json:"ram_analysis"`
+}
+
+// RAMAnalysis tracks RAM usage at different stages of PSI execution
+type RAMAnalysis struct {
+	// Baseline memory before test starts
+	BaselineRAM_MB           float64 `json:"baseline_ram_mb"`
+	
+	// Memory after loading data
+	AfterDataLoadRAM_MB      float64 `json:"after_data_load_ram_mb"`
+	DataLoadRAMDelta_MB      float64 `json:"data_load_ram_delta_mb"`
+	
+	// Memory after server initialization (witness generation)
+	AfterServerInitRAM_MB    float64 `json:"after_server_init_ram_mb"`
+	ServerInitRAMDelta_MB    float64 `json:"server_init_ram_delta_mb"`
+	
+	// Memory after client encryption
+	AfterEncryptionRAM_MB    float64 `json:"after_encryption_ram_mb"`
+	EncryptionRAMDelta_MB    float64 `json:"encryption_ram_delta_mb"`
+	
+	// Peak memory during test
+	PeakRAM_MB               float64 `json:"peak_ram_mb"`
+	TotalRAMDelta_MB         float64 `json:"total_ram_delta_mb"`
+	
+	// Per-record RAM metrics
+	RAMPerServerRecord_MB    float64 `json:"ram_per_server_record_mb"`
+	RAMPerClientRecord_MB    float64 `json:"ram_per_client_record_mb"`
+	
+	// System memory info
+	SystemTotalRAM_MB        float64 `json:"system_total_ram_mb"`
+	RAMUsagePercent          float64 `json:"ram_usage_percent"`
 }
 
 // GoStats stores Go runtime performance metrics
@@ -105,6 +136,12 @@ type Summary struct {
 	SlowestTest            string  `json:"slowest_test"`
 	LargestDatasetTested   int     `json:"largest_dataset_tested"`
 	ScalabilityScore       float64 `json:"scalability_score"`
+	
+	// RAM Analysis Summary
+	AverageRAMPerServerRecord_MB   float64 `json:"avg_ram_per_server_record_mb"`
+	AverageRAMPerClientRecord_MB   float64 `json:"avg_ram_per_client_record_mb"`
+	PeakRAMUsed_MB                 float64 `json:"peak_ram_used_mb"`
+	RAMScalingFactor               float64 `json:"ram_scaling_factor"`
 }
 
 // Transaction represents a data record
@@ -123,55 +160,45 @@ func main() {
 	fmt.Println("=================================================\n")
 
 	// Define test cases for scalability analysis - ALL USING REAL DATABASE
+	// Memory-constrained tests (LE-PSI stores witnesses in RAM)
+	// Approx 32MB per server record + peak spikes during witness generation
+	// CONSERVATIVE LIMITS: H100 with 117GB available crashes at 1K records
+	// Likely cause: Peak memory spikes reach 50-60GB+ during witness generation
 	tests := []ScalabilityTest{
+		{
+			Name:           "Baseline",
+			ServerSize:     50,
+			ClientSize:     5,
+			OverlapPercent: 0.0, // Will be calculated from real data
+			Description:    "50 server records, 5 client queries (10%) - ~1.6GB RAM",
+		},
 		{
 			Name:           "Small-Scale",
 			ServerSize:     100,
 			ClientSize:     10,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "100 server records, 10 client queries (10%)",
+			Description:    "100 server records, 10 client queries (10%) - ~3GB RAM",
 		},
 		{
 			Name:           "Medium-Scale-1",
-			ServerSize:     1000,
-			ClientSize:     100,
+			ServerSize:     250,
+			ClientSize:     25,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "1K server records, 100 client queries (10%)",
+			Description:    "250 server records, 25 client queries (10%) - ~8GB RAM",
 		},
 		{
 			Name:           "Medium-Scale-2",
-			ServerSize:     10000,
-			ClientSize:     1000,
+			ServerSize:     500,
+			ClientSize:     50,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "10K server records, 1K client queries (10%)",
+			Description:    "500 server records, 50 client queries (10%) - ~16GB RAM",
 		},
 		{
-			Name:           "Large-Scale-1",
-			ServerSize:     50000,
-			ClientSize:     5000,
+			Name:           "Large-Scale",
+			ServerSize:     750,
+			ClientSize:     75,
 			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "50K server records, 5K client queries (10%)",
-		},
-		{
-			Name:           "Large-Scale-2",
-			ServerSize:     100000,
-			ClientSize:     10000,
-			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "100K server records, 10K client queries (10%)",
-		},
-		{
-			Name:           "Very-Large-Scale",
-			ServerSize:     500000,
-			ClientSize:     50000,
-			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "500K server records, 50K client queries (10%)",
-		},
-		{
-			Name:           "Max-Scale-Fraud-Detection",
-			ServerSize:     1000000,
-			ClientSize:     10000,
-			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "1M server transactions, 10K suspicious client queries (1% - realistic fraud detection)",
+			Description:    "750 server records, 75 client queries (10%) - ~24GB RAM (SAFE on H100)",
 		},
 	}
 
@@ -254,6 +281,14 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 
 	startTime := time.Now()
 
+	// Force GC before starting to get clean baseline
+	forceGC()
+	
+	// Track RAM: Baseline
+	baselineRAM := getCurrentRAM_MB()
+	result.RAMAnalysis.BaselineRAM_MB = baselineRAM
+	peakRAM := baselineRAM
+
 	// Load data from database ONLY - no synthetic data
 	serverData, clientData, expectedMatches := loadFromDatabase(test.ServerSize, test.ClientSize)
 	result.ServerDatasetSize = len(serverData)
@@ -262,6 +297,14 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	result.OverlapSize = expectedMatches
 	if result.ClientDatasetSize > 0 {
 		result.OverlapPercent = float64(expectedMatches) / float64(result.ClientDatasetSize) * 100
+	}
+
+	// Track RAM: After data load
+	afterDataLoadRAM := getCurrentRAM_MB()
+	result.RAMAnalysis.AfterDataLoadRAM_MB = afterDataLoadRAM
+	result.RAMAnalysis.DataLoadRAMDelta_MB = afterDataLoadRAM - baselineRAM
+	if afterDataLoadRAM > peakRAM {
+		peakRAM = afterDataLoadRAM
 	}
 
 	// Prepare data
@@ -280,7 +323,7 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	serverHashes := utils.HashDataPoints(serverStrings)
 	clientHashes := utils.HashDataPoints(clientStrings)
 
-	// Step 1: Server Initialization
+	// Step 1: Server Initialization (WITNESS GENERATION - MAIN RAM CONSUMER)
 	initStart := time.Now()
 	dbPath := fmt.Sprintf("test_%s.db", test.Name)
 	ctx, err := psi.ServerInitialize(serverHashes, dbPath)
@@ -289,6 +332,14 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 		return result
 	}
 	result.InitializationTime = time.Since(initStart)
+
+	// Track RAM: After server initialization (witnesses generated)
+	afterServerInitRAM := getCurrentRAM_MB()
+	result.RAMAnalysis.AfterServerInitRAM_MB = afterServerInitRAM
+	result.RAMAnalysis.ServerInitRAMDelta_MB = afterServerInitRAM - afterDataLoadRAM
+	if afterServerInitRAM > peakRAM {
+		peakRAM = afterServerInitRAM
+	}
 
 	// Clean up database after test
 	defer os.Remove(dbPath)
@@ -302,6 +353,14 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	ciphertexts := psi.ClientEncrypt(clientHashes, pp, msg, le)
 	result.EncryptionTime = time.Since(encStart)
 
+	// Track RAM: After encryption
+	afterEncryptionRAM := getCurrentRAM_MB()
+	result.RAMAnalysis.AfterEncryptionRAM_MB = afterEncryptionRAM
+	result.RAMAnalysis.EncryptionRAMDelta_MB = afterEncryptionRAM - afterServerInitRAM
+	if afterEncryptionRAM > peakRAM {
+		peakRAM = afterEncryptionRAM
+	}
+
 	// Step 3: Intersection Detection
 	intStart := time.Now()
 	matches, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
@@ -310,6 +369,12 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 		return result
 	}
 	result.IntersectionTime = time.Since(intStart)
+
+	// Track final RAM
+	finalRAM := getCurrentRAM_MB()
+	if finalRAM > peakRAM {
+		peakRAM = finalRAM
+	}
 
 	// Calculate metrics
 	result.TotalTime = time.Since(startTime)
@@ -324,6 +389,24 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	if result.TotalTime.Seconds() > 0 {
 		result.Throughput = float64(result.ClientDatasetSize) / result.TotalTime.Seconds()
 	}
+
+	// Finalize RAM analysis
+	result.RAMAnalysis.PeakRAM_MB = peakRAM
+	result.RAMAnalysis.TotalRAMDelta_MB = peakRAM - baselineRAM
+	
+	// Calculate per-record RAM metrics
+	if result.ServerDatasetSize > 0 {
+		result.RAMAnalysis.RAMPerServerRecord_MB = result.RAMAnalysis.ServerInitRAMDelta_MB / float64(result.ServerDatasetSize)
+	}
+	if result.ClientDatasetSize > 0 {
+		result.RAMAnalysis.RAMPerClientRecord_MB = result.RAMAnalysis.EncryptionRAMDelta_MB / float64(result.ClientDatasetSize)
+	}
+	
+	// Get system memory info
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	result.RAMAnalysis.SystemTotalRAM_MB = float64(m.Sys) / 1024 / 1024
+	result.RAMAnalysis.RAMUsagePercent = (peakRAM / result.RAMAnalysis.SystemTotalRAM_MB) * 100
 
 	// Estimate memory usage
 	result.MemoryEstimate = estimateMemoryUsage(
@@ -483,6 +566,19 @@ func collectGoRuntimeStats() GoStats {
 	return stats
 }
 
+// getCurrentRAM_MB returns current heap memory usage in MB
+func getCurrentRAM_MB() float64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return float64(m.HeapAlloc) / 1024 / 1024
+}
+
+// forceGC forces garbage collection and waits for it to complete
+func forceGC() {
+	runtime.GC()
+	time.Sleep(100 * time.Millisecond) // Give GC time to complete
+}
+
 func estimateMemoryUsage(ringDim, matrixSize, layers, datasetSize int) int64 {
 	// Rough memory estimation
 	polySize := int64(ringDim * 8) // 8 bytes per coefficient
@@ -504,6 +600,12 @@ func generateSummary(results []TestResult) Summary {
 	var fastestTest, slowestTest string
 	var maxDataset int
 	
+	// RAM analysis variables
+	var totalRAMPerServerRecord float64
+	var totalRAMPerClientRecord float64
+	var peakRAM float64
+	var ramRecordCount int
+	
 	successCount := 0
 	
 	for _, result := range results {
@@ -517,6 +619,18 @@ func generateSummary(results []TestResult) Summary {
 		totalAccuracy += result.Accuracy
 		totalThroughput += result.Throughput
 		totalExecTime += result.TotalTime
+		
+		// RAM analysis
+		if result.RAMAnalysis.RAMPerServerRecord_MB > 0 {
+			totalRAMPerServerRecord += result.RAMAnalysis.RAMPerServerRecord_MB
+			ramRecordCount++
+		}
+		if result.RAMAnalysis.RAMPerClientRecord_MB > 0 {
+			totalRAMPerClientRecord += result.RAMAnalysis.RAMPerClientRecord_MB
+		}
+		if result.RAMAnalysis.PeakRAM_MB > peakRAM {
+			peakRAM = result.RAMAnalysis.PeakRAM_MB
+		}
 		
 		if result.TotalTime < fastestTime {
 			fastestTime = result.TotalTime
@@ -536,6 +650,25 @@ func generateSummary(results []TestResult) Summary {
 	if successCount > 0 {
 		summary.AverageAccuracy = totalAccuracy / float64(successCount)
 		summary.AverageThroughput = totalThroughput / float64(successCount)
+	}
+	
+	// Calculate RAM averages
+	if ramRecordCount > 0 {
+		summary.AverageRAMPerServerRecord_MB = totalRAMPerServerRecord / float64(ramRecordCount)
+		summary.AverageRAMPerClientRecord_MB = totalRAMPerClientRecord / float64(ramRecordCount)
+	}
+	summary.PeakRAMUsed_MB = peakRAM
+	
+	// Calculate RAM scaling factor (MB per server record)
+	// This shows if RAM usage is linear with dataset size
+	if len(results) >= 2 && results[0].Success && results[len(results)-1].Success {
+		firstTest := results[0]
+		lastTest := results[len(results)-1]
+		if lastTest.ServerDatasetSize > firstTest.ServerDatasetSize {
+			ramDiff := lastTest.RAMAnalysis.PeakRAM_MB - firstTest.RAMAnalysis.PeakRAM_MB
+			sizeDiff := float64(lastTest.ServerDatasetSize - firstTest.ServerDatasetSize)
+			summary.RAMScalingFactor = ramDiff / sizeDiff
+		}
 	}
 	
 	summary.TotalExecutionTime = totalExecTime.String()
@@ -845,6 +978,8 @@ func generateHTMLReport(htmlPath, jsonPath string) error {
                 { label: 'Total Matches', value: data.summary.total_matches_found.toLocaleString() },
                 { label: 'Avg Accuracy', value: data.summary.average_accuracy.toFixed(2) + '%' },
                 { label: 'Avg Throughput', value: data.summary.average_throughput_ops_per_sec.toFixed(1) + ' ops/s' },
+                { label: 'Peak RAM', value: data.summary.peak_ram_used_mb.toFixed(1) + ' MB' },
+                { label: 'RAM/Record', value: data.summary.avg_ram_per_server_record_mb.toFixed(2) + ' MB' },
                 { label: 'Scalability Score', value: data.summary.scalability_score.toFixed(1) + '/100' }
             ];
 
@@ -900,8 +1035,16 @@ func generateHTMLReport(htmlPath, jsonPath string) error {
                     '<span class="metric-value">' + test.throughput_ops_per_sec.toFixed(1) + ' ops/s</span>' +
                 '</div>' +
                 '<div class="metric">' +
-                    '<span class="metric-label">Memory Est.</span>' +
-                    '<span class="metric-value">' + (test.memory_estimate_bytes / 1024 / 1024).toFixed(1) + ' MB</span>' +
+                    '<span class="metric-label">Peak RAM</span>' +
+                    '<span class="metric-value">' + test.ram_analysis.peak_ram_mb.toFixed(1) + ' MB</span>' +
+                '</div>' +
+                '<div class="metric">' +
+                    '<span class="metric-label">Server Init RAM</span>' +
+                    '<span class="metric-value">' + test.ram_analysis.server_init_ram_delta_mb.toFixed(1) + ' MB</span>' +
+                '</div>' +
+                '<div class="metric">' +
+                    '<span class="metric-label">RAM/Server Record</span>' +
+                    '<span class="metric-value">' + test.ram_analysis.ram_per_server_record_mb.toFixed(3) + ' MB</span>' +
                 '</div>' +
             '</div>';
             

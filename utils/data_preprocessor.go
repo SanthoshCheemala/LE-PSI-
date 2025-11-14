@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-// SerializeData converts ANY data type to a deterministic string
+// SerializeData converts any data type to a deterministic string representation.
 func SerializeData(data interface{}) (string, error) {
 	if data == nil {
 		return "", fmt.Errorf("cannot serialize nil data")
@@ -55,7 +55,6 @@ func serializeValue(val reflect.Value) (string, error) {
 		return serializeStruct(val)
 
 	default:
-		// Fallback to JSON
 		jsonBytes, err := json.Marshal(val.Interface())
 		if err != nil {
 			return "", fmt.Errorf("unsupported type %v: %w", val.Kind(), err)
@@ -141,16 +140,8 @@ func join(parts []string, sep string) string {
 	return result
 }
 
-// PrepareDataForPSI - THE MAIN FUNCTION
-// Takes ANY data type array, serializes and hashes each item
-// Returns the hashed values (preserving original indices)
-// The tree index calculation happens later in PSI server function
-//
-// Example:
-//   data := []interface{}{"alice@example.com", 123, map[string]string{"key": "val"}}
-//   hashedData, _ := PrepareDataForPSI(data)
-//   // hashedData = []string{"alice@example.com", "123", "{key:val}"}
-//   // You handle the rest (tree indexing happens in server)
+// PrepareDataForPSI converts any data type array to serialized strings.
+// Returns serialized representations preserving original indices.
 func PrepareDataForPSI(dataset []interface{}) ([]string, error) {
 	if len(dataset) == 0 {
 		return nil, fmt.Errorf("dataset is empty")
@@ -159,30 +150,22 @@ func PrepareDataForPSI(dataset []interface{}) ([]string, error) {
 	hashedData := make([]string, len(dataset))
 	
 	for i, data := range dataset {
-		// Serialize each data point to deterministic string
 		serialized, err := SerializeData(data)
 		if err != nil {
 			return nil, fmt.Errorf("error serializing item %d: %w", i, err)
 		}
-		
-		// Return the serialized string - you handle hashing/tree indexing
 		hashedData[i] = serialized
 	}
 
 	return hashedData, nil
 }
 
-// HashDataPoints takes serialized strings and hashes them using SHA-256
-// Returns raw uint64 hashes (before tree index masking)
-// You can apply tree index masking later based on layers
+// HashDataPoints converts serialized strings to uint64 hashes using SHA-256.
 func HashDataPoints(serializedData []string) []uint64 {
 	hashes := make([]uint64, len(serializedData))
 	
 	for i, data := range serializedData {
-		// Hash using SHA-256
 		hash := sha256.Sum256([]byte(data))
-		
-		// Extract first 8 bytes as uint64
 		hashes[i] = binary.BigEndian.Uint64(hash[:8])
 	}
 	
