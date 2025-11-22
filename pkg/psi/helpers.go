@@ -2,6 +2,8 @@ package psi
 
 import (
 	"fmt"
+	"log"
+	"math"
 	"os"
 
 	// "sort"
@@ -60,4 +62,56 @@ func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 	}
 	
 	return float64(matchCount)/float64(le.R.N) >= 0.95
+}
+
+// CalculateOptimalWorkers determines the optimal number of worker goroutines
+// based on dataset size, available RAM, and hardware constraints.
+func CalculateOptimalWorkers(datasetSize int) int {
+	// System constraints for dual-socket Intel Xeon Gold 5418Y
+	const (
+		availableRAM_GB  = 117.0 // Available RAM (251 GB total - 134 GB used)
+		memPerRecord_GB  = 0.035 // 35 MB per record (12 MB witness + 13 MB thread + 10 MB overhead)
+		safetyMargin     = 1.15  // 15% safety margin (reduced from 20% - more aggressive)
+		hardwareLimit    = 48    // Physical cores (24 per socket × 2 sockets)
+		practicalMinimum = 8     // Increased from 4 - better for multi-socket systems
+	)
+
+	estimatedMemory := float64(datasetSize) * memPerRecord_GB * safetyMargin
+	memoryLimit := hardwareLimit // Default to hardware limit
+	if estimatedMemory > availableRAM_GB*0.6 {
+		memoryLimit = int((availableRAM_GB * 0.85) / estimatedMemory * float64(hardwareLimit))
+	}
+
+	cacheLimit := hardwareLimit
+	if datasetSize > 100 {
+		// Scale up by 1.5× for better CPU utilization
+		cacheLimit = int(1.5 * math.Sqrt(float64(datasetSize)))
+		if cacheLimit > hardwareLimit {
+			cacheLimit = hardwareLimit
+		}
+		if cacheLimit < 16 {
+			cacheLimit = 16 // Increased from 8 - better for dual-socket NUMA
+		}
+	}
+
+	// Take the minimum of all constraints
+	optimal := memoryLimit
+	if cacheLimit < optimal {
+		optimal = cacheLimit
+	}
+	if hardwareLimit < optimal {
+		optimal = hardwareLimit
+	}
+
+	// Ensure practical minimum for performance
+	if optimal < practicalMinimum {
+		optimal = practicalMinimum
+	}
+
+	// Log the decision for monitoring and debugging
+	estimatedRAM_GB := float64(datasetSize) * memPerRecord_GB
+	log.Printf("🚀 Adaptive Threading (TUNED): %d records → %d workers (est. RAM: %.1f GB, memory limit: %d, cache limit: %d)",
+		datasetSize, optimal, estimatedRAM_GB, memoryLimit, cacheLimit)
+
+	return optimal
 }

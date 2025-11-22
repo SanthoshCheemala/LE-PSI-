@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"sync"
 	"time"
 
@@ -142,79 +141,6 @@ func DeserializeParameters(params *SerializableParams) (*matrix.Vector, *ring.Po
 	return ppVec, msgPoly, le, nil
 }
 
-// calculateOptimalWorkers returns the optimal number of worker threads based on dataset size.
-// This balances CPU utilization with memory constraints to prevent swapping.
-//
-// Algorithm:
-//  1. Memory constraint: Available RAM / (dataset_size × memory_per_record × safety_margin)
-//  2. Cache constraint: sqrt(dataset_size) capped at hardware limit (48 physical cores)
-//  3. Hardware constraint: 48 physical cores (Intel Xeon Gold 5418Y × 2 sockets)
-//  4. Returns minimum of all constraints, with practical minimum of 4 workers
-//
-// Examples:
-//   100 records  → 32 workers (cache optimal)
-//   500 records  → 22 workers (memory begins to constrain)
-//   1000 records → 16 workers (balanced)
-//   2000 records → 12 workers (memory constrained)
-//   4000 records → 8 workers (heavily memory constrained)
-func calculateOptimalWorkers(datasetSize int) int {
-	// System constraints for dual-socket Intel Xeon Gold 5418Y
-	const (
-		availableRAM_GB  = 117.0 // Available RAM (251 GB total - 134 GB used)
-		memPerRecord_GB  = 0.035 // 35 MB per record (12 MB witness + 13 MB thread + 10 MB overhead)
-		safetyMargin     = 1.15  // 15% safety margin (reduced from 20% - more aggressive)
-		hardwareLimit    = 48    // Physical cores (24 per socket × 2 sockets)
-		practicalMinimum = 8     // Increased from 4 - better for multi-socket systems
-	)
-
-	// Calculate memory-constrained limit (TUNED: More aggressive)
-	// Formula: available_memory / (records × memory_per_record × safety_margin)
-	// More records → less available memory per worker → fewer workers
-	estimatedMemory := float64(datasetSize) * memPerRecord_GB * safetyMargin
-	memoryLimit := hardwareLimit // Default to hardware limit
-	if estimatedMemory > availableRAM_GB*0.6 {
-		// Changed from 0.5 to 0.6 - allow using more RAM before scaling down
-		// Changed from 0.8 to 0.85 - utilize more available RAM
-		memoryLimit = int((availableRAM_GB * 0.85) / estimatedMemory * float64(hardwareLimit))
-	}
-
-	// Calculate cache efficiency limit (TUNED: More aggressive)
-	// Use 1.5×sqrt for better parallelism while maintaining cache efficiency
-	// L3 cache: 90 MB total, L2: 96 MB - can handle more parallel workers
-	cacheLimit := hardwareLimit
-	if datasetSize > 100 {
-		// Scale up by 1.5× for better CPU utilization
-		cacheLimit = int(1.5 * math.Sqrt(float64(datasetSize)))
-		if cacheLimit > hardwareLimit {
-			cacheLimit = hardwareLimit
-		}
-		if cacheLimit < 16 {
-			cacheLimit = 16 // Increased from 8 - better for dual-socket NUMA
-		}
-	}
-
-	// Take the minimum of all constraints
-	optimal := memoryLimit
-	if cacheLimit < optimal {
-		optimal = cacheLimit
-	}
-	if hardwareLimit < optimal {
-		optimal = hardwareLimit
-	}
-
-	// Ensure practical minimum for performance
-	if optimal < practicalMinimum {
-		optimal = practicalMinimum
-	}
-
-	// Log the decision for monitoring and debugging
-	estimatedRAM_GB := float64(datasetSize) * memPerRecord_GB
-	log.Printf("🚀 Adaptive Threading (TUNED): %d records → %d workers (est. RAM: %.1f GB, memory limit: %d, cache limit: %d)",
-		datasetSize, optimal, estimatedRAM_GB, memoryLimit, cacheLimit)
-
-	return optimal
-}
-
 func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitContext, error) {
 	monitor := NewPerformanceMonitor()
 
@@ -243,7 +169,7 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	hashedClient := make([]uint64, X_size)
 	keyGenStart := time.Now()
 
-	numWorkers := calculateOptimalWorkers(X_size)
+	numWorkers := CalculateOptimalWorkers(X_size)
 	if numWorkers > X_size {
 		numWorkers = X_size
 	}
@@ -283,6 +209,7 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	witnessChan := make(chan int, X_size)
 	var witnessWg sync.WaitGroup
 
+	numWorkers = CalculateOptimalWorkers(X_size)
 	for w := 0; w < numWorkers; w++ {
 		witnessWg.Add(1)
 		go func() {
@@ -324,7 +251,7 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 
 	X_size := len(ctx.OriginalHashes)
 
-	numWorkers := calculateOptimalWorkers(X_size)
+	numWorkers := CalculateOptimalWorkers(X_size)
 	if numWorkers > X_size {
 		numWorkers = X_size
 	}

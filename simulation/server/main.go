@@ -52,25 +52,46 @@ type IntersectionResponse struct {
 
 const serverDataFilePath = "../../data/server_data.json"
 
+type ServerEntity struct {
+	EntityID       string   `json:"entity_id"`
+	Name           string   `json:"name"`
+	Aliases        []string `json:"aliases"`
+	DOB            string   `json:"dob"`
+	Country        string   `json:"country"`
+	RiskLevel      string   `json:"risk_level"`
+	SanctionProgram string  `json:"sanction_program"`
+	SanctionDate   string   `json:"sanction_date"`
+	PassportNumber *string  `json:"passport_number"`
+	NationalID     *string  `json:"national_id"`
+	PSIKey         string   `json:"psi_key"`
+	PSIHash        string   `json:"psi_hash"`
+	LastUpdated    string   `json:"last_updated"`
+}
+
 func main() {
 	fmt.Println("=== LE-PSI Server Simulation ===")
 
-	// Load server dataset (generic JSON array)
-	items, err := loadArrayFromJSON(serverDataFilePath)
+	// Load server dataset with proper structure
+	entities, err := loadServerEntities(serverDataFilePath)
 	if err != nil {
 		log.Fatalf("failed to load server dataset from %s: %v", serverDataFilePath, err)
 	}
-	fmt.Printf("Server dataset size: %d items\n", len(items))
+	fmt.Printf("Server dataset size: %d items\n", len(entities))
 
-	// Use data as-is for PSI utils
-	serverData = items
-
-	serializedData, err := utils.PrepareDataForPSI(serverData)
-	if err != nil {
-		log.Fatal("Data preparation failed:", err)
+	// Extract PSI keys for hashing (matching generator logic)
+	psiKeys := make([]string, len(entities))
+	for i, entity := range entities {
+		psiKeys[i] = entity.PSIKey
 	}
 
-	serverHashes := utils.HashDataPoints(serializedData)
+	// Use data as-is for PSI utils
+	serverData = make([]interface{}, len(entities))
+	for i, e := range entities {
+		serverData[i] = e
+	}
+
+	// Hash the PSI keys (not the full JSON objects)
+	serverHashes := utils.HashDataPoints(psiKeys)
 
 	ctx, err := psi.ServerInitialize(serverHashes, "simulation_server.db")
 	if err != nil {
@@ -101,6 +122,19 @@ func loadArrayFromJSON(path string) ([]interface{}, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+// loadServerEntities loads server entities from JSON
+func loadServerEntities(path string) ([]ServerEntity, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var entities []ServerEntity
+	if err := json.Unmarshal(b, &entities); err != nil {
+		return nil, err
+	}
+	return entities, nil
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
