@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-LE-PSI Scalability Analysis - Graph Generator for Research Papers
+LE-PSI Scalability Analysis - Graph Generator for Research Papers (Optimized)
 
-This script reads the JSON output from scalability tests and generates
-publication-quality graphs suitable for inclusion in academic papers.
+Generates 7 essential publication-quality graphs + LaTeX table.
+Removed: scalability_score, go_runtime_analysis, go_memory_breakdown (redundant/too granular)
 
 Requirements:
-    pip install matplotlib numpy pandas
+    pip install matplotlib numpy
 
 Usage:
     python generate_graphs.py scalability_results/scalability_test_*.json
@@ -15,7 +15,6 @@ Usage:
 import json
 import sys
 import os
-from pathlib import Path
 
 try:
     import matplotlib.pyplot as plt
@@ -23,10 +22,10 @@ try:
     import numpy as np
 except ImportError:
     print("Error: Required packages not installed")
-    print("Please run: pip install matplotlib numpy pandas")
+    print("Please run: pip install matplotlib numpy")
     sys.exit(1)
 
-# Use a professional style
+# Professional style for research papers
 plt.style.use('seaborn-v0_8-paper' if 'seaborn-v0_8-paper' in plt.style.available else 'default')
 matplotlib.rcParams['font.size'] = 10
 matplotlib.rcParams['figure.dpi'] = 300
@@ -42,7 +41,7 @@ def plot_execution_time_vs_dataset_size(data, output_dir):
     
     server_sizes = [t['server_dataset_size'] for t in successful_tests]
     client_sizes = [t['client_dataset_size'] for t in successful_tests]
-    times = [t['total_time_ns'] / 1e9 for t in successful_tests]  # Convert to seconds
+    times = [t['total_time_ns'] / 1e9 for t in successful_tests]
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
     
@@ -88,11 +87,10 @@ def plot_throughput_analysis(data, output_dir):
     ax.set_xticklabels(test_names, rotation=45, ha='right')
     ax.grid(True, alpha=0.3, axis='y')
     
-    # Add value labels on bars
     for bar in bars:
         height = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2., height,
-                f'{height:.1f}',
+                f'{height:.2f}',
                 ha='center', va='bottom', fontsize=9)
     
     plt.tight_layout()
@@ -122,7 +120,6 @@ def plot_accuracy_analysis(data, output_dir):
     ax.grid(True, alpha=0.3, axis='y')
     ax.legend()
     
-    # Add value labels
     for bar in bars:
         height = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2., height,
@@ -170,7 +167,7 @@ def plot_time_breakdown(data, output_dir):
     plt.close()
 
 def plot_memory_usage(data, output_dir):
-    """Plot actual RAM usage analysis"""
+    """Plot RAM usage with linear scaling trend"""
     successful_tests = [t for t in data['test_results'] if t['success']]
     
     dataset_sizes = [t['server_dataset_size'] for t in successful_tests]
@@ -179,24 +176,23 @@ def plot_memory_usage(data, output_dir):
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
     
-    # Plot 1: Peak RAM usage
+    # Plot 1: Peak RAM with trend line
     ax1.plot(dataset_sizes, peak_ram, 'o-', linewidth=2, markersize=8, color='#9b59b6', label='Peak RAM')
     ax1.plot(dataset_sizes, server_init_ram, 's-', linewidth=2, markersize=8, color='#e74c3c', label='Server Init RAM')
+    
+    if len(dataset_sizes) > 1:
+        z = np.polyfit(dataset_sizes, peak_ram, 1)
+        p = np.poly1d(z)
+        ax1.plot(dataset_sizes, p(dataset_sizes), "--", alpha=0.5, color='purple',
+                label=f'Linear fit: {z[0]:.3f} MB/record')
+    
     ax1.set_xlabel('Server Dataset Size (records)', fontweight='bold')
     ax1.set_ylabel('RAM Usage (MB)', fontweight='bold')
     ax1.set_title('RAM Consumption vs Dataset Size')
     ax1.grid(True, alpha=0.3)
     ax1.legend()
     
-    # Add linear trend line for peak RAM
-    if len(dataset_sizes) > 1:
-        z = np.polyfit(dataset_sizes, peak_ram, 1)
-        p = np.poly1d(z)
-        ax1.plot(dataset_sizes, p(dataset_sizes), "--", alpha=0.5, color='purple',
-                label=f'Linear fit: {z[0]:.3f}*n + {z[1]:.1f}')
-        ax1.legend()
-    
-    # Plot 2: RAM per record
+    # Plot 2: RAM per record efficiency
     ram_per_record = [t['ram_analysis']['ram_per_server_record_mb'] for t in successful_tests]
     ax2.bar(range(len(dataset_sizes)), ram_per_record, color='#3498db', alpha=0.8)
     ax2.set_xlabel('Test Case', fontweight='bold')
@@ -206,7 +202,6 @@ def plot_memory_usage(data, output_dir):
     ax2.set_xticklabels([f'{s}' for s in dataset_sizes], rotation=45)
     ax2.grid(True, alpha=0.3, axis='y')
     
-    # Add average line
     avg_ram_per_record = np.mean(ram_per_record)
     ax2.axhline(y=avg_ram_per_record, color='red', linestyle='--', alpha=0.7,
                 label=f'Avg: {avg_ram_per_record:.3f} MB/record')
@@ -220,7 +215,7 @@ def plot_memory_usage(data, output_dir):
     plt.close()
 
 def plot_ram_breakdown(data, output_dir):
-    """Plot RAM breakdown by stage"""
+    """Plot RAM breakdown by PSI stage"""
     successful_tests = [t for t in data['test_results'] if t['success']]
     
     test_names = [t['test_name'] for t in successful_tests]
@@ -260,7 +255,7 @@ def plot_ram_breakdown(data, output_dir):
     plt.close()
 
 def plot_ram_scaling_analysis(data, output_dir):
-    """Plot RAM scaling factor analysis"""
+    """Plot RAM scaling with R² regression analysis"""
     successful_tests = [t for t in data['test_results'] if t['success']]
     
     dataset_sizes = [t['server_dataset_size'] for t in successful_tests]
@@ -268,9 +263,9 @@ def plot_ram_scaling_analysis(data, output_dir):
     
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    ax.scatter(dataset_sizes, total_ram_delta, s=100, alpha=0.6, color='#e74c3c', edgecolors='black', linewidth=1)
+    ax.scatter(dataset_sizes, total_ram_delta, s=100, alpha=0.6, color='#e74c3c', 
+               edgecolors='black', linewidth=1)
     
-    # Fit and plot linear regression
     if len(dataset_sizes) > 1:
         z = np.polyfit(dataset_sizes, total_ram_delta, 1)
         p = np.poly1d(z)
@@ -281,7 +276,7 @@ def plot_ram_scaling_analysis(data, output_dir):
         y_mean = np.mean(total_ram_delta)
         ss_tot = np.sum((np.array(total_ram_delta) - y_mean) ** 2)
         ss_res = np.sum((np.array(total_ram_delta) - p(dataset_sizes)) ** 2)
-        r_squared = 1 - (ss_res / ss_tot)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         
         ax.text(0.05, 0.95, f'R² = {r_squared:.4f}\nRAM Scaling: {z[0]:.3f} MB/record', 
                 transform=ax.transAxes, fontsize=11, verticalalignment='top',
@@ -295,160 +290,6 @@ def plot_ram_scaling_analysis(data, output_dir):
     
     plt.tight_layout()
     output_file = os.path.join(output_dir, 'ram_scaling_factor.pdf')
-    plt.savefig(output_file, bbox_inches='tight')
-    plt.savefig(output_file.replace('.pdf', '.png'), bbox_inches='tight')
-    print(f"✓ Saved: {output_file}")
-    plt.close()
-
-def plot_scalability_score(data, output_dir):
-    """Plot overall scalability metrics"""
-    summary = data['summary']
-    
-    metrics = {
-        'Avg Accuracy': summary['average_accuracy'],
-        'Avg Throughput\n(normalized)': min(summary['average_throughput_ops_per_sec'] * 10, 100),
-        'Dataset Scale\n(normalized)': min(summary['largest_dataset_tested'] / 200, 100),
-        'Overall Score': summary['scalability_score']
-    }
-    
-    fig, ax = plt.subplots(figsize=(8, 6))
-    
-    bars = ax.bar(range(len(metrics)), list(metrics.values()), 
-                   color=['#2ecc71', '#3498db', '#e74c3c', '#f39c12'], alpha=0.8)
-    ax.set_ylabel('Score (0-100)', fontweight='bold')
-    ax.set_title('LE-PSI Scalability Metrics', fontweight='bold', fontsize=14)
-    ax.set_xticks(range(len(metrics)))
-    ax.set_xticklabels(list(metrics.keys()))
-    ax.set_ylim([0, 105])
-    ax.grid(True, alpha=0.3, axis='y')
-    
-    # Add value labels
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height,
-                f'{height:.1f}',
-                ha='center', va='bottom', fontsize=10, fontweight='bold')
-    
-    plt.tight_layout()
-    output_file = os.path.join(output_dir, 'scalability_score.pdf')
-    plt.savefig(output_file, bbox_inches='tight')
-    plt.savefig(output_file.replace('.pdf', '.png'), bbox_inches='tight')
-    print(f"✓ Saved: {output_file}")
-    plt.close()
-
-def plot_go_runtime_analysis(data, output_dir):
-    """Plot Go runtime performance metrics"""
-    successful_tests = [t for t in data['test_results'] if t['success'] and 'go_runtime_stats' in t]
-    
-    if not successful_tests:
-        print("⚠ No Go runtime statistics available, skipping Go runtime graphs")
-        return
-    
-    test_names = [t['test_name'] for t in successful_tests]
-    dataset_sizes = [t['server_dataset_size'] for t in successful_tests]
-    
-    # Memory usage comparison
-    heap_alloc = [t['go_runtime_stats']['heap_alloc_mb'] for t in successful_tests]
-    system_mem = [t['go_runtime_stats']['system_memory_mb'] for t in successful_tests]
-    
-    # GC statistics
-    num_gc = [t['go_runtime_stats']['num_gc'] for t in successful_tests]
-    gc_cpu = [t['go_runtime_stats']['gc_cpu_percentage'] for t in successful_tests]
-    
-    # Goroutines
-    goroutines = [t['go_runtime_stats']['num_goroutines'] for t in successful_tests]
-    
-    # Create a 2x2 subplot
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # 1. Memory Usage
-    ax1.plot(dataset_sizes, heap_alloc, 'o-', linewidth=2, markersize=6, label='Heap Allocated', color='#3498db')
-    ax1.plot(dataset_sizes, system_mem, 's-', linewidth=2, markersize=6, label='System Memory', color='#e74c3c')
-    ax1.set_xlabel('Dataset Size (records)', fontweight='bold')
-    ax1.set_ylabel('Memory (MB)', fontweight='bold')
-    ax1.set_title('Go Memory Usage Across Dataset Sizes')
-    ax1.set_xscale('log')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # 2. Garbage Collection
-    ax2_twin = ax2.twinx()
-    bars = ax2.bar(range(len(test_names)), num_gc, alpha=0.7, color='#9b59b6', label='GC Runs')
-    line = ax2_twin.plot(range(len(test_names)), gc_cpu, 'ro-', linewidth=2, markersize=8, label='GC CPU %')
-    ax2.set_xlabel('Test Case', fontweight='bold')
-    ax2.set_ylabel('Number of GC Runs', fontweight='bold', color='#9b59b6')
-    ax2_twin.set_ylabel('GC CPU Percentage', fontweight='bold', color='red')
-    ax2.set_title('Garbage Collection Performance')
-    ax2.set_xticks(range(len(test_names)))
-    ax2.set_xticklabels(test_names, rotation=45, ha='right')
-    ax2.tick_params(axis='y', labelcolor='#9b59b6')
-    ax2_twin.tick_params(axis='y', labelcolor='red')
-    ax2.grid(True, alpha=0.3)
-    
-    # 3. Goroutine Usage
-    ax3.bar(range(len(test_names)), goroutines, color='#2ecc71', alpha=0.8)
-    ax3.set_xlabel('Test Case', fontweight='bold')
-    ax3.set_ylabel('Number of Goroutines', fontweight='bold')
-    ax3.set_title('Goroutine Concurrency Usage')
-    ax3.set_xticks(range(len(test_names)))
-    ax3.set_xticklabels(test_names, rotation=45, ha='right')
-    ax3.grid(True, alpha=0.3, axis='y')
-    
-    # Add value labels
-    for i, v in enumerate(goroutines):
-        ax3.text(i, v, str(v), ha='center', va='bottom', fontweight='bold')
-    
-    # 4. Memory Efficiency (Heap per Record)
-    mem_per_record = [heap_alloc[i] * 1024 / dataset_sizes[i] for i in range(len(successful_tests))]
-    ax4.plot(dataset_sizes, mem_per_record, 'o-', linewidth=2, markersize=8, color='#f39c12')
-    ax4.set_xlabel('Dataset Size (records)', fontweight='bold')
-    ax4.set_ylabel('Memory per Record (KB)', fontweight='bold')
-    ax4.set_title('Memory Efficiency - Heap per Record')
-    ax4.set_xscale('log')
-    ax4.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    output_file = os.path.join(output_dir, 'go_runtime_analysis.pdf')
-    plt.savefig(output_file, bbox_inches='tight')
-    plt.savefig(output_file.replace('.pdf', '.png'), bbox_inches='tight')
-    print(f"✓ Saved: {output_file}")
-    plt.close()
-
-def plot_go_memory_breakdown(data, output_dir):
-    """Plot detailed Go memory breakdown"""
-    successful_tests = [t for t in data['test_results'] if t['success'] and 'go_runtime_stats' in t]
-    
-    if not successful_tests:
-        return
-    
-    test_names = [t['test_name'] for t in successful_tests]
-    
-    # Memory components
-    heap_alloc = [t['go_runtime_stats']['heap_alloc_mb'] for t in successful_tests]
-    heap_idle = [t['go_runtime_stats']['heap_idle_mb'] for t in successful_tests]
-    heap_inuse = [t['go_runtime_stats']['heap_inuse_mb'] for t in successful_tests]
-    stack_inuse = [t['go_runtime_stats']['stack_inuse_mb'] for t in successful_tests]
-    
-    fig, ax = plt.subplots(figsize=(12, 6))
-    
-    x = np.arange(len(test_names))
-    width = 0.2
-    
-    bars1 = ax.bar(x - 1.5*width, heap_alloc, width, label='Heap Allocated', color='#3498db', alpha=0.8)
-    bars2 = ax.bar(x - 0.5*width, heap_inuse, width, label='Heap In Use', color='#e74c3c', alpha=0.8)
-    bars3 = ax.bar(x + 0.5*width, heap_idle, width, label='Heap Idle', color='#2ecc71', alpha=0.8)
-    bars4 = ax.bar(x + 1.5*width, stack_inuse, width, label='Stack In Use', color='#f39c12', alpha=0.8)
-    
-    ax.set_xlabel('Test Case', fontweight='bold')
-    ax.set_ylabel('Memory (MB)', fontweight='bold')
-    ax.set_title('Go Memory Breakdown by Component')
-    ax.set_xticks(x)
-    ax.set_xticklabels(test_names, rotation=45, ha='right')
-    ax.legend()
-    ax.grid(True, alpha=0.3, axis='y')
-    
-    plt.tight_layout()
-    output_file = os.path.join(output_dir, 'go_memory_breakdown.pdf')
     plt.savefig(output_file, bbox_inches='tight')
     plt.savefig(output_file.replace('.pdf', '.png'), bbox_inches='tight')
     print(f"✓ Saved: {output_file}")
@@ -499,59 +340,48 @@ def main():
         print(f"Error: File not found: {json_file}")
         sys.exit(1)
     
-    print("=================================================")
-    print("  LE-PSI Scalability Graph Generator")
-    print("=================================================\n")
+    print("=" * 65)
+    print("  LE-PSI Scalability Graph Generator (Optimized)")
+    print("=" * 65 + "\n")
     
-    # Load data
     print(f"Loading data from: {json_file}")
     data = load_test_data(json_file)
     
-    # Create output directory
     output_dir = os.path.join(os.path.dirname(json_file), 'graphs')
     os.makedirs(output_dir, exist_ok=True)
     print(f"Output directory: {output_dir}\n")
     
-    # Generate all graphs
-    print("Generating graphs...")
+    print("Generating core performance graphs...")
     plot_execution_time_vs_dataset_size(data, output_dir)
     plot_throughput_analysis(data, output_dir)
     plot_accuracy_analysis(data, output_dir)
     plot_time_breakdown(data, output_dir)
-    plot_memory_usage(data, output_dir)
-    plot_scalability_score(data, output_dir)
     
-    # Generate RAM analysis graphs
-    print("\nGenerating RAM analysis...")
+    print("\nGenerating memory analysis graphs...")
+    plot_memory_usage(data, output_dir)
     plot_ram_breakdown(data, output_dir)
     plot_ram_scaling_analysis(data, output_dir)
     
-    # Generate Go runtime analysis graphs
-    print("\nGenerating Go runtime analysis...")
-    plot_go_runtime_analysis(data, output_dir)
-    plot_go_memory_breakdown(data, output_dir)
-    
-    # Generate LaTeX table
     print("\nGenerating LaTeX table...")
     generate_latex_table(data, output_dir)
     
-    print("\n=================================================")
-    print("  All graphs generated successfully!")
+    print("\n" + "=" * 65)
+    print("  ✓ All graphs generated successfully!")
     print(f"  Location: {output_dir}/")
-    print("=================================================")
-    print("\nGenerated files:")
-    print("  - execution_time_scaling.pdf/png")
-    print("  - throughput_analysis.pdf/png")
-    print("  - accuracy_analysis.pdf/png")
-    print("  - time_breakdown.pdf/png")
-    print("  - memory_usage.pdf/png (RAM analysis)")
-    print("  - ram_breakdown_stages.pdf/png (RAM by stage)")
-    print("  - ram_scaling_factor.pdf/png (RAM scaling)")
-    print("  - scalability_score.pdf/png")
-    print("  - go_runtime_analysis.pdf/png (Go performance)")
-    print("  - go_memory_breakdown.pdf/png (Go memory)")
-    print("  - performance_table.tex")
-    print("\nThese files are ready for inclusion in your research paper!")
+    print("=" * 65)
+    print("\nGenerated 7 graphs + 1 table (research paper ready):")
+    print("  1. execution_time_scaling.pdf/png   - Time vs dataset size (log-log)")
+    print("  2. throughput_analysis.pdf/png      - Operations/second")
+    print("  3. accuracy_analysis.pdf/png        - PSI correctness validation")
+    print("  4. time_breakdown.pdf/png           - Phase analysis (Init/Encrypt/Intersect)")
+    print("  5. memory_usage.pdf/png             - RAM consumption + efficiency")
+    print("  6. ram_breakdown_stages.pdf/png     - RAM by PSI stage (stacked)")
+    print("  7. ram_scaling_factor.pdf/png       - Linear regression with R²")
+    print("  8. performance_table.tex            - LaTeX table")
+    print("\nRemoved redundant graphs:")
+    print("  ✗ scalability_score (synthetic normalized metrics)")
+    print("  ✗ go_runtime_analysis (Go GC/goroutine implementation details)")
+    print("  ✗ go_memory_breakdown (Go heap idle/inuse granularity)")
 
 if __name__ == "__main__":
     main()
