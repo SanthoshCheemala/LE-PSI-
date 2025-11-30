@@ -3,6 +3,7 @@ package matrix
 import (
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/tuneinsight/lattigo/v3/ring"
@@ -199,11 +200,16 @@ func (vec1 *Vector) GInv(r *ring.Ring) (vec2 *Vector) {
 
 /*
 GInvMNTT computes -G^{-1}(x) = y on a given vector x, then outputs it in NTT form
+Optimized: Inlined bit decomposition, bitwise operations, and parallel NTT
 */
 func (vec1 *Vector) GInvMNTT(r *ring.Ring) (vec2 *Vector) {
 	n := len(vec1.Elements)
 	m := n * 58
 	vec2 = NewVector(m, r)
+	
+	// Pre-compute modulus minus 1 for faster access
+	modMinus1 := r.Modulus[0] - 1
+	
 	for i := 0; i < n; i++ {
 		// Ensure we don't exceed the actual coefficient array size
 		maxCoeffs := len(vec1.Elements[i].Coeffs[0])
@@ -213,21 +219,48 @@ func (vec1 *Vector) GInvMNTT(r *ring.Ring) (vec2 *Vector) {
 		}
 		
 		for j := 0; j < maxJ; j++ {
-			binCoeffs := CoeffToBin(vec1.Elements[i].Coeffs[0][j])
+			// Optimized: Inline CoeffToBin with bitwise operations
+			// This avoids allocating a new slice for every coefficient
+			val := vec1.Elements[i].Coeffs[0][j]
+			
 			for k := 0; k < 58; k++ {
 				if i*58+k < len(vec2.Elements) { // Additional bounds check
-					if binCoeffs[k] == 0 {
+					// Check k-th bit directly using bitwise AND
+					if (val & 1) == 0 {
 						vec2.Elements[i*58+k].Coeffs[0][j] = 0
 					} else {
-						vec2.Elements[i*58+k].Coeffs[0][j] = r.Modulus[0] - 1
+						vec2.Elements[i*58+k].Coeffs[0][j] = modMinus1
 					}
+					// Shift right for next bit
+					val >>= 1
 				}
 			}
 		}
 	}
-	for i := 0; i < m; i++ {
-		r.NTT(vec2.Elements[i], vec2.Elements[i])
+	
+	// Optimized: Parallel NTT transformation
+	var wg sync.WaitGroup
+	chunkSize := (m + 95) / 96 // Distribute across ~96 cores
+	if chunkSize < 1 {
+		chunkSize = 1
 	}
+	
+	for i := 0; i < m; i += chunkSize {
+		end := i + chunkSize
+		if end > m {
+			end = m
+		}
+		
+		wg.Add(1)
+		go func(start, stop int) {
+			defer wg.Done()
+			for k := start; k < stop; k++ {
+				r.NTT(vec2.Elements[k], vec2.Elements[k])
+			}
+		}(i, end)
+	}
+	wg.Wait()
+	
 	return vec2
 }
 

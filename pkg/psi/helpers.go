@@ -1,3 +1,42 @@
+// Package psi implements Private Set Intersection (PSI) using Lattice Encryption.
+//
+// This package provides a complete implementation of privacy-preserving set intersection
+// based on lattice-based cryptography. It allows two parties (server and client) to
+// compute the intersection of their private datasets without revealing non-matching elements.
+//
+// Basic Usage:
+//
+//  1. Server Setup:
+//     serverData := []uint64{100, 200, 300, 400}
+//     ctx, err := psi.ServerInitialize(serverData, "./tree.db")
+//     if err != nil {
+//     log.Fatal(err)
+//     }
+//     defer ctx.Cleanup()
+//
+//  2. Share Public Parameters (server → client):
+//     pp, msg, le := psi.GetPublicParameters(ctx)
+//     // Transmit pp, msg, le to client
+//
+//  3. Client Encryption:
+//     clientData := []uint64{150, 200, 250}
+//     ciphertexts := psi.ClientEncrypt(clientData, pp, msg, le)
+//     // Send ciphertexts to server
+//
+//  4. Server Computes Intersection:
+//     intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
+//     // intersection = [200] (common element)
+//
+// Security:
+//   - Based on Ring Learning With Errors (Ring-LWE) hardness assumption
+//   - 128-bit security level with ring dimension D=256
+//   - Server learns only the intersection (privacy-preserving)
+//   - Client reveals nothing about non-matching elements
+//
+// Performance:
+//   - Parallel processing with automatic worker optimization
+//   - Witness tree data structure for O(log n) lookup
+//   - Optimized for datasets ranging from 100 to 100,000+ elements
 package psi
 
 import (
@@ -15,6 +54,16 @@ import (
 // VerboseMode controls detailed logging output. Set PSI_VERBOSE=false to suppress.
 var VerboseMode = os.Getenv("PSI_VERBOSE") == "false"
 
+// Cxtx represents an encrypted ciphertext structure for PSI operations.
+// It contains the components of a lattice-based encryption of a single data element.
+//
+// Fields:
+//   - C0: Vector of encrypted path components (first part of dual ciphertext)
+//   - C1: Vector of encrypted path components (second part of dual ciphertext)
+//   - C: Compressed vector representation for efficient transmission
+//   - D: Polynomial component for message encoding
+//
+// This structure is produced by ClientEncrypt and consumed by DetectIntersectionWithContext.
 type Cxtx struct {
 	C0 []*matrix.Vector
 	C1 []*matrix.Vector
@@ -23,6 +72,17 @@ type Cxtx struct {
 }
 
 // ReduceToTreeIndex reduces a hash value to a tree index based on the number of layers.
+// This function maps raw hash values to valid tree indices for witness tree lookup.
+//
+// Parameters:
+//   - rawHash: Raw 64-bit hash value of the data element
+//   - layers: Number of layers in the witness tree
+//
+// Returns:
+//   - uint64: Tree index (masked hash value) in range [0, 2^layers - 1]
+//
+// Example:
+//   treeIdx := psi.ReduceToTreeIndex(12345678, 10)  // Returns index in [0, 1023]
 func ReduceToTreeIndex(rawHash uint64, layers int) uint64 {
 	var mask uint64
 	bits := uint(layers)
@@ -35,7 +95,17 @@ func ReduceToTreeIndex(rawHash uint64, layers int) uint64 {
 }
 
 // CorrectnessCheck verifies decryption correctness using threshold-based matching.
-// Returns true if at least 95% of coefficients match.
+// Returns true if at least 95% of coefficients match between decrypted and original.
+//
+// Parameters:
+//   - decrypted: Polynomial resulting from decryption
+//   - original: Original plaintext polynomial
+//   - le: Lattice encryption parameters for modulus Q and ring R
+//
+// Returns:
+//   - bool: true if match rate >= 95%, false otherwise
+//
+// Note: Enables verbose logging with PSI_VERBOSE=false environment variable
 func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 	q14 := le.Q / 4
 	q34 := (le.Q / 4) * 3
@@ -66,6 +136,21 @@ func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 
 // CalculateOptimalWorkers determines the optimal number of worker goroutines
 // based on dataset size, available RAM, and hardware constraints.
+//
+// Parameters:
+//   - datasetSize: Number of elements to process
+//
+// Returns:
+//   - int: Optimal number of worker goroutines (between 8 and 48)
+//
+// The function considers:
+//   - Available RAM (117 GB out of 251 GB total)
+//   - Memory per record (~35 MB)
+//   - Hardware limit (48 physical cores on dual-socket Xeon Gold 5418Y)
+//   - Cache optimization for datasets > 100 elements
+//
+// Example:
+//   workers := psi.CalculateOptimalWorkers(5000)  // Returns ~32 workers
 func CalculateOptimalWorkers(datasetSize int) int {
 	// System constraints for dual-socket Intel Xeon Gold 5418Y
 	const (

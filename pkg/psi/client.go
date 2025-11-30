@@ -10,6 +10,23 @@ import (
 	"github.com/tuneinsight/lattigo/v3/utils"
 )
 
+// ClientEncrypt encrypts the client's private dataset using the server's public parameters.
+// This is the main function clients should use for PSI encryption.
+//
+// Parameters:
+//   - private_set_Y: Client's private dataset (slice of uint64 values)
+//   - pp: Public parameter matrix received from server
+//   - msg: Message polynomial received from server
+//   - le: Lattice encryption parameters received from server
+//
+// Returns:
+//   - []Cxtx: Slice of encrypted ciphertexts, one per element in private_set_Y
+//
+// Example:
+//   clientData := []uint64{150, 200, 250}
+//   pp, msg, le := psi.GetPublicParameters(serverCtx)
+//   ciphertexts := psi.ClientEncrypt(clientData, pp, msg, le)
+//   // Send ciphertexts to server for intersection detection
 func ClientEncrypt(private_set_Y []uint64, pp *matrix.Vector, msg *ring.Poly, le *LE.LE) []Cxtx {
 	return Client(private_set_Y, pp, msg, le)
 }

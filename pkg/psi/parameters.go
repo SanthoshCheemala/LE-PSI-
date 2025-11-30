@@ -7,6 +7,24 @@ import (
 	"github.com/SanthoshCheemala/LE-PSI/pkg/LE"
 )
 
+// SetupLEParameters initializes the Lattice Encryption parameters for PSI operations.
+// It configures the cryptographic parameters based on the expected dataset size.
+//
+// Parameters:
+//   - size: The expected size of the dataset (number of elements in the private set)
+//
+// Returns:
+//   - *LE.LE: Configured lattice encryption parameters including:
+//     - Ring dimension (D=256), modulus (Q), matrix dimension (N=4)
+//     - Number of layers computed to minimize collisions
+//     - Load factor and collision probability estimates
+//   - error: Returns error if ring dimension is unsupported or initialization fails
+//
+// Example:
+//   leParams, err := psi.SetupLEParameters(1000)
+//   if err != nil {
+//       log.Fatal(err)
+//   }
 func SetupLEParameters(size int) (*LE.LE, error) {
 	Q := uint64(180143985094819841)
 	qBits := 58

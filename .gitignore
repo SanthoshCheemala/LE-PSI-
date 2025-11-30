@@ -4,6 +4,10 @@ data/
 !data/*.json
 !data/**/*.json
 
+# Ignore simulation and scalability test directories
+simulation/
+scalability_tests/
+
 # Database files
 *.db
 simulation_server.db

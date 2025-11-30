@@ -79,6 +79,112 @@ func (pm *PerformanceMonitor) PrintReport(verbose ...bool) {
 	fmt.Println("==================================================")
 }
 
+// GetTotalTime returns the total execution time since monitor creation.
+// This is useful for tracking overall PSI operation duration.
+//
+// Returns:
+//   - time.Duration: Elapsed time since the monitor was created
+//
+// Example:
+//   monitor := psi.NewPerformanceMonitor()
+//   // ... perform operations ...
+//   totalTime := monitor.GetTotalTime()
+//   fmt.Printf("Total time: %v\n", totalTime)
+func (pm *PerformanceMonitor) GetTotalTime() time.Duration {
+	return time.Since(pm.StartTime)
+}
+
+// GetThroughput returns operations per second based on total operations and elapsed time.
+// Returns 0 if no time has elapsed or no operations have been recorded.
+//
+// Returns:
+//   - float64: Operations per second (ops/sec)
+//
+// Example:
+//   monitor := psi.NewPerformanceMonitor()
+//   monitor.TotalOperations = 1000
+//   throughput := monitor.GetThroughput()
+//   fmt.Printf("Throughput: %.2f ops/sec\n", throughput)
+func (pm *PerformanceMonitor) GetThroughput() float64 {
+	totalTime := time.Since(pm.StartTime)
+	if totalTime.Seconds() == 0 || pm.TotalOperations == 0 {
+		return 0
+	}
+	return float64(pm.TotalOperations) / totalTime.Seconds()
+}
+
+// GetMetrics returns all performance metrics as a frontend-friendly map.
+// This includes timing breakdowns, percentages, throughput, and worker information.
+//
+// Returns:
+//   - map[string]interface{}: Comprehensive metrics including:
+//     - total_time_seconds, total_time_formatted
+//     - key_gen_time_seconds, key_gen_time_formatted, key_gen_percent
+//     - hashing_time_seconds, hashing_time_formatted, hashing_percent
+//     - witness_time_seconds, witness_time_formatted, witness_percent
+//     - intersection_time_seconds, intersection_time_formatted, intersection_percent
+//     - num_workers, total_operations, throughput_ops_per_sec
+//
+// Example:
+//   metrics := monitor.GetMetrics()
+//   json.Marshal(metrics) // Send to frontend
+func (pm *PerformanceMonitor) GetMetrics() map[string]interface{} {
+	totalTime := time.Since(pm.StartTime)
+	
+	metrics := map[string]interface{}{
+		"total_time_seconds":       totalTime.Seconds(),
+		"total_time_formatted":     totalTime.String(),
+		"key_gen_time_seconds":     pm.KeyGenTime.Seconds(),
+		"key_gen_time_formatted":   pm.KeyGenTime.String(),
+		"hashing_time_seconds":     pm.HashingTime.Seconds(),
+		"hashing_time_formatted":   pm.HashingTime.String(),
+		"witness_time_seconds":     pm.WitnessTime.Seconds(),
+		"witness_time_formatted":   pm.WitnessTime.String(),
+		"intersection_time_seconds": pm.IntersectionTime.Seconds(),
+		"intersection_time_formatted": pm.IntersectionTime.String(),
+		"num_workers":              pm.NumWorkers,
+		"total_operations":         pm.TotalOperations,
+		"throughput_ops_per_sec":   pm.GetThroughput(),
+	}
+	
+	// Add percentages
+	if totalTime.Seconds() > 0 {
+		metrics["key_gen_percent"] = (pm.KeyGenTime.Seconds() / totalTime.Seconds()) * 100
+		metrics["hashing_percent"] = (pm.HashingTime.Seconds() / totalTime.Seconds()) * 100
+		metrics["witness_percent"] = (pm.WitnessTime.Seconds() / totalTime.Seconds()) * 100
+		metrics["intersection_percent"] = (pm.IntersectionTime.Seconds() / totalTime.Seconds()) * 100
+	}
+	
+	return metrics
+}
+
+// GetMemoryUsage returns current memory statistics from Go runtime.
+// Useful for monitoring resource consumption during PSI operations.
+//
+// Returns:
+//   - map[string]interface{}: Memory metrics including:
+//     - alloc_mb: Currently allocated memory in MB
+//     - total_alloc_mb: Total allocated memory (cumulative) in MB
+//     - sys_mb: Memory obtained from OS in MB
+//     - num_gc: Number of completed garbage collection cycles
+//     - goroutines: Current number of goroutines
+//
+// Example:
+//   memStats := monitor.GetMemoryUsage()
+//   fmt.Printf("Memory usage: %.2f MB\n", memStats["alloc_mb"])
+func (pm *PerformanceMonitor) GetMemoryUsage() map[string]interface{} {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	
+	return map[string]interface{}{
+		"alloc_mb":       float64(m.Alloc) / 1024 / 1024,
+		"total_alloc_mb": float64(m.TotalAlloc) / 1024 / 1024,
+		"sys_mb":         float64(m.Sys) / 1024 / 1024,
+		"num_gc":         m.NumGC,
+		"goroutines":     runtime.NumGoroutine(),
+	}
+}
+
 // MeasureNoiseLevel calculates the noise level between an original message and its decrypted version.
 // It returns:
 // - maxNoiseFraction: maximum noise as a fraction of Q (e.g., 0.01 means 1% of Q)

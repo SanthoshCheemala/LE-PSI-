@@ -195,6 +195,7 @@ This is one of the functions that performs one block of ciphertext.
 We made it in a seperate function inorder to make the code run in parallel.
 */
 func CreateEncBlockIf(le *LE, c0 []*matrix.Vector, c1 []*matrix.Vector, r0, r1, e0, e1 *matrix.Vector, i int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	ct00 := matrix.NewVector(le.M, le.R)
 	matrix.Add(le.A0NTT.MulVecLeft(r0, le.R), le.GNTT.MulVecLeft(r1, le.R), ct00, le.R)
 	ct01 := le.A1NTT.MulVecLeft(r0, le.R)
@@ -202,7 +203,6 @@ func CreateEncBlockIf(le *LE, c0 []*matrix.Vector, c1 []*matrix.Vector, r0, r1, 
 	matrix.Add(ct01, e1, ct01, le.R)
 	c0[i] = ct00
 	c1[i] = ct01
-	wg.Done()
 }
 
 /*
@@ -211,6 +211,7 @@ This is one of the functions that performs one block of ciphertext.
 We made it in a seperate function inorder to make the code run in parallel.
 */
 func CreateEncBlockElse(le *LE, c0 []*matrix.Vector, c1 []*matrix.Vector, r0, r1, e0, e1 *matrix.Vector, i int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	ct00 := le.A0NTT.MulVecLeft(r0, le.R)
 	ct01 := matrix.NewVector(le.M, le.R)
 	matrix.Add(le.A1NTT.MulVecLeft(r0, le.R), le.GNTT.MulVecLeft(r1, le.R), ct01, le.R)
@@ -218,7 +219,6 @@ func CreateEncBlockElse(le *LE, c0 []*matrix.Vector, c1 []*matrix.Vector, r0, r1
 	matrix.Add(ct01, e1, ct01, le.R)
 	c0[i] = ct00
 	c1[i] = ct01
-	wg.Done()
 }
 
 /*
@@ -263,12 +263,12 @@ func Dec(le *LE, sk *matrix.Vector, vec1 []*matrix.Vector, vec2 []*matrix.Vector
 }
 
 func DecParallel(le *LE, c0, c1, u0, u1 *matrix.Vector, ctd1 []*ring.Poly, i int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	p := le.R.NewPoly()
 
 	le.R.Add(matrix.Mul(c0, u0, le.R), matrix.Mul(c1, u1, le.R), p)
 	le.R.InvNTT(p, p)
 	ctd1[i] = p
-	wg.Done()
 }
 
 /*
@@ -306,15 +306,15 @@ func WitGen(db *sql.DB, le *LE, id uint64) ([]*matrix.Vector, []*matrix.Vector) 
 	return vecLeft, vecRight
 }
 func WitGenParLeft(le *LE, db *sql.DB, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
+	defer wg.Done()
 	vecLeft[i-1] = ReadFromDB(db, i, ind, le).GInvMNTT(le.R)
 	vecRight[i-1] = ReadFromDB(db, i, ind+1, le).GInvMNTT(le.R)
-	wg.Done()
 }
 
 func WitGenParRight(le *LE, db *sql.DB, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
+	defer wg.Done()
 	vecLeft[i-1] = ReadFromDB(db, i, ind-1, le).GInvMNTT(le.R)
 	vecRight[i-1] = ReadFromDB(db, i, ind, le).GInvMNTT(le.R)
-	wg.Done()
 }
 
 //TODO move these functions to a utils pakcage
@@ -396,4 +396,106 @@ func WriteToDB(db *sql.DB, layer int, row uint64, vec *matrix.Vector) {
 	db.Exec(query3, vecB[2], row)
 	db.Exec(query4, vecB[3], row)
 	db.Exec(query5, true, row)
+}
+
+// MemoryTree holds the entire Merkle Tree in RAM to avoid DB I/O during witness generation
+type MemoryTree struct {
+	// Layers[i][j] stores the vector at layer i, index j
+	Layers []map[uint64]*matrix.Vector
+	Depth  int
+}
+
+// NewMemoryTree creates a new empty memory tree
+func NewMemoryTree(depth int) *MemoryTree {
+	layers := make([]map[uint64]*matrix.Vector, depth+1)
+	for i := range layers {
+		layers[i] = make(map[uint64]*matrix.Vector)
+	}
+	return &MemoryTree{
+		Layers: layers,
+		Depth:  depth,
+	}
+}
+
+// LoadTreeFromDB loads the entire tree from SQLite into MemoryTree
+func LoadTreeFromDB(db *sql.DB, depth int, le *LE) (*MemoryTree, error) {
+	mt := NewMemoryTree(depth)
+	
+	// Iterate through all layers
+	for layer := 0; layer <= depth; layer++ {
+		// Prepare query to read all nodes in this layer
+		tableName := "tree_" + strconv.Itoa(layer)
+		
+		// Check if table exists (some layers might be empty if not initialized)
+		// But usually they exist. We'll try to query.
+		rows, err := db.Query("SELECT rowid, p1, p2, p3, p4 FROM " + tableName)
+		if err != nil {
+			// If table doesn't exist or error, just continue (might be empty layer)
+			continue
+		}
+		defer rows.Close()
+		
+		for rows.Next() {
+			var rowID uint64
+			var p1B, p2B, p3B, p4B []byte
+			
+			if err := rows.Scan(&rowID, &p1B, &p2B, &p3B, &p4B); err != nil {
+				return nil, err
+			}
+			
+			vecB := [][]byte{p1B, p2B, p3B, p4B}
+			vec := matrix.NewVector(4, le.R)
+			vec.Decode(vecB)
+			
+			mt.Layers[layer][rowID] = vec
+		}
+	}
+	
+	return mt, nil
+}
+
+// ReadFromMemory reads a node directly from the MemoryTree
+func ReadFromMemory(mt *MemoryTree, layer int, row uint64, le *LE) *matrix.Vector {
+	if layer >= len(mt.Layers) {
+		return le.YDefault
+	}
+	
+	if vec, ok := mt.Layers[layer][row]; ok {
+		return vec
+	}
+	
+	return le.YDefault
+}
+
+// WitGenMemory generates witnesses using the in-memory tree (No DB I/O)
+func WitGenMemory(mt *MemoryTree, le *LE, id uint64) ([]*matrix.Vector, []*matrix.Vector) {
+	vecLeft := make([]*matrix.Vector, le.Layers)
+	vecRight := make([]*matrix.Vector, le.Layers)
+	wg := sync.WaitGroup{}
+	
+	for i := le.Layers; i > 0; i-- {
+		idInd := id >> (le.Layers - i)
+		b := (id >> (le.Layers - i)) & 1
+		if b == 0 {
+			wg.Add(1)
+			go WitGenMemoryParLeft(le, mt, i, idInd, vecLeft, vecRight, &wg)
+		} else {
+			wg.Add(1)
+			go WitGenMemoryParRight(le, mt, i, idInd, vecLeft, vecRight, &wg)
+		}
+	}
+	wg.Wait()
+	return vecLeft, vecRight
+}
+
+func WitGenMemoryParLeft(le *LE, mt *MemoryTree, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
+	defer wg.Done()
+	vecLeft[i-1] = ReadFromMemory(mt, i, ind, le).GInvMNTT(le.R)
+	vecRight[i-1] = ReadFromMemory(mt, i, ind+1, le).GInvMNTT(le.R)
+}
+
+func WitGenMemoryParRight(le *LE, mt *MemoryTree, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
+	defer wg.Done()
+	vecLeft[i-1] = ReadFromMemory(mt, i, ind-1, le).GInvMNTT(le.R)
+	vecRight[i-1] = ReadFromMemory(mt, i, ind, le).GInvMNTT(le.R)
 }
