@@ -7,31 +7,45 @@ import (
 	"github.com/SanthoshCheemala/LE-PSI/pkg/LE"
 )
 
-// SetupLEParameters initializes the Lattice Encryption parameters for PSI operations.
-// It configures the cryptographic parameters based on the expected dataset size.
+// SetupLEParameters initializes Laconic Encryption parameters for PSI operations.
+// This function configures the Ring-LWE cryptographic parameters and computes
+// the optimal Merkle tree depth based on dataset size.
 //
 // Parameters:
-//   - size: The expected size of the dataset (number of elements in the private set)
+//   - size: Expected number of elements in the server dataset
 //
 // Returns:
-//   - *LE.LE: Configured lattice encryption parameters including:
-//     - Ring dimension (D=256), modulus (Q), matrix dimension (N=4)
-//     - Number of layers computed to minimize collisions
-//     - Load factor and collision probability estimates
-//   - error: Returns error if ring dimension is unsupported or initialization fails
+//   - *LE.LE: Configured Laconic Encryption parameters
+//   - error: Non-nil if parameter initialization fails
+//
+// Cryptographic Parameters (128-bit security):
+//   - Q: Modulus = 180143985094819841 (~2^58)
+//   - D: Ring dimension = 256 (supports 256, 512, 1024, 2048)
+//   - N: Matrix dimension = 4
+//   - qBits: Modulus bit length = 58
+//
+// The function automatically calculates:
+//   - Merkle tree layers: log2(16 * size) for 16x expansion factor
+//   - Load factor: items per slot ratio
+//   - Collision probability: using balls-into-bins model
 //
 // Example:
-//   leParams, err := psi.SetupLEParameters(1000)
-//   if err != nil {
-//       log.Fatal(err)
-//   }
+//
+//	le, err := psi.SetupLEParameters(10000)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	// le.Layers = 18 (for 10K elements with 16x expansion)
+//	// Collision probability < 10^-6
 func SetupLEParameters(size int) (*LE.LE, error) {
-	Q := uint64(180143985094819841)
-	qBits := 58
-	D := 256
-	N := 4
+	const (
+		Q     = uint64(180143985094819841) // Modulus (~2^58)
+		qBits = 58                          // Modulus bit length
+		D     = 256                         // Ring dimension (128-bit security)
+		N     = 4                           // Matrix dimension
+		c     = 16.0                        // Expansion factor (16x slots vs items)
+	)
 
-	// Validate ring dimension
 	if D != 256 && D != 512 && D != 1024 && D != 2048 {
 		return nil, fmt.Errorf("unsupported ring dimension %d. Supported values: 256, 512, 1024, 2048", D)
 	}
@@ -49,6 +63,7 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 		fmt.Println("Setting up LE with Parameters Q =", Q, "qBits =", qBits, "D =", D, "N =", N)
 		leParams = LE.Setup(Q, qBits, D, N)
 	}()
+	
 	if err != nil {
 		return nil, err
 	}
@@ -59,23 +74,15 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 		return nil, fmt.Errorf("ring(R) is nil in le parameters")
 	}
 
-	// Expansion factor (more slots than items to reduce collisions)
-	c := 16.0
-	// Compute layers: smallest power of two >= c * size
 	leParams.Layers = int(math.Ceil(math.Log2(c * float64(size))))
 
-	// Derived values
 	numSlots := 1 << leParams.Layers
 	loadFactor := float64(size) / float64(numSlots)
-
-	// Approximate collision probability (balls-into-bins model)
-	// P(no collision) ≈ exp(-size^2 / (2 * numSlots))
-	// So collisionProb ≈ 1 - exp(-m^2 / (2N))
+	
 	m := float64(size)
 	Nf := float64(numSlots)
 	collisionProb := 1.0 - math.Exp(-(m*m)/(2*Nf))
 
-	// Print results
 	fmt.Println("Successfully initialized the LE parameters:")
 	fmt.Printf(" - Ring Dimension: %d\n", D)
 	fmt.Printf(" - Modulus Q: %d\n", Q)

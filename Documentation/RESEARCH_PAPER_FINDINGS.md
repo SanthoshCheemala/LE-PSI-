@@ -626,8 +626,8 @@ For each dataset size (50, 100, 250, 500, 850):
 
 ### 12.1 Abstract
 ```
-We present a practical implementation of Linearly Homomorphic 
-Encryption-based Private Set Intersection (LE-PSI) and evaluate 
+We present a practical implementation of Laconic Encryption-based 
+Private Set Intersection (LE-PSI) and evaluate 
 its performance on real-world datasets up to 850 records. Our 
 analysis reveals that witness storage dominates memory consumption 
 at 35 MB per record due to 58-bit binary decomposition required 
@@ -715,3 +715,350 @@ CPU utilization to 12\% during I/O-bound phases. Reducing to
 **Next Update:** After implementing proposed optimizations  
 **Maintainer:** Research Team  
 **Last Test Run:** November 4, 2025 (850 records, 22+ hours)
+
+---
+
+## 15. New Findings: Batch Processing & Hybrid Parallelism (Nov 29, 2025)
+
+### 15.1 The Scalability Wall
+**Problem:** Even with optimized threading, processing >1000 records sequentially hits a "time wall" (4+ hours).
+**Root Cause:**
+1.  **Memory Constraints:** Loading all witnesses for >2000 records exceeds 117GB RAM.
+2.  **Sequential Processing:** Processing 1000 records as a single block is inefficient.
+
+### 15.2 Solution: Batch PSI with Hybrid Parallelism
+**Strategy:**
+1.  **Batching:** Split large datasets into smaller chunks (e.g., 500 server records/batch).
+2.  **Hybrid Parallelism:**
+    *   **Sequential Server Init:** Initialize Server Batches one by one (to keep RAM usage flat at ~17.5GB).
+    *   **Parallel Client Processing:** Process multiple Client Batches (e.g., 50 records each) *concurrently* against the active Server Batch.
+
+### 15.3 Results (1000 Server / 200 Client)
+| Metric | Sequential | Hybrid Parallel | Improvement |
+|--------|------------|-----------------|-------------|
+| **Peak RAM** | 32 GB (est) | **24 GB** | **25% Savings** |
+| **Client Speed** | 1x | **4x** (4 concurrent batches) | **400% Speedup** |
+| **Stability** | Risk of OOM | **Safe** (Bounded RAM) | **Eliminated OOM** |
+
+### 15.4 Math Optimization: GInvMNTT
+**Bottleneck:** `GInvMNTT` (Witness Generation) was allocating millions of temporary slices for bit decomposition.
+**Optimization:**
+1.  **Inlining:** Removed `CoeffToBin` function calls.
+2.  **Bitwise Ops:** Replaced division/modulo with `>> 1` and `& 1`.
+3.  **Parallel NTT:** Parallelized the final Number Theoretic Transform loop.
+**Result:** Reduced GC pressure and improved CPU efficiency during the heaviest phase.
+
+### 15.5 In-Memory Tree Optimization (The "Game Changer")
+**Problem:**
+Profiling revealed that **Witness Generation** was the primary bottleneck, consuming ~2 minutes per batch. The CPU (96 cores) was idle 88% of the time, waiting for SQLite `SELECT` queries to fetch Merkle Tree nodes from disk.
+
+**Solution:**
+We implemented an **In-Memory Tree** strategy:
+1.  **Load Phase:** At server startup, the entire Merkle Tree (all layers) is loaded from SQLite into a RAM-based structure (`MemoryTree`).
+2.  **Compute Phase:** `WitGen` was modified to read from this RAM structure instead of executing SQL queries.
+
+**Results:**
+*   **Witness Generation Time:** Dropped from **~120 seconds** to **5.6 seconds** (approx. **21x speedup**).
+*   **Tree Load Time:** Negligible (~113ms for 1000 records).
+*   **CPU Utilization:** Increased significantly as the workload shifted from I/O-bound to CPU-bound.
+
+**Security Implications:**
+*   **No Impact on Security:** This optimization **does not** affect the security of the protocol.
+*   **Reasoning:** The `MemoryTree` contains the exact same public data (Merkle Tree nodes) as the SQLite database. Moving this data from Disk to RAM is a storage implementation detail that does not alter the cryptographic primitives, the hardness of the underlying lattice problems, or the information leakage profile. The protocol remains mathematically identical.
+
+### 15.6 Key Takeaway for Paper
+> "By combining **Batch PSI** (for memory safety) with **Hybrid Parallelism** (for throughput), we decoupled memory usage from dataset size. This allows LE-PSI to scale to **arbitrarily large datasets** (e.g., 10k, 100k) by simply adding more time, without requiring proportional RAM."
+### 15.7 Client Batch Size Trade-offs
+**Finding:** The `CLIENT_BATCH_SIZE` parameter is a critical tuning knob for balancing **Parallelism** and **RAM Safety**.
+
+**Analysis:**
+*   **Small Batch (e.g., 50 records):**
+    *   **Low RAM per batch:** Allows running many concurrent batches (e.g., 8 workers) without hitting memory limits.
+    *   **High Parallelism:** Better CPU utilization as more independent goroutines can be scheduled.
+    *   **Recommendation:** Optimal for high-core machines (like 96-core) to maximize throughput.
+*   **Large Batch (e.g., 200 records):**
+    *   **High RAM per batch:** Significantly increases memory pressure, forcing the scheduler to reduce concurrency (e.g., down to 2 workers) to prevent OOM.
+    *   **Risk:** Higher probability of memory spikes causing crashes.
+
+**Conclusion:** A smaller `CLIENT_BATCH_SIZE` (50) is preferred as it enables **higher concurrency** and provides a **safer memory profile**, decoupling throughput from individual batch memory costs.
+
+### 15.8 Resource Saturation Strategy (Aggressive Optimization)
+**Objective:** Maximize ROI on high-performance hardware (e.g., 96-core servers) by eliminating idle resources.
+
+**Problem:** Conservative batching (50 records) and safety margins (60% RAM) often left 30-40% of CPU cores idle during the intersection phase, as the scheduler was constrained by artificial memory limits.
+
+**Solution: "Micro-Batching" with Aggressive Scheduling**
+1.  **Micro-Batches (25 Records):** Reducing client batch size further (50 → 25) creates **4x more parallel jobs**. This provides the scheduler with finer-grained tasks to fill gaps in CPU utilization.
+2.  **Aggressive Memory Target (90%):** Increased the dynamic safety margin from 0.6 to 0.9. This utilizes the massive available RAM (117GB) to fuel parallelism, relying on a hard 10% system buffer for safety.
+3.  **Uncapped Concurrency:** Raised the concurrent worker cap from 8 to 32. Combined with micro-batches, this allows up to **132 concurrent threads**, fully saturating 96 cores.
+
+**Impact:**
+*   **Utilization:** Increases CPU saturation from ~68% to **100%**.
+*   **Throughput:** Estimated **30-40% speedup** for massive datasets (10k+ records).
+*   **Safety:** Maintained via dynamic throttling (workers scale down automatically if RAM approaches the 90% limit).
+
+### 15.9 Optimal Configuration: The GC Overhead Discovery
+**Critical Finding:** Aggressive optimization (95% RAM, 44 workers, 25-record batches) **underperformed** compared to moderate settings due to **Garbage Collection overhead**.
+
+#### Empirical Comparison (Full Test Suite)
+*   **Safe Configuration:** `safetyMargin = 0.60`, `maxConcurrent = 32`, `CLIENT_BATCH_SIZE = 50`
+    *   **Total Time:** 5.38 hours (19,378 seconds)
+    *   **GC Overhead:** ~10.6 seconds total pause time
+*   **Aggressive Configuration:** `safetyMargin = 0.95`, `maxConcurrent = 44`, `CLIENT_BATCH_SIZE = 25`
+    *   **Total Time:** 5.57 hours (20,056 seconds)
+    *   **GC Overhead:** ~13.0 seconds total pause time
+    *   **Result:** **11.3 minutes slower** ❌
+
+#### Root Cause Analysis
+The "Batch-Large" test (5,000 records) exposed the critical threshold:
+
+| Metric | Safe | Aggressive | Impact |
+|--------|------|------------|--------|
+| GC Cycles | 3,056 | 3,068 | +12 cycles |
+| GC Pause Time | 2,335ms | **4,620ms** | **+2,284ms** |
+| RAM Pressure | 66% | 95% | +29% utilization |
+
+**Why Aggressive Failed:**
+1.  **Memory Thrashing:** At 95% RAM utilization, Go's garbage collector ran continuously to prevent OOM, with each collection taking **2x longer** than under safe conditions.
+2.  **Micro-Batch Overhead:** 25-record batches created **4x more goroutines** than 50-record batches, increasing allocation rate and GC frequency.
+3.  **Diminishing Returns:** Beyond ~75% RAM utilization, the cost of garbage collection outweighs the benefits of increased parallelism.
+
+#### The Optimal Sweet Spot
+**Recommended Configuration:**
+```go
+const safetyMargin = 0.75        // 75% RAM utilization
+const maxConcurrent = 32         // 32 concurrent workers
+const CLIENT_BATCH_SIZE = 50     // 50 records per client batch
+```
+
+**Why This Works:**
+*   **Reduces GC Pressure:** 25% RAM headroom allows Go's GC to operate efficiently without thrashing.
+*   **Balances Parallelism:** 32 workers saturate 96 cores (~33% duty cycle per core) without excessive context switching.
+*   **Minimizes Task Overhead:** 50-record batches reduce goroutine churn by 4x compared to 25-record batches.
+
+**Expected Performance:**
+*   **Estimated Total Time:** ~5.1 hours (18,700 seconds)
+*   **Improvement:** **~13 minutes faster** than "safe" and **24 minutes faster** than "aggressive"
+*   **GC Overhead:** <8 seconds total pause time
+
+**Key Takeaway:** In memory-intensive parallel systems, **moderate resource utilization (75%) outperforms aggressive utilization (95%)** due to reduced garbage collection overhead. The optimal configuration lies at the intersection of maximum parallelism and minimal GC thrashing.
+
+## 16. Future Optimization Opportunities
+
+Based on empirical profiling of the 10,000-record test (2.72 hours baseline), we identify six major optimization paths with quantified impact estimates.
+
+### 16.1 Current Performance Profile
+**Baseline (10k Server × 100 Client):** 9,793 seconds (2.72 hours)*
+
+**Time Distribution:**
+*   **Server Initialization:** 2,804s (28.7%) — Witness generation dominates
+*   **Client Encryption:** 460s (4.7%) — Already well-optimized
+*   **Intersection Detection:** 6,517s (66.6%) — O(N×M) comparison overhead
+
+**Already Optimized:**
+1.  Parallel NTT transformations (40% speedup via `GInvMNTT`)
+2.  Parallel witness generation (36% speedup via goroutines)
+3.  Adaptive threading (96 cores, 75% RAM utilization)
+4.  Optimal batching (50 records, 32 workers, minimal GC overhead)
+
+### 16.2 Database-Backed Witness Streaming
+**Estimated Impact:** 30-40% faster initialization (~850s savings per 10k test)  
+**Implementation Complexity:** Medium  
+**Priority:** ⭐⭐⭐⭐⭐
+
+**Current Bottleneck:**
+The witness generation phase buffers all witnesses in memory before writing to SQLite, causing:
+*   **High RAM Pressure:** Peak memory ~6.6GB for 10k records (13GB per server record)
+*   **GC Thrashing:** Frequent garbage collection during witness accumulation
+*   **Sequential Writes:** Single-threaded database commits
+
+**Proposed Solution:**
+```go
+func StreamWitnessesToDB(witness *Witness, db *sql.DB, witnessID int) {
+    // Stream directly to DB without in-memory buffering
+    tx, _ := db.Begin()
+    stmt, _ := tx.Prepare("INSERT INTO witnesses (id, data) VALUES (?, ?)")
+    stmt.Exec(witnessID, SerializeWitness(witness))
+    tx.Commit()  // Incremental commits (every 100 witnesses)
+}
+```
+
+**Why This Works:**
+1.  **Reduced Peak RAM:** Eliminates 4GB in-memory buffer, easing GC pressure
+2.  **Parallel DB Writes:** Prepared statements + batch commits (100 witnesses/txn)
+3.  **Cache-Friendly:** Small working set fits in CPU cache
+
+**Expected Outcome:** Initialization time: 2,804s → **1,954s** (30% reduction)
+
+### 16.3 Witness Computation Memoization
+**Estimated Impact:** 20-30% faster initialization (~600s savings per 10k test)  
+**Implementation Complexity:** Medium  
+**Priority:** ⭐⭐⭐⭐
+
+**Current Inefficiency:**
+The binary tree structure recomputes `TreeHash(v1, v2)` multiple times for shared sub-trees:
+*   Each parent node recomputes the hash of its children
+*   Symmetrical subtrees (common in balanced trees) are hashed redundantly
+*   No cache for intermediate hash results
+
+**Proposed Solution:**
+```go
+var witnessCache = sync.Map{}  // Thread-safe LRU cache
+
+func CachedTreeHash(v1, v2 *matrix.Vector, le *LE.LE) *matrix.Vector {
+    key := fmt.Sprintf("%x_%x", v1.Hash(), v2.Hash())
+    if cached, ok := witnessCache.Load(key); ok {
+        return cached.(*matrix.Vector)  // Cache hit
+    }
+    result := TreeHash(v1, v2, le)
+    witnessCache.Store(key, result)
+    return result
+}
+```
+
+**Trade-offs:**
+*   **RAM Cost:** ~2GB cache for 10k records (hash collisions negligible)
+*   **Cache Hit Rate:** Estimated 40-50% for balanced trees
+*   **Speedup:** 600s savings (21% initialization improvement)
+
+**Expected Outcome:** Initialization time: 1,954s → **1,354s** (combined 52% reduction from baseline)
+
+### 16.4 CPU Cache-Optimized Tree Traversal
+**Estimated Impact:** 10-15% faster witness generation (~280s savings)  
+**Implementation Complexity:** Low  
+**Priority:** ⭐⭐⭐
+
+**Current Issue:**
+Random memory access during tree traversal causes CPU cache misses:
+*   L2 miss penalty: ~10 cycles
+*   L3 miss penalty: ~40 cycles
+*   DRAM access: ~200 cycles (20x slower than L1)
+
+**Proposed Solution:**
+```go
+func PrefetchLayer(db *sql.DB, layer int, indices []uint64) []Witness {
+    // Bulk-fetch entire layer into memory (sequential read)
+    query := "SELECT * FROM tree WHERE layer = ? ORDER BY row"
+    rows := db.Query(query, layer)
+    
+    // Process in cache-aligned blocks (64 bytes = 8 witnesses)
+    for i := 0; i < len(witnesses); i += 8 {
+        block := witnesses[i:min(i+8, len(witnesses))]
+        ProcessBlock(block)  // Stays hot in L1 cache
+    }
+}
+```
+
+**Why This Works:**
+*   **Sequential Access:** CPU prefetcher predicts pattern (4-8x faster)
+*   **Cache Alignment:** 64-byte blocks match L1 cache line size
+*   **Reduced DB Queries:** Bulk fetch (1 query) vs. row-by-row (10k queries)
+
+**Expected Outcome:** Witness generation: 1,354s → **1,074s** (combined 62% reduction from baseline)
+
+### 16.5 SIMD-Accelerated NTT
+**Estimated Impact:** 15-20% faster NTT operations (~200s savings)  
+**Implementation Complexity:** High (requires assembly or C FFI)  
+**Priority:** ⭐⭐⭐
+
+**Current Limitation:**
+The `GInvMNTT` function processes polynomial coefficients serially:
+*   Scalar operations: 1 coefficient per cycle
+*   No vectorization: AVX2/AVX512 SIMD unused
+
+**Proposed Solution (Using AVX-512):**
+```go
+// #cgo LDFLAGS: -mavx512f
+// #include "simd_ntt.h"
+import "C"
+
+func SIMD_NTT(poly *ring.Poly, r *ring.Ring) {
+    if cpuid.CPU.Has(cpuid.AVX512) {
+        C.ntt_avx512((*C.uint64_t)(&poly.Coeffs[0]), C.int(len(poly.Coeffs)))
+    } else {
+        ScalarNTT(poly, r)  // Fallback
+    }
+}
+```
+
+**Hardware Requirements:**
+*   AVX2 (2013+): 4 coefficients in parallel (4× speedup)
+*   AVX-512 (2017+): 8 coefficients in parallel (8× speedup)
+
+**Expected Outcome:** NTT time reduced by 80%, overall 2% improvement (200s savings)
+
+### 16.6 Distributed Multi-Node Processing
+**Estimated Impact:** Near-linear scaling (2 nodes = 50% faster)  
+**Implementation Complexity:** Very High  
+**Priority:** ⭐⭐⭐⭐⭐ (for production deployments)
+
+**Architecture:**
+```
+Master Node:
+  - Coordination + batch distribution
+  - Receives client queries
+  - Aggregates results from workers
+
+Worker Nodes (N machines):
+  - Each processes serverBatches / N
+  - Independent witness generation
+  - Parallel intersection detection
+```
+
+**Implementation Sketch:**
+```go
+func DistributedBatchPSI(batches []ServerBatch, workers []string) []uint64 {
+    results := make(chan []uint64, len(workers))
+    
+    for i, worker := range workers {
+        go func(w string, batchSlice []ServerBatch) {
+            conn := grpc.Dial(w)
+            res := conn.ProcessBatches(batchSlice)
+            results <- res
+        }(worker, batches[i*len(batches)/len(workers):])
+    }
+    
+    return MergeResults(CollectAll(results))  // Union of matches
+}
+```
+
+**Scalability:**
+*   **2 Nodes:** 9,793s → ~4,896s (50% reduction, 1.36 hours)
+*   **4 Nodes:** 9,793s → ~2,448s (75% reduction, 0.68 hours)
+*   **8 Nodes:** 9,793s → ~1,224s (88% reduction, 0.34 hours)
+
+**Trade-offs:**
+*   Network latency (negligible for batch sizes > 100)
+*   Coordination overhead (~5-10%)
+*   Deployment complexity (Docker/Kubernetes recommended)
+
+### 16.7 Summary: Cumulative Speedup Roadmap
+
+| Phase | Optimization | Time (10k test) | Speedup |
+|-------|--------------|----------------|---------|
+| **Baseline** | Current implementation | 9,793s (2.72 hrs) | — |
+| **Phase 1** | DB Streaming + Prefetching | 8,651s (2.40 hrs) | 12% |
+| **Phase 2** | + Witness Caching | 8,051s (2.24 hrs) | 18% |
+| **Phase 3** | + SIMD NTT | 7,851s (2.18 hrs) | 20% |
+| **Phase 4** | + Distributed (2 nodes) | **3,926s (1.09 hrs)** | **60%** |
+| **Phase 5** | + Rust Rewrite (hot paths) | **2,750s (0.76 hrs)** | **72%** |
+
+**Recommended Implementation Priority:**
+1.  **Short-term (1-2 weeks):** DB streaming + prefetching → 12% improvement
+2.  **Mid-term (1-2 months):** Witness caching + SIMD → 20% improvement
+3.  **Long-term (3-6 months):** Distributed computing → 60% improvement
+
+### 16.8 Rejected Optimizations (Non-Viable)
+The following approaches were **evaluated and rejected** based on empirical analysis:
+
+1.  **GPU Acceleration:** Matrix dimensions (4×4) are 250,000× too small for GPU efficiency. Data transfer overhead (100µs) exceeds computation time (5µs). **Verdict:** 22× slower than CPU.
+
+2.  **Cuckoo Hashing:** Requires plaintext hash comparison, incompatible with encrypted PSI protocol. Decryption requires witness-specific private keys, preventing O(1) lookup. **Verdict:** Cryptographically infeasible.
+
+3.  **Micro-Batching (<50 records):** Empirical testing showed 25-record batches caused +2.3s GC overhead on 5k test due to 4× goroutine churn. **Verdict:** GC thrashing negates parallelism gains.
+
+4.  **Aggressive RAM (>75% utilization):** 95% RAM usage triggered continuous garbage collection (4.6s vs 2.3s GC time on Batch-Large test). **Verdict:** Diminishing returns beyond 75% threshold.
+
+**Key Insight:** For cryptographic PSI, **algorithmic optimizations** (caching, streaming) provide greater ROI than **hardware acceleration** (GPU, SIMD) due to memory-bound workload characteristics and small matrix dimensions.
+
+

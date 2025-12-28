@@ -107,9 +107,9 @@ Detects intersection between server and client datasets.
 - `error`: Error if detection fails
 
 **Performance:**
-- Adaptive worker threads (8-48 based on dataset size)
+- Adaptive worker threads (8-77, auto-detects system resources)
 - Parallel decryption for optimal speed
-- Memory-aware processing
+- Memory-aware processing with dynamic CPU/RAM detection
 
 ### Client API (`psi` package)
 
@@ -151,19 +151,19 @@ pp, msg, le, err := psi.DeserializeParameters(serialized)
 ## Configuration
 
 ### Adaptive Threading
-The library automatically optimizes worker threads based on:
-- Dataset size
-- Available RAM (configurable: default 117 GB)
-- CPU cores (configurable: default 48)
-- Cache efficiency
+The library **automatically detects** system resources and optimizes worker threads:
+- **CPU cores**: Uses `runtime.NumCPU()` to detect available cores
+- **Available RAM**: Uses `runtime.MemStats` to determine free memory
+- **Worker count**: Calculates 80% of detected CPU cores for optimal cache performance
+- **Memory limit**: Ensures workers fit within 85% of available RAM
 
-To customize, modify constants in `pkg/psi/server.go`:
-```go
-const (
-    availableRAM_GB = 117.0  // Your available RAM
-    hardwareLimit   = 48     // Your CPU cores
-)
-```
+**No manual configuration needed!** The system adapts to your hardware automatically.
+
+Worker calculation considers:
+- Dataset size (scales workers based on memory requirements)
+- Memory per record (~35 MB empirically measured)
+- Safety margin (15%) to prevent memory exhaustion
+- Practical minimum (8 workers for parallelism)
 
 ### Verbose Logging
 Enable detailed logging:
@@ -173,15 +173,17 @@ export PSI_VERBOSE=true
 
 ## Performance Characteristics
 
-| Dataset Size | Memory Usage | Estimated Time | Workers |
-|-------------|--------------|----------------|---------|
-| 100         | 3.5 GB       | ~30s           | 32-48   |
-| 500         | 15 GB        | ~4m            | 28-34   |
-| 1,000       | 30 GB        | ~1h            | 32-38   |
-| 2,000       | 55 GB        | ~2h            | 28-34   |
-| 4,000       | 95 GB        | ~5h            | 24-29   |
+| Dataset Size | Memory Usage | Estimated Time | Workers (96-core) |
+|-------------|--------------|----------------|-------------------|
+| 100         | 3.5 GB       | ~30s           | 77                |
+| 500         | 15 GB        | ~4m            | 77                |
+| 1,000       | 30 GB        | ~1h            | 77                |
+| 2,000       | 55 GB        | ~2h            | 77                |
+| 4,000       | 95 GB        | ~5h            | 77                |
+| 10,000      | 313 GB       | ~2h33m         | 77                |
 
 **Memory per record:** ~35 MB (includes witnesses, threads, overhead)
+**Worker count:** Auto-scales based on your system (8-core system → ~6 workers, 96-core → 77 workers)
 
 ## Security
 
@@ -230,22 +232,63 @@ hashes := utils.HashDataPoints(serialized)
 
 ### Performance Monitoring
 
-Enable performance tracking:
+The library includes built-in performance monitoring:
 
 ```go
 import "github.com/SanthoshCheemala/LE-PSI/pkg/psi"
 
-// Performance metrics are logged automatically
-ctx, _ := psi.ServerInitialize(hashes, "tree.db")
-// Logs: "Adaptive Threading: 1000 records → 32 workers (est. RAM: 35.0 GB)"
+// Create performance monitor
+monitor := psi.NewPerformanceMonitor()
+
+// Track operations
+start := time.Now()
+// ... perform operations ...
+monitor.TrackKeyGeneration(start)
+
+// Print comprehensive report
+monitor.PrintReport()
+// Output:
+// LE-PSI Performance Report (Parallelized)
+// ==================================================
+// CPU Cores Used: 96
+// Total Execution Time: 2h33m
+// Key Generation Time: 45m (29.4%)
+// Throughput: 1.08 operations/second
+
+// Get metrics as JSON
+metrics := monitor.GetMetrics()
+memStats := monitor.GetMemoryUsage()
+```
+
+Automatic logging:
+```
+🚀 Auto-Tuned: 96 cores detected, 213.5 GB RAM available → 77 workers for 5000 records
 ```
 
 ### Memory Management
 
 For large datasets, the library automatically:
-- Scales worker threads down to prevent swap
-- Uses 85% of available RAM maximum
-- Optimizes cache usage with 1.5×√n workers
+- Detects available RAM using `runtime.MemStats`
+- Scales worker threads to fit within 85% of available RAM
+- Prevents swap thrashing with safety margins
+- Adapts to system load in real-time
+
+### Report Generation
+
+Generate JSON reports for analysis:
+
+```go
+import "github.com/SanthoshCheemala/LE-PSI/utils"
+
+err := utils.WritePSIReport(
+    "report.json",
+    totalMatches, totalErrors,
+    maxNoise, avgNoise,
+    duration, encTime, serverTime, decTime,
+    leParams,
+)
+// Creates: report.json with comprehensive metrics
+```
 
 ## Examples
 

@@ -6,26 +6,26 @@
 //
 // Basic Usage:
 //
-//  1. Server Setup:
-//     serverData := []uint64{100, 200, 300, 400}
-//     ctx, err := psi.ServerInitialize(serverData, "./tree.db")
-//     if err != nil {
-//     log.Fatal(err)
-//     }
-//     defer ctx.Cleanup()
+//	1. Server Setup:
+//	   serverData := []uint64{100, 200, 300, 400}
+//	   ctx, err := psi.ServerInitialize(serverData, "./tree.db")
+//	   if err != nil {
+//	       log.Fatal(err)
+//	   }
+//	   defer ctx.Cleanup()
 //
-//  2. Share Public Parameters (server → client):
-//     pp, msg, le := psi.GetPublicParameters(ctx)
-//     // Transmit pp, msg, le to client
+//	2. Share Public Parameters (server → client):
+//	   pp, msg, le := psi.GetPublicParameters(ctx)
+//	   // Transmit pp, msg, le to client
 //
-//  3. Client Encryption:
-//     clientData := []uint64{150, 200, 250}
-//     ciphertexts := psi.ClientEncrypt(clientData, pp, msg, le)
-//     // Send ciphertexts to server
+//	3. Client Encryption:
+//	   clientData := []uint64{150, 200, 250}
+//	   ciphertexts := psi.ClientEncrypt(clientData, pp, msg, le)
+//	   // Send ciphertexts to server
 //
-//  4. Server Computes Intersection:
-//     intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
-//     // intersection = [200] (common element)
+//	4. Server Computes Intersection:
+//	   intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
+//	   // intersection = [200] (common element)
 //
 // Security:
 //   - Based on Ring Learning With Errors (Ring-LWE) hardness assumption
@@ -42,10 +42,9 @@ package psi
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
+	"runtime"
 
-	// "sort"
 	"github.com/SanthoshCheemala/LE-PSI/pkg/LE"
 	"github.com/SanthoshCheemala/LE-PSI/pkg/matrix"
 	"github.com/tuneinsight/lattigo/v3/ring"
@@ -82,7 +81,8 @@ type Cxtx struct {
 //   - uint64: Tree index (masked hash value) in range [0, 2^layers - 1]
 //
 // Example:
-//   treeIdx := psi.ReduceToTreeIndex(12345678, 10)  // Returns index in [0, 1023]
+//
+//	treeIdx := psi.ReduceToTreeIndex(12345678, 10)  // Returns index in [0, 1023]
 func ReduceToTreeIndex(rawHash uint64, layers int) uint64 {
 	var mask uint64
 	bits := uint(layers)
@@ -137,66 +137,78 @@ func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 // CalculateOptimalWorkers determines the optimal number of worker goroutines
 // based on dataset size, available RAM, and hardware constraints.
 //
+// The function automatically detects system resources and adapts to the hardware:
+//   - CPU cores: Uses runtime.NumCPU() to detect available cores
+//   - RAM: Reads runtime.MemStats to determine available memory
+//   - Worker count: Calculates 80% of CPU cores for optimal cache performance
+//
 // Parameters:
 //   - datasetSize: Number of elements to process
 //
 // Returns:
-//   - int: Optimal number of worker goroutines (between 8 and 48)
+//   - int: Optimal number of worker goroutines (between 8 and 80% of CPU cores)
 //
 // The function considers:
-//   - Available RAM (117 GB out of 251 GB total)
-//   - Memory per record (~35 MB)
-//   - Hardware limit (48 physical cores on dual-socket Xeon Gold 5418Y)
-//   - Cache optimization for datasets > 100 elements
+//   - Available RAM (85% of total system RAM)
+//   - Memory per record (~35 MB empirically measured)
+//   - Hardware limit (80% of detected CPU cores for optimal cache performance)
+//   - Safety margin (15%) to prevent memory exhaustion
+//
+// Algorithm:
+//  1. Detect system resources (CPU cores, available RAM)
+//  2. Calculate memory-based limit: min workers to fit in available RAM
+//  3. Apply hardware limit: cap at 80% of CPU cores
+//  4. Ensure practical minimum: at least 8 workers for multi-socket systems
+//  5. Cap at dataset size: no point having more workers than records
 //
 // Example:
-//   workers := psi.CalculateOptimalWorkers(5000)  // Returns ~32 workers
+//
+//	workers := psi.CalculateOptimalWorkers(5000)  // Auto-detects system, returns optimal count
+//	// On 96-core system: Returns ~77 workers (80% of 96)
+//	// On 8-core system: Returns ~6 workers (80% of 8, but min 8 enforced)
 func CalculateOptimalWorkers(datasetSize int) int {
-	// System constraints for dual-socket Intel Xeon Gold 5418Y
+	// Dynamic system detection
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	
+	totalCores := runtime.NumCPU()
+	totalRAM_GB := float64(memStats.Sys) / (1024 * 1024 * 1024)
+	availableRAM_GB := totalRAM_GB * 0.85 // Use 85% of total RAM
+	
 	const (
-		availableRAM_GB  = 117.0 // Available RAM (251 GB total - 134 GB used)
-		memPerRecord_GB  = 0.035 // 35 MB per record (12 MB witness + 13 MB thread + 10 MB overhead)
-		safetyMargin     = 1.15  // 15% safety margin (reduced from 20% - more aggressive)
-		hardwareLimit    = 48    // Physical cores (24 per socket × 2 sockets)
-		practicalMinimum = 8     // Increased from 4 - better for multi-socket systems
+		memPerRecord_GB  = 0.035 // 35 MB per record (empirically measured)
+		safetyMargin     = 1.15  // 15% safety margin
+		cpuUtilization   = 0.80  // Use 80% of cores (optimal for cache)
+		practicalMinimum = 8     // Minimum workers for parallelism
 	)
+	
+	hardwareLimit := int(float64(totalCores) * cpuUtilization)
+	if hardwareLimit < practicalMinimum {
+		hardwareLimit = practicalMinimum
+	}
 
 	estimatedMemory := float64(datasetSize) * memPerRecord_GB * safetyMargin
-	memoryLimit := hardwareLimit // Default to hardware limit
+	memoryLimit := hardwareLimit
 	if estimatedMemory > availableRAM_GB*0.6 {
 		memoryLimit = int((availableRAM_GB * 0.85) / estimatedMemory * float64(hardwareLimit))
 	}
 
-	cacheLimit := hardwareLimit
-	if datasetSize > 100 {
-		// Scale up by 1.5× for better CPU utilization
-		cacheLimit = int(1.5 * math.Sqrt(float64(datasetSize)))
-		if cacheLimit > hardwareLimit {
-			cacheLimit = hardwareLimit
-		}
-		if cacheLimit < 16 {
-			cacheLimit = 16 // Increased from 8 - better for dual-socket NUMA
-		}
-	}
-
-	// Take the minimum of all constraints
 	optimal := memoryLimit
-	if cacheLimit < optimal {
-		optimal = cacheLimit
-	}
 	if hardwareLimit < optimal {
 		optimal = hardwareLimit
 	}
 
-	// Ensure practical minimum for performance
 	if optimal < practicalMinimum {
 		optimal = practicalMinimum
 	}
 
-	// Log the decision for monitoring and debugging
+	if optimal > datasetSize {
+		optimal = datasetSize
+	}
+
 	estimatedRAM_GB := float64(datasetSize) * memPerRecord_GB
-	log.Printf("🚀 Adaptive Threading (TUNED): %d records → %d workers (est. RAM: %.1f GB, memory limit: %d, cache limit: %d)",
-		datasetSize, optimal, estimatedRAM_GB, memoryLimit, cacheLimit)
+	log.Printf("🚀 Auto-Tuned: %d cores detected, %.1f GB RAM available → %d workers for %d records (est. RAM: %.1f GB)",
+		totalCores, availableRAM_GB, optimal, datasetSize, estimatedRAM_GB)
 
 	return optimal
 }

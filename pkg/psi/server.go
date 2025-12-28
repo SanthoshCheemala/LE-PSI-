@@ -58,8 +58,9 @@ type ServerInitContext struct {
 //   - *LE.LE: Lattice encryption parameters
 //
 // Example:
-//   pp, msg, le := psi.GetPublicParameters(ctx)
-//   // Send pp, msg, le to client for encryption
+//
+//	pp, msg, le := psi.GetPublicParameters(ctx)
+//	// Send pp, msg, le to client for encryption
 func GetPublicParameters(ctx *ServerInitContext) (*matrix.Vector, *ring.Poly, *LE.LE) {
 	return ctx.PublicParams, ctx.Message, ctx.LEParams
 }
@@ -93,8 +94,9 @@ type SerializableParams struct {
 //   - *SerializableParams: Serialized parameters ready for JSON/network transmission
 //
 // Example:
-//   params := psi.SerializeParameters(pp, msg, le)
-//   // Send params over network or save to file
+//
+//	params := psi.SerializeParameters(pp, msg, le)
+//	// Send params over network or save to file
 func SerializeParameters(pp *matrix.Vector, msg *ring.Poly, le *LE.LE) *SerializableParams {
 	ppCoeffs := make([][]uint64, len(pp.Elements))
 	for i, poly := range pp.Elements {
@@ -150,10 +152,11 @@ func SerializeParameters(pp *matrix.Vector, msg *ring.Poly, le *LE.LE) *Serializ
 //   - error: Returns error if deserialization fails
 //
 // Example:
-//   pp, msg, le, err := psi.DeserializeParameters(receivedParams)
-//   if err != nil {
-//       log.Fatal(err)
-//   }
+//
+//	pp, msg, le, err := psi.DeserializeParameters(receivedParams)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
 func DeserializeParameters(params *SerializableParams) (*matrix.Vector, *ring.Poly, *LE.LE, error) {
 	r, err := ring.NewRing(params.D, []uint64{params.Q})
 	if err != nil {
@@ -223,12 +226,13 @@ func DeserializeParameters(params *SerializableParams) (*matrix.Vector, *ring.Po
 //   - error: Returns error if parameter setup fails or tree creation fails
 //
 // Example:
-//   serverData := []uint64{100, 200, 300, 400}
-//   ctx, err := psi.ServerInitialize(serverData, "./data/tree.db")
-//   if err != nil {
-//       log.Fatal(err)
-//   }
-//   defer ctx.Cleanup()
+//
+//	serverData := []uint64{100, 200, 300, 400}
+//	ctx, err := psi.ServerInitialize(serverData, "./data/tree.db")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer ctx.Cleanup()
 func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitContext, error) {
 	monitor := NewPerformanceMonitor()
 
@@ -290,8 +294,6 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	pp := LE.ReadFromDB(db, 0, 0, leParams).NTT(leParams.R)
 	msg := matrix.NewRandomPolyBinary(leParams.R)
 
-	// OPTIMIZATION: Load the entire tree into memory to avoid DB I/O during witness generation
-	// This solves the major bottleneck where CPU was idle waiting for disk.
 	fmt.Println("       💾 Loading Merkle Tree into RAM for fast witness generation...")
 	loadStart := time.Now()
 	memoryTree, err := LE.LoadTreeFromDB(db, leParams.Layers, leParams)
@@ -313,7 +315,6 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 		go func() {
 			defer witnessWg.Done()
 			for i := range witnessChan {
-				// Use In-Memory Witness Generation (Fast)
 				witnessesVec1[i], witnessesVec2[i] = LE.WitGenMemory(memoryTree, leParams, hashedClient[i])
 			}
 		}()
@@ -328,7 +329,6 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 
 	monitor.PrintReport()
 
-	// Return server context with all initialization data
 	ctx := &ServerInitContext{
 		PublicParams:    pp,
 		Message:         msg,
@@ -356,13 +356,13 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 //   - error: Returns error if decryption or witness lookup fails
 //
 // Example:
-//   intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
-//   if err != nil {
-//       log.Fatal(err)
-//   }
-//   fmt.Printf("Found %d common elements\n", len(intersection))
+//
+//	intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Found %d common elements\n", len(intersection))
 func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []Cxtx) ([]uint64, error) {
-	// Force GC before starting heavy intersection detection
 	runtime.GC()
 	
 	monitor := NewPerformanceMonitor()
@@ -370,14 +370,10 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 
 	X_size := len(ctx.OriginalHashes)
 
-	// Decryption is memory intensive and spawns sub-goroutines (one per layer).
-	// We reduce the number of workers to avoid OOM and excessive GC pressure.
 	numWorkers := CalculateOptimalWorkers(X_size)
 	if numWorkers < 1 {
 		numWorkers = 1
 	}
-	// Removed artificial cap of 24. Let CalculateOptimalWorkers decide based on RAM/Cores.
-	// On a 96-core machine, this should allow much higher parallelism.
 
 	var Z []uint64
 	intersectionMap := make(map[int]bool)
@@ -390,11 +386,9 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 	workItems := make(chan workItem, totalWork)
 	var detectionWg sync.WaitGroup
 	
-	// Progress tracking
 	var processedCount uint64
 	doneChan := make(chan struct{})
 	
-	// Progress logger
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
@@ -445,7 +439,7 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 	}
 	close(workItems)
 	detectionWg.Wait()
-	close(doneChan) // Stop progress logger
+	close(doneChan)
 	
 	monitor.TrackIntersectionDetection(intersectionStart)
 
