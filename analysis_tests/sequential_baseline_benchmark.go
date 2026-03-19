@@ -103,7 +103,7 @@ func main() {
 		{100, 10},
 		{250, 25},
 		{1000, 100},    // New: 1k testing
-		{10000, 1000},  // New: full 10k dataset requested for paper
+		{5000, 500},  // New: full 10k dataset requested for paper
 	}
 
 	resultsDir := "sequential_baseline_results"
