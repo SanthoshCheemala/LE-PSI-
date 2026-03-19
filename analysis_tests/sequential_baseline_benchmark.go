@@ -403,61 +403,20 @@ func clientEncryptSequential(clientHashes []uint64, pp *matrix.Vector, msg *ring
 // =========================================================================
 
 func loadFromDB(serverSize, clientSize int) ([]interface{}, []interface{}, int) {
-	dbPath := "../data/transactions.db"
-
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		log.Fatalf("ERROR: Database %s not found!", dbPath)
-	}
-
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		log.Fatalf("ERROR: Failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	query := fmt.Sprintf("SELECT * FROM finanical_transactions LIMIT %d", serverSize)
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatalf("ERROR: Query failed: %v", err)
-	}
-	defer rows.Close()
-
-	columns, err := rows.Columns()
-	if err != nil {
-		log.Fatalf("ERROR: Failed to get columns: %v", err)
-	}
-
-	var serverData []interface{}
-	for rows.Next() {
-		values := make([]interface{}, len(columns))
-		valuePtrs := make([]interface{}, len(columns))
-		for i := range columns {
-			valuePtrs[i] = &values[i]
+	// The real transactions.db is untracked (.gitignore *.db), so it's missing on the HPC.
+	// For benchmarking, we just need unique entries. We generate synthetic data instead.
+	
+	serverData := make([]interface{}, serverSize)
+	for i := 0; i < serverSize; i++ {
+		serverData[i] = map[string]interface{}{
+			"transaction_id": fmt.Sprintf("TXN-%d", i),
+			"amount":         fmt.Sprintf("%d.00", i*10),
 		}
-		if err := rows.Scan(valuePtrs...); err != nil {
-			continue
-		}
-		rowData := make(map[string]interface{})
-		for i, col := range columns {
-			var v interface{}
-			b, ok := values[i].([]byte)
-			if ok {
-				v = string(b)
-			} else {
-				v = values[i]
-			}
-			rowData[col] = v
-		}
-		serverData = append(serverData, rowData)
-	}
-
-	if len(serverData) == 0 {
-		log.Fatalf("ERROR: No data loaded!")
 	}
 
 	clientData := make([]interface{}, clientSize)
 	for i := 0; i < clientSize; i++ {
-		if i < len(serverData) {
+		if i < serverSize {
 			clientData[i] = serverData[i]
 		}
 	}
