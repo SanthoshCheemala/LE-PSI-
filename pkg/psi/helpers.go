@@ -6,26 +6,26 @@
 //
 // Basic Usage:
 //
-//	1. Server Setup:
-//	   serverData := []uint64{100, 200, 300, 400}
-//	   ctx, err := psi.ServerInitialize(serverData, "./tree.db")
-//	   if err != nil {
-//	       log.Fatal(err)
-//	   }
-//	   defer ctx.Cleanup()
+//  1. Server Setup:
+//     serverData := []uint64{100, 200, 300, 400}
+//     ctx, err := psi.ServerInitialize(serverData, "./tree.db")
+//     if err != nil {
+//     log.Fatal(err)
+//     }
+//     defer ctx.Cleanup()
 //
-//	2. Share Public Parameters (server → client):
-//	   pp, msg, le := psi.GetPublicParameters(ctx)
-//	   // Transmit pp, msg, le to client
+//  2. Share Public Parameters (server → client):
+//     pp, msg, le := psi.GetPublicParameters(ctx)
+//     // Transmit pp, msg, le to client
 //
-//	3. Client Encryption:
-//	   clientData := []uint64{150, 200, 250}
-//	   ciphertexts := psi.ClientEncrypt(clientData, pp, msg, le)
-//	   // Send ciphertexts to server
+//  3. Client Encryption:
+//     clientData := []uint64{150, 200, 250}
+//     ciphertexts := psi.ClientEncrypt(clientData, pp, msg, le)
+//     // Send ciphertexts to server
 //
-//	4. Server Computes Intersection:
-//	   intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
-//	   // intersection = [200] (common element)
+//  4. Server Computes Intersection:
+//     intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
+//     // intersection = [200] (common element)
 //
 // Security:
 //   - Based on Ring Learning With Errors (Ring-LWE) hardness assumption
@@ -135,58 +135,62 @@ func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 }
 
 // CalculateOptimalWorkers determines the optimal number of worker goroutines
-// based on dataset size, available RAM, and hardware constraints.
+// based on dataset size and available system resources.
 //
-// The function automatically detects system resources and adapts to the hardware:
-//   - CPU cores: Uses runtime.NumCPU() to detect available cores
-//   - RAM: Reads runtime.MemStats to determine available memory
-//   - Worker count: Calculates 80% of CPU cores for optimal cache performance
+// All PSI operations (KeyGen, WitGen, Dec) are CPU-bound compute tasks with
+// no I/O on the hot path. The Merkle tree is pre-loaded into RAM before
+// parallel processing begins, so workers perform pure in-memory arithmetic.
 //
 // Parameters:
 //   - datasetSize: Number of elements to process
 //
 // Returns:
-//   - int: Optimal number of worker goroutines (between 8 and 80% of CPU cores)
+//   - int: Optimal number of worker goroutines (up to runtime.NumCPU())
 //
 // The function considers:
+//   - Available CPU cores (uses all detected cores for compute-bound work)
 //   - Available RAM (85% of total system RAM)
 //   - Memory per record (~35 MB empirically measured)
-//   - Hardware limit (80% of detected CPU cores for optimal cache performance)
 //   - Safety margin (15%) to prevent memory exhaustion
 //
 // Algorithm:
 //  1. Detect system resources (CPU cores, available RAM)
-//  2. Calculate memory-based limit: min workers to fit in available RAM
-//  3. Apply hardware limit: cap at 80% of CPU cores
-//  4. Ensure practical minimum: at least 8 workers for multi-socket systems
-//  5. Cap at dataset size: no point having more workers than records
+//  2. Set hardware limit to all available CPU cores (work is compute-bound)
+//  3. Calculate memory-based limit to avoid exceeding available RAM
+//  4. Take the minimum of hardware and memory limits
+//  5. Ensure practical minimum of 4 workers
+//  6. Cap at dataset size (no point having more workers than records)
 //
 // Example:
 //
 //	workers := psi.CalculateOptimalWorkers(5000)  // Auto-detects system, returns optimal count
-//	// On 96-core system: Returns ~77 workers (80% of 96)
-//	// On 8-core system: Returns ~6 workers (80% of 8, but min 8 enforced)
+//	// On 96-core system: Returns 96 workers (all cores, compute-bound)
+//	// On 8-core system: Returns 8 workers
 func CalculateOptimalWorkers(datasetSize int) int {
 	// Dynamic system detection
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	totalCores := runtime.NumCPU()
 	totalRAM_GB := float64(memStats.Sys) / (1024 * 1024 * 1024)
 	availableRAM_GB := totalRAM_GB * 0.85 // Use 85% of total RAM
-	
+
 	const (
 		memPerRecord_GB  = 0.035 // 35 MB per record (empirically measured)
 		safetyMargin     = 1.15  // 15% safety margin
-		cpuUtilization   = 0.80  // Use 80% of cores (optimal for cache)
-		practicalMinimum = 8     // Minimum workers for parallelism
+		practicalMinimum = 4     // Minimum workers for parallelism
 	)
-	
-	hardwareLimit := int(float64(totalCores) * cpuUtilization)
+
+	// All PSI operations are compute-bound (lattice arithmetic, NTT transforms).
+	// Use all available CPU cores — there is no I/O during the parallel phase
+	// since the Merkle tree is already loaded into memory.
+	hardwareLimit := totalCores
 	if hardwareLimit < practicalMinimum {
 		hardwareLimit = practicalMinimum
 	}
 
+	// Memory-based throttling: if estimated memory exceeds 60% of available RAM,
+	// scale down worker count proportionally to avoid OOM
 	estimatedMemory := float64(datasetSize) * memPerRecord_GB * safetyMargin
 	memoryLimit := hardwareLimit
 	if estimatedMemory > availableRAM_GB*0.6 {
