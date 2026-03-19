@@ -67,20 +67,20 @@ type ComparisonEntry struct {
 
 // BenchmarkReport is the top-level report
 type BenchmarkReport struct {
-	Timestamp          string            `json:"timestamp"`
-	BenchmarkType      string            `json:"benchmark_type"`
-	SystemInfo         SystemInfo        `json:"system_info"`
-	SequentialResults  []SequentialResult `json:"sequential_results"`
-	Comparisons        []ComparisonEntry  `json:"comparisons"`
-	KeyFinding         string            `json:"key_finding"`
+	Timestamp         string             `json:"timestamp"`
+	BenchmarkType     string             `json:"benchmark_type"`
+	SystemInfo        SystemInfo         `json:"system_info"`
+	SequentialResults []SequentialResult `json:"sequential_results"`
+	Comparisons       []ComparisonEntry  `json:"comparisons"`
+	KeyFinding        string             `json:"key_finding"`
 }
 
 // SystemInfo captures the hardware context
 type SystemInfo struct {
-	NumCPU       int     `json:"num_cpu"`
-	GOMAXPROCS   int     `json:"gomaxprocs"`
-	TotalRAM_MB  float64 `json:"total_ram_mb"`
-	GoVersion    string  `json:"go_version"`
+	NumCPU      int     `json:"num_cpu"`
+	GOMAXPROCS  int     `json:"gomaxprocs"`
+	TotalRAM_MB float64 `json:"total_ram_mb"`
+	GoVersion   string  `json:"go_version"`
 }
 
 // =========================================================================
@@ -319,7 +319,12 @@ func runSequentialBenchmark(serverSize, clientSize int) SequentialResult {
 			}
 		}
 
-		// Measure RAM right after processing this record (before GC)
+		// Force Garbage Collection to reclaim the witness and temporary
+		// decryption objects. If we don't, Go's lazy GC makes the memory
+		// footprint look like it's growing when it's actually just uncollected garbage.
+		runtime.GC()
+
+		// Measure TRUE active working set RAM
 		currentRAM := getRAM_MB()
 		if currentRAM > peakRAM {
 			peakRAM = currentRAM
@@ -329,14 +334,9 @@ func runSequentialBenchmark(serverSize, clientSize int) SequentialResult {
 			maxRecordRAM = recordDelta
 		}
 
-		// Witness goes out of scope here — wit1, wit2 will be GC'd
-		// Force GC periodically to demonstrate buffer reuse
-		if k%10 == 0 {
-			runtime.GC()
-			if k > 0 {
-				fmt.Printf("    Progress: %d/%d records | Current RAM: %.1f MB\n",
-					k, X_size, getRAM_MB())
-			}
+		if k%10 == 0 && k > 0 {
+			fmt.Printf("    Progress: %d/%d records | Current RAM: %.1f MB\n",
+				k, X_size, currentRAM)
 		}
 	}
 
@@ -405,7 +405,7 @@ func clientEncryptSequential(clientHashes []uint64, pp *matrix.Vector, msg *ring
 func loadFromDB(serverSize, clientSize int) ([]interface{}, []interface{}, int) {
 	// The real transactions.db is untracked (.gitignore *.db), so it's missing on the HPC.
 	// For benchmarking, we just need unique entries. We generate synthetic data instead.
-	
+
 	serverData := make([]interface{}, serverSize)
 	for i := 0; i < serverSize; i++ {
 		serverData[i] = map[string]interface{}{
@@ -522,5 +522,6 @@ func initTreeDB(db *sql.DB, layers int) error {
 
 // Ensure math is used (for potential future use)
 var _ = math.Log2
+
 // Ensure sync is used
 var _ sync.Mutex
