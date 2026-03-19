@@ -29,7 +29,7 @@
 //
 // Security:
 //   - Based on Ring Learning With Errors (Ring-LWE) hardness assumption
-//   - 128-bit security level with ring dimension D=256
+//   - 128-bit security level configurable via PSI_SECURITY_LEVEL=128 (D=2048)
 //   - Server learns only the intersection (privacy-preserving)
 //   - Client reveals nothing about non-matching elements
 //

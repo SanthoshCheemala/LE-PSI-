@@ -3,6 +3,7 @@ package psi
 import (
 	"fmt"
 	"math"
+	"os"
 
 	"github.com/SanthoshCheemala/LE-PSI/pkg/LE"
 )
@@ -18,12 +19,18 @@ import (
 //   - *LE.LE: Configured Laconic Encryption parameters
 //   - error: Non-nil if parameter initialization fails
 //
-// Cryptographic Parameters (128-bit security):
+// Cryptographic Parameters (Environment Configurable):
 //   - Q: Modulus = 180143985094819841 (~2^58)
-//   - D: Ring dimension = 256 (supports 256, 512, 1024, 2048)
+//   - D: Ring dimension = 256 (Fast Testing) OR 2048 (True 128-bit PQ Security)
 //   - N: Matrix dimension = 4
 //   - qBits: Modulus bit length = 58
 //
+// Security Configuration:
+//   - By default, D=256 is used for extremely fast evaluations, but it does NOT
+//     provide full 128-bit post-quantum security for the 58-bit modulus.
+//   - Set the environment variable `PSI_SECURITY_LEVEL=128` to enforce D=2048,
+//     which yields a lattice dimension of 8192 (N=4, D=2048). This comfortably
+//     provides >128-bit security against known quantum lattice attacks.
 // The function automatically calculates:
 //   - Merkle tree layers: log2(16 * size) for 16x expansion factor
 //   - Load factor: items per slot ratio
@@ -41,10 +48,19 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 	const (
 		Q     = uint64(180143985094819841) // Modulus (~2^58)
 		qBits = 58                          // Modulus bit length
-		D     = 256                         // Ring dimension (128-bit security)
 		N     = 4                           // Matrix dimension
 		c     = 16.0                        // Expansion factor (16x slots vs items)
 	)
+
+	// Default to Fast Evaluation Mode (low security)
+	D := 256
+	securityMode := "Fast Evaluation (Low Security)"
+
+	// Enforce 128-bit post-quantum security if configured
+	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
+		D = 2048
+		securityMode = "128-bit Post-Quantum Security Mode"
+	}
 
 	if D != 256 && D != 512 && D != 1024 && D != 2048 {
 		return nil, fmt.Errorf("unsupported ring dimension %d. Supported values: 256, 512, 1024, 2048", D)
@@ -84,6 +100,7 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 	collisionProb := 1.0 - math.Exp(-(m*m)/(2*Nf))
 
 	fmt.Println("Successfully initialized the LE parameters:")
+	fmt.Printf(" - Security Level: %s\n", securityMode)
 	fmt.Printf(" - Ring Dimension: %d\n", D)
 	fmt.Printf(" - Modulus Q: %d\n", Q)
 	fmt.Printf(" - Matrix Dimension N: %d\n", N)
