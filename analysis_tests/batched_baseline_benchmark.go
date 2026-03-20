@@ -90,8 +90,8 @@ func main() {
 		batchSize  int
 	}{
 		{250, 25, 50},
-		{1000, 100, 200},
-		{5000, 500, 500},
+		{1000, 100, 100},
+		{5000, 500, 100},
 	}
 
 	resultsDir := "batched_baseline_results"
