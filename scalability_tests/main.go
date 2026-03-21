@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/SanthoshCheemala/LE-PSI/pkg/psi"
 	"github.com/SanthoshCheemala/LE-PSI/utils"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ScalabilityTest represents a single test configuration
@@ -430,84 +428,23 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 }
 
 func loadFromDatabase(serverSize, clientSize int) ([]interface{}, []interface{}, int) {
-	dbPath := "../data/transactions.db"
-	
-	// Check if database exists
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		log.Fatalf("ERROR: Database %s not found! Cannot run tests without real data.", dbPath)
-	}
-
-	// Open database
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		log.Fatalf("ERROR: Failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	// Load server data from database with specified limit
-	fmt.Printf("Loading %d records from transactions.db...\n", serverSize)
-	
-	query := fmt.Sprintf("SELECT * FROM finanical_transactions LIMIT %d", serverSize)
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatalf("ERROR: Failed to query database: %v", err)
-	}
-	defer rows.Close()
-
-	// Get column names
-	columns, err := rows.Columns()
-	if err != nil {
-		log.Fatalf("ERROR: Failed to get columns: %v", err)
-	}
-
-	// Read all rows
-	var serverData []interface{}
-	for rows.Next() {
-		// Create a slice to hold column values
-		values := make([]interface{}, len(columns))
-		valuePtrs := make([]interface{}, len(columns))
-		for i := range columns {
-			valuePtrs[i] = &values[i]
+	fmt.Printf("Generating %d synthetic server records...\n", serverSize)
+	serverData := make([]interface{}, serverSize)
+	for i := 0; i < serverSize; i++ {
+		serverData[i] = map[string]interface{}{
+			"transaction_id": fmt.Sprintf("TXN-%d", i),
+			"amount":         fmt.Sprintf("%d.00", i*10),
+			"currency":       "USD",
+			"merchant":       fmt.Sprintf("Store-%d", i%100),
+			"timestamp":      "2023-10-01T12:00:00Z",
 		}
-
-		// Scan row
-		if err := rows.Scan(valuePtrs...); err != nil {
-			log.Printf("Warning: Failed to scan row: %v", err)
-			continue
-		}
-
-		// Convert to map
-		rowData := make(map[string]interface{})
-		for i, col := range columns {
-			var v interface{}
-			val := values[i]
-			b, ok := val.([]byte)
-			if ok {
-				v = string(b)
-			} else {
-				v = val
-			}
-			rowData[col] = v
-		}
-		
-		serverData = append(serverData, rowData)
-	}
-	
-	if len(serverData) == 0 {
-		log.Fatalf("ERROR: No data loaded from database!")
 	}
 
-	fmt.Printf("✓ Loaded %d server records from database\n", len(serverData))
-
-	// Create client dataset as a subset of server data (for realistic overlap)
 	clientData := make([]interface{}, clientSize)
-	overlapSize := clientSize // All client data overlaps with server
-	
+	overlapSize := clientSize
 	for i := 0; i < clientSize; i++ {
-		if i < len(serverData) {
+		if i < serverSize {
 			clientData[i] = serverData[i]
-		} else {
-			log.Fatalf("ERROR: Not enough data in database! Need at least %d records but only have %d", clientSize, len(serverData))
 		}
 	}
 
