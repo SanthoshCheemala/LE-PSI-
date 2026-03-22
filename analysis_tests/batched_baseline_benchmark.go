@@ -78,6 +78,9 @@ type SystemInfo struct {
 // =========================================================================
 
 func main() {
+	// HARDCODE 128-BIT PQ SECURITY SO WE DON'T RELY ON HPC ENVIRONMENT VARIABLES
+	os.Setenv("PSI_SECURITY_LEVEL", "128")
+
 	fmt.Println("==========================================================")
 	fmt.Println("  LE-PSI TRUE BATCHED ALGORITHM BENCHMARK")
 	fmt.Println("  Achieving parallel speed with bounded, constant RAM")
