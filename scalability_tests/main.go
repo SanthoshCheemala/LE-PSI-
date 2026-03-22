@@ -152,6 +152,9 @@ type Transaction struct {
 }
 
 func main() {
+	// HARDCODE 128-BIT PQ SECURITY SO WE DON'T RELY ON HPC ENVIRONMENT VARIABLES
+	os.Setenv("PSI_SECURITY_LEVEL", "128")
+
 	fmt.Println("=================================================")
 	fmt.Println("  LE-PSI SCALABILITY TESTING FRAMEWORK")
 	fmt.Println("  Testing PSI on Large Datasets")
@@ -173,45 +176,57 @@ func main() {
 			Name:           "Baseline",
 			ServerSize:     50,
 			ClientSize:     5,
-			OverlapPercent: 0.0, // Will be calculated from real data
+			OverlapPercent: 0.0,
 			Description:    "50 server records, 5 client queries (10%) - ~1.6GB RAM",
 		},
 		{
 			Name:           "Small-Scale",
 			ServerSize:     100,
 			ClientSize:     10,
-			OverlapPercent: 0.0, // Will be calculated from real data
+			OverlapPercent: 0.0,
 			Description:    "100 server records, 10 client queries (10%) - ~3GB RAM",
 		},
 		{
 			Name:           "Medium-Scale-1",
 			ServerSize:     250,
 			ClientSize:     25,
-			OverlapPercent: 0.0, // Will be calculated from real data
+			OverlapPercent: 0.0,
 			Description:    "250 server records, 25 client queries (10%) - ~8GB RAM",
 		},
 		{
 			Name:           "Medium-Scale-2",
 			ServerSize:     500,
 			ClientSize:     50,
-			OverlapPercent: 0.0, // Will be calculated from real data
+			OverlapPercent: 0.0,
 			Description:    "500 server records, 50 client queries (10%) - ~16GB RAM",
 		},
 		{
 			Name:           "Large-Scale",
 			ServerSize:     750,
 			ClientSize:     75,
-			OverlapPercent: 0.0, // Will be calculated from real data
+			OverlapPercent: 0.0,
 			Description:    "750 server records, 75 client queries (10%) - ~24GB RAM (SAFE on H100)",
 		},
 		{
-		},
-		{
-			Name:           "Very-Large-Scale",
+			Name:           "X-Large-Scale-1K",
 			ServerSize:     1000,
 			ClientSize:     100,
-			OverlapPercent: 0.0, // Will be calculated from real data
-			Description:    "1000 server records, 100 client queries (10%) - ~32GB RAM (SAFE on H100)",
+			OverlapPercent: 0.0,
+			Description:    "1000 server records, 100 client queries - UNBALANCED STRESS TEST",
+		},
+		{
+			Name:           "Ultra-Scale-5K",
+			ServerSize:     5000,
+			ClientSize:     100,
+			OverlapPercent: 0.0,
+			Description:    "5000 server records, 100 client queries - UNBALANCED STRESS TEST",
+		},
+		{
+			Name:           "Massive-Scale-10K",
+			ServerSize:     10000,
+			ClientSize:     100,
+			OverlapPercent: 0.0,
+			Description:    "10000 server records, 100 client queries - UNBALANCED STRESS TEST",
 		},
 	}
 
