@@ -204,6 +204,15 @@ func main() {
 			OverlapPercent: 0.0, // Will be calculated from real data
 			Description:    "750 server records, 75 client queries (10%) - ~24GB RAM (SAFE on H100)",
 		},
+		{
+		},
+		{
+			Name:           "Very-Large-Scale",
+			ServerSize:     1000,
+			ClientSize:     100,
+			OverlapPercent: 0.0, // Will be calculated from real data
+			Description:    "1000 server records, 100 client queries (10%) - ~32GB RAM (SAFE on H100)",
+		},
 	}
 
 	// Create results directory
