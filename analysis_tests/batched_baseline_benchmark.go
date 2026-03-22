@@ -89,9 +89,10 @@ func main() {
 		clientSize int
 		batchSize  int
 	}{
-		{250, 25, 50},
-		{1000, 100, 100},
-		{5000, 500, 100},
+		{250, 25, 25},
+		{1000, 100, 50},
+		{5000, 100, 50},
+		{10000, 100, 50}, // Safe 10K test using 50-record batches to strictly bound RAM!
 	}
 
 	resultsDir := "batched_baseline_results"
