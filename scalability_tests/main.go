@@ -210,8 +210,8 @@ func runBatchedBenchmark(serverSize, clientSize, batchSize int) BatchedResult {
 
 	// Number of parallel workers
 	numCPU := runtime.NumCPU()
-	if numCPU > 32 {
-		numCPU = 32 // Cap to avoid overwhelming memory bandwidth
+	if numCPU > 8 {
+		numCPU = 8 // EXTREME CAP: 96-Core HPC must be throttled to 8 to fit in 16GB RAM limit!
 	}
 	workerSem := make(chan struct{}, numCPU)
 
