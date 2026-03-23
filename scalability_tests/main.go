@@ -91,10 +91,10 @@ func main() {
 		clientSize int
 		batchSize  int
 	}{
-		{250, 25, 25},
-		{1000, 100, 50},
-		{5000, 100, 50},
-		{10000, 100, 50}, // Safe 10K test using 50-record batches to strictly bound RAM!
+		{250, 25, 5},
+		{1000, 100, 5},
+		{5000, 100, 5},
+		{10000, 100, 5}, // Ultra-safe micro-batching for stringent 16GB memory limits
 	}
 
 	resultsDir := "scalability_results"
