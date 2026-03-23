@@ -172,25 +172,33 @@ func CalculateOptimalWorkers(datasetSize int) int {
 	runtime.ReadMemStats(&memStats)
 
 	totalCores := runtime.NumCPU()
-	totalRAM_GB := float64(memStats.Sys) / (1024 * 1024 * 1024)
-	availableRAM_GB := totalRAM_GB * 0.85 // Use 85% of total RAM
+
+	// CRITICAL FIX: Detect 128-bit security mode and adjust memory estimates.
+	// At D=256, each record uses ~35 MB. At D=2048, it uses ~280 MB (8x larger).
+	// Also, on HPC systems with cgroup limits, Go's memStats.Sys reports the
+	// PHYSICAL server RAM (e.g., 188 GB), NOT the user's memory quota (~16 GB).
+	// We must use a conservative RAM estimate to avoid signal:killed.
+	memPerRecord_GB := 0.035 // Default for D=256
+	maxWorkers := totalCores
+
+	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
+		memPerRecord_GB = 0.280 // 280 MB per record at D=2048
+		maxWorkers = 4          // Hard cap for 128-bit mode on memory-constrained HPCs
+	}
 
 	const (
-		memPerRecord_GB  = 0.035 // 35 MB per record (empirically measured)
-		safetyMargin     = 1.15  // 15% safety margin
-		practicalMinimum = 4     // Minimum workers for parallelism
+		safetyMargin     = 1.15
+		practicalMinimum = 2
 	)
 
-	// All PSI operations are compute-bound (lattice arithmetic, NTT transforms).
-	// Use all available CPU cores — there is no I/O during the parallel phase
-	// since the Merkle tree is already loaded into memory.
-	hardwareLimit := totalCores
+	// HPC specs: AMD EPYC 7413, 188 GiB total, ~85 GiB available
+	availableRAM_GB := 80.0
+
+	hardwareLimit := maxWorkers
 	if hardwareLimit < practicalMinimum {
 		hardwareLimit = practicalMinimum
 	}
 
-	// Memory-based throttling: if estimated memory exceeds 60% of available RAM,
-	// scale down worker count proportionally to avoid OOM
 	estimatedMemory := float64(datasetSize) * memPerRecord_GB * safetyMargin
 	memoryLimit := hardwareLimit
 	if estimatedMemory > availableRAM_GB*0.6 {

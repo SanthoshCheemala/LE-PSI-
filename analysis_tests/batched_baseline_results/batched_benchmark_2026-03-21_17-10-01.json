@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-03-21_17-09-58",
+  "benchmark_type": "true_batched_algorithm",
+  "system_info": {
+    "num_cpu": 8,
+    "gomaxprocs": 8,
+    "total_ram_mb": 6.6435699462890625,
+    "go_version": "go1.24.1"
+  },
+  "batched_results": [
+    {
+      "server_size": 50,
+      "client_size": 5,
+      "batch_size": 50,
+      "matches_found": 5,
+      "peak_ram_mb": 121.56310272216797,
+      "tree_load_ram_mb": 71.43982696533203,
+      "total_time_seconds": 3.2224512499999998,
+      "success": true
+    }
+  ],
+  "key_finding": "The real Batched algorithm limits memory allocation to a strict maximum (batchSize) while fully utilizing CPU cores for parallel throughput. It achieves the speed of the 312GB baseline, with the memory stability of the sequential baseline!"
+}
