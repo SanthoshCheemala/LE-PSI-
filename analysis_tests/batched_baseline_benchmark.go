@@ -301,7 +301,12 @@ func clientEncryptParallel(clientHashes []uint64, pp *matrix.Vector, msg *ring.P
 	Y_size := len(clientHashes)
 	C := make([]psi.Cxtx, Y_size)
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, runtime.NumCPU())
+	
+	maxConcurrent := 8
+	if runtime.NumCPU() < maxConcurrent {
+		maxConcurrent = runtime.NumCPU()
+	}
+	sem := make(chan struct{}, maxConcurrent)
 
 	for i := 0; i < Y_size; i++ {
 		wg.Add(1)

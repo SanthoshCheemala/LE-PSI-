@@ -300,7 +300,15 @@ func clientEncryptParallel(clientHashes []uint64, pp *matrix.Vector, msg *ring.P
 	Y_size := len(clientHashes)
 	C := make([]psi.Cxtx, Y_size)
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, runtime.NumCPU())
+	
+	// CRITICAL FIX: The HPC has 96 cores. If we let 96 cores encrypt simultaneously at D=2048,
+	// it requests ~20GB of instant RAM and causes a kernel panic (signal: killed).
+	// We cap this to 8 concurrent workers to keep RAM footprint safely inside ~1.5 GB.
+	maxConcurrent := 8
+	if runtime.NumCPU() < maxConcurrent {
+		maxConcurrent = runtime.NumCPU()
+	}
+	sem := make(chan struct{}, maxConcurrent)
 
 	for i := 0; i < Y_size; i++ {
 		wg.Add(1)
