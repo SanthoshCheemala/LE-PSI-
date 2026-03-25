@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -173,52 +174,42 @@ func main() {
 	}
 	fmt.Println("=================================================\n")
 
+	// FORCE Go GC to aggressively reclaim memory before OS kills us
+	// 70 GB limit on a 188 GB machine leaves plenty of headroom
+	debug.SetMemoryLimit(70 * 1024 * 1024 * 1024) // 70 GiB
+
 	// 128-BIT SECURITY WITH BATCHED WITNESS GENERATION:
-	// Each server record witness = ~280 MB at D=2048
-	// HPC has 188 GB total, ~85 GB free
-	// We batch witness generation in chunks of 250 to stay under 70 GB
+	// Each server record witness is massive at D=2048
+	// We batch witness generation in chunks of 25 to stay safe
+	// STEP 1: Validate 50→1000 first, then add 5K/10K once proven stable
 	tests := []ScalabilityTest{
 		{
 			Name:           "Baseline-128bit",
 			ServerSize:     50,
 			ClientSize:     5,
 			OverlapPercent: 0.0,
-			Description:    "50 server records, 5 client queries - ~14GB RAM at D=2048",
+			Description:    "50 server records, 5 client queries",
 		},
 		{
 			Name:           "Small-Scale-128bit",
 			ServerSize:     100,
 			ClientSize:     10,
 			OverlapPercent: 0.0,
-			Description:    "100 server records, 10 client queries - ~28GB RAM at D=2048",
+			Description:    "100 server records, 10 client queries",
 		},
 		{
 			Name:           "Medium-Scale-128bit",
 			ServerSize:     250,
 			ClientSize:     25,
 			OverlapPercent: 0.0,
-			Description:    "250 server records, 25 client queries - ~70GB RAM at D=2048",
+			Description:    "250 server records, 25 client queries",
 		},
 		{
 			Name:           "Large-Scale-128bit-1K",
 			ServerSize:     1000,
 			ClientSize:     100,
 			OverlapPercent: 0.0,
-			Description:    "1000 server records, 100 client queries - BATCHED WITNESSES",
-		},
-		{
-			Name:           "Ultra-Scale-128bit-5K",
-			ServerSize:     5000,
-			ClientSize:     100,
-			OverlapPercent: 0.0,
-			Description:    "5000 server records, 100 client queries - BATCHED WITNESSES",
-		},
-		{
-			Name:           "Massive-Scale-128bit-10K",
-			ServerSize:     10000,
-			ClientSize:     100,
-			OverlapPercent: 0.0,
-			Description:    "10000 server records, 100 client queries - BATCHED WITNESSES",
+			Description:    "1000 server records, 100 client queries - BATCHED WITNESSES (batch=25)",
 		},
 	}
 
@@ -431,8 +422,8 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	}
 
 	// Step 3: BATCHED INTERSECTION DETECTION
-	// Generate witnesses for only 250 records at a time, run detection, free, repeat
-	const witnessBatchSize = 250
+	// Generate witnesses for only 25 records at a time, run detection, free, repeat
+	const witnessBatchSize = 25
 	intStart := time.Now()
 
 	var (
@@ -441,7 +432,7 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 		intersectionMap = make(map[int]bool)
 	)
 
-	numWorkers := 4 // Strictly bounded for 128-bit mode
+	numWorkers := 2 // Ultra-strict: only 2 concurrent witness generators
 	workerSem := make(chan struct{}, numWorkers)
 
 	fmt.Printf("       ⚡ Running BATCHED intersection (batch size: %d, workers: %d)...\n", witnessBatchSize, numWorkers)
@@ -572,7 +563,7 @@ func clientEncryptParallelSafe(clientHashes []uint64, pp *matrix.Vector, msg *ri
 	C := make([]psi.Cxtx, Y_size)
 	var wg sync.WaitGroup
 
-	maxConcurrent := 4 // Strict cap for 128-bit security
+	maxConcurrent := 2 // Ultra-strict for 128-bit mode
 	sem := make(chan struct{}, maxConcurrent)
 
 	for i := 0; i < Y_size; i++ {
