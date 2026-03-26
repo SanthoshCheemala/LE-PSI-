@@ -160,8 +160,9 @@ type Transaction struct {
 }
 
 func main() {
-	// HARDCODE 128-BIT PQ SECURITY SO WE DON'T RELY ON HPC ENVIRONMENT VARIABLES
-	os.Setenv("PSI_SECURITY_LEVEL", "128")
+	// D=256 MODE: Scalability run for full 10K dataset
+	// After this, re-enable PSI_SECURITY_LEVEL=128 for the 128-bit security run
+	// os.Setenv("PSI_SECURITY_LEVEL", "128")
 
 	fmt.Println("=================================================")
 	fmt.Println("  LE-PSI SCALABILITY TESTING FRAMEWORK")
@@ -178,38 +179,49 @@ func main() {
 	// 70 GB limit on a 188 GB machine leaves plenty of headroom
 	debug.SetMemoryLimit(70 * 1024 * 1024 * 1024) // 70 GiB
 
-	// 128-BIT SECURITY WITH BATCHED WITNESS GENERATION:
-	// Each server record witness is massive at D=2048
-	// We batch witness generation in chunks of 25 to stay safe
-	// STEP 1: Validate 50→1000 first, then add 5K/10K once proven stable
+	// D=256 SCALABILITY RUN: Full dataset sizes up to 10K
 	tests := []ScalabilityTest{
 		{
-			Name:           "Baseline-128bit",
+			Name:           "Baseline",
 			ServerSize:     50,
 			ClientSize:     5,
 			OverlapPercent: 0.0,
 			Description:    "50 server records, 5 client queries",
 		},
 		{
-			Name:           "Small-Scale-128bit",
+			Name:           "Small-Scale",
 			ServerSize:     100,
 			ClientSize:     10,
 			OverlapPercent: 0.0,
 			Description:    "100 server records, 10 client queries",
 		},
 		{
-			Name:           "Medium-Scale-128bit",
+			Name:           "Medium-Scale",
 			ServerSize:     250,
 			ClientSize:     25,
 			OverlapPercent: 0.0,
 			Description:    "250 server records, 25 client queries",
 		},
 		{
-			Name:           "Large-Scale-128bit-1K",
+			Name:           "Large-Scale-1K",
 			ServerSize:     1000,
 			ClientSize:     100,
 			OverlapPercent: 0.0,
-			Description:    "1000 server records, 100 client queries - BATCHED WITNESSES (batch=25)",
+			Description:    "1000 server records, 100 client queries",
+		},
+		{
+			Name:           "Ultra-Scale-5K",
+			ServerSize:     5000,
+			ClientSize:     100,
+			OverlapPercent: 0.0,
+			Description:    "5000 server records, 100 client queries",
+		},
+		{
+			Name:           "Massive-Scale-10K",
+			ServerSize:     10000,
+			ClientSize:     100,
+			OverlapPercent: 0.0,
+			Description:    "10000 server records, 100 client queries",
 		},
 	}
 
