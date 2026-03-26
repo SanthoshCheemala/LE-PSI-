@@ -160,9 +160,8 @@ type Transaction struct {
 }
 
 func main() {
-	// D=256 MODE: Scalability run for full 10K dataset
-	// After this, re-enable PSI_SECURITY_LEVEL=128 for the 128-bit security run
-	// os.Setenv("PSI_SECURITY_LEVEL", "128")
+	// 128-BIT POST-QUANTUM SECURITY MODE (D=2048)
+	os.Setenv("PSI_SECURITY_LEVEL", "128")
 
 	fmt.Println("=================================================")
 	fmt.Println("  LE-PSI SCALABILITY TESTING FRAMEWORK")
