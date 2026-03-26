@@ -434,8 +434,8 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	}
 
 	// Step 3: BATCHED INTERSECTION DETECTION
-	// Generate witnesses for only 25 records at a time, run detection, free, repeat
-	const witnessBatchSize = 25
+	// At D=256, witnesses are small (~35MB each), so we can use larger batches
+	const witnessBatchSize = 100
 	intStart := time.Now()
 
 	var (
@@ -444,7 +444,7 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 		intersectionMap = make(map[int]bool)
 	)
 
-	numWorkers := 2 // Ultra-strict: only 2 concurrent witness generators
+	numWorkers := 16 // D=256 mode: use more cores for speed
 	workerSem := make(chan struct{}, numWorkers)
 
 	fmt.Printf("       ⚡ Running BATCHED intersection (batch size: %d, workers: %d)...\n", witnessBatchSize, numWorkers)
@@ -575,7 +575,7 @@ func clientEncryptParallelSafe(clientHashes []uint64, pp *matrix.Vector, msg *ri
 	C := make([]psi.Cxtx, Y_size)
 	var wg sync.WaitGroup
 
-	maxConcurrent := 2 // Ultra-strict for 128-bit mode
+	maxConcurrent := 16 // D=256 mode: use more cores
 	sem := make(chan struct{}, maxConcurrent)
 
 	for i := 0; i < Y_size; i++ {
