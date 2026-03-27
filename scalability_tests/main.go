@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -175,9 +174,7 @@ func main() {
 	}
 	fmt.Println("=================================================\n")
 
-	// FORCE Go GC to aggressively reclaim memory before OS kills us
-	// 70 GB limit on a 188 GB machine leaves plenty of headroom
-	debug.SetMemoryLimit(70 * 1024 * 1024 * 1024) // 70 GiB
+	// No memory limit needed for D=256 (peak ~18 GB for 10K records)
 
 	// D=256 SCALABILITY RUN: Full dataset sizes up to 10K
 	tests := []ScalabilityTest{
@@ -412,12 +409,16 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	}
 
 	// Extract crypto params for the report
+	secLabel := fmt.Sprintf("64-bit Security (D=%d)", leParams.D)
+	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
+		secLabel = fmt.Sprintf("128-bit Post-Quantum (D=%d)", leParams.D)
+	}
 	result.CryptographicParams = CryptoParams{
 		RingDimension:  leParams.D,
 		Modulus:        leParams.Q,
 		MatrixSize:     leParams.N,
 		TreeLayers:     leParams.Layers,
-		SecurityLevel:  "128-bit Post-Quantum (D=2048)",
+		SecurityLevel:  secLabel,
 	}
 
 	// Step 2: Client Encryption (8 concurrent workers to bound RAM)
@@ -433,9 +434,8 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 		peakRAM = afterEncryptionRAM
 	}
 
-	// Step 3: BATCHED INTERSECTION DETECTION
-	// At D=256, witnesses are small (~35MB each), so we can use larger batches
-	const witnessBatchSize = 100
+	// Step 3: FULLY PARALLEL INTERSECTION DETECTION
+	// D=256: witnesses are small (~1 MB each), use ALL CPU cores for max speed
 	intStart := time.Now()
 
 	var (
@@ -444,79 +444,64 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 		intersectionMap = make(map[int]bool)
 	)
 
-	numWorkers := 16 // D=256 mode: use more cores for speed
+	numWorkers := runtime.NumCPU()
 	workerSem := make(chan struct{}, numWorkers)
 
-	fmt.Printf("       ⚡ Running BATCHED intersection (batch size: %d, workers: %d)...\n", witnessBatchSize, numWorkers)
+	fmt.Printf("       ⚡ Running PARALLEL intersection (workers: %d, all cores)...\n", numWorkers)
 
-	for batchStart := 0; batchStart < X_size; batchStart += witnessBatchSize {
-		batchEnd := batchStart + witnessBatchSize
-		if batchEnd > X_size {
-			batchEnd = X_size
-		}
-		currentBatchSize := batchEnd - batchStart
+	// Generate ALL witnesses in parallel (fits in RAM at D=256)
+	wit1All := make([][]*matrix.Vector, X_size)
+	wit2All := make([][]*matrix.Vector, X_size)
 
-		// Generate witnesses FOR THIS BATCH ONLY
-		wit1Batch := make([][]*matrix.Vector, currentBatchSize)
-		wit2Batch := make([][]*matrix.Vector, currentBatchSize)
-
-		var witWG sync.WaitGroup
-		for i := 0; i < currentBatchSize; i++ {
-			witWG.Add(1)
-			go func(idx int, hash uint64) {
-				defer witWG.Done()
-				workerSem <- struct{}{}
-				w1, w2 := LE.WitGenMemory(memoryTree, leParams, hash)
-				wit1Batch[idx] = w1
-				wit2Batch[idx] = w2
-				<-workerSem
-			}(i, hashedClient[batchStart+i])
-		}
-		witWG.Wait()
-
-		// Perform decryption checks FOR THIS BATCH ONLY
-		var decWG sync.WaitGroup
-		for i := 0; i < currentBatchSize; i++ {
-			decWG.Add(1)
-			go func(idx int, globalIdx int) {
-				defer decWG.Done()
-				workerSem <- struct{}{}
-				defer func() { <-workerSem }()
-
-				w1 := wit1Batch[idx]
-				w2 := wit2Batch[idx]
-				sk := privateKeys[globalIdx]
-
-				for j := 0; j < len(ciphertexts); j++ {
-					msg2 := LE.Dec(leParams, sk, w1, w2,
-						ciphertexts[j].C0, ciphertexts[j].C1,
-						ciphertexts[j].C, ciphertexts[j].D)
-
-					if psi.CorrectnessCheck(msg2, msg, leParams) {
-						matchesMutex.Lock()
-						if !intersectionMap[globalIdx] {
-							matches = append(matches, serverHashes[globalIdx])
-							intersectionMap[globalIdx] = true
-						}
-						matchesMutex.Unlock()
-					}
-				}
-			}(i, batchStart+i)
-		}
-		decWG.Wait()
-
-		// DISCARD batch buffers immediately to bound memory!
-		wit1Batch = nil
-		wit2Batch = nil
-		runtime.GC()
-
-		currentRAM := getCurrentRAM_MB()
-		if currentRAM > peakRAM {
-			peakRAM = currentRAM
-		}
-
-		fmt.Printf("       Processed %d/%d (Peak RAM: %.1f MB)\n", batchEnd, X_size, currentRAM)
+	var witWG sync.WaitGroup
+	for i := 0; i < X_size; i++ {
+		witWG.Add(1)
+		go func(idx int, hash uint64) {
+			defer witWG.Done()
+			workerSem <- struct{}{}
+			w1, w2 := LE.WitGenMemory(memoryTree, leParams, hash)
+			wit1All[idx] = w1
+			wit2All[idx] = w2
+			<-workerSem
+		}(i, hashedClient[i])
 	}
+	witWG.Wait()
+	fmt.Printf("       ✓ All %d witnesses generated in %v\n", X_size, time.Since(intStart))
+
+	// Perform ALL decryption checks in parallel
+	var decWG sync.WaitGroup
+	for i := 0; i < X_size; i++ {
+		decWG.Add(1)
+		go func(idx int) {
+			defer decWG.Done()
+			workerSem <- struct{}{}
+			defer func() { <-workerSem }()
+
+			w1 := wit1All[idx]
+			w2 := wit2All[idx]
+			sk := privateKeys[idx]
+
+			for j := 0; j < len(ciphertexts); j++ {
+				msg2 := LE.Dec(leParams, sk, w1, w2,
+					ciphertexts[j].C0, ciphertexts[j].C1,
+					ciphertexts[j].C, ciphertexts[j].D)
+
+				if psi.CorrectnessCheck(msg2, msg, leParams) {
+					matchesMutex.Lock()
+					if !intersectionMap[idx] {
+						matches = append(matches, serverHashes[idx])
+						intersectionMap[idx] = true
+					}
+					matchesMutex.Unlock()
+				}
+			}
+		}(i)
+	}
+	decWG.Wait()
+
+	// Free witnesses after intersection
+	wit1All = nil
+	wit2All = nil
 
 	result.IntersectionTime = time.Since(intStart)
 
