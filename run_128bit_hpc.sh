@@ -7,9 +7,9 @@
 
 set -e
 
-# Change to the correct directory
+# Move to the directory where the script is located
 cd "$(dirname "$0")"
-PROJECT_DIR="/Users/santhoshcheemala/ALL_IN_ONE/Research_Implimentation/PSI"
+PROJECT_DIR="$PWD"
 cd "$PROJECT_DIR"
 
 # Enforce 128-bit security via the environment variable we built
