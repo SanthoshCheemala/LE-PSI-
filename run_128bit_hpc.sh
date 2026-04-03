@@ -41,13 +41,8 @@ for size in "${DATASET_SIZES[@]}"; do
     echo "Running benchmark at m=${size}" | tee -a "$log_file"
     echo "----------------------------------------------------------" | tee -a "$log_file"
     
-    # We use 'time -v' to capture peak RAM usage if running on Linux HPC
-    # If on Mac, 'time -l' or just standard time is used.
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        /usr/bin/time -l ./psi_test -size=$size -mode=full 2>&1 | tee -a "$log_file"
-    else
-        /usr/bin/time -v ./psi_test -size=$size -mode=full 2>&1 | tee -a "$log_file"
-    fi
+    # Use the standard shell builtin 'time' since /usr/bin/time might not be installed
+    time ./psi_test -size=$size -mode=full 2>&1 | tee -a "$log_file"
     
     echo "Finished m=${size} benchmark." | tee -a "$log_file"
     
