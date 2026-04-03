@@ -1,0 +1,57 @@
+\chapter{Proposed System Architecture and Workflow}
+
+This chapter describes the overall architecture and the data encryption workflow designed for efficient and privacy-preserving financial fraud detection. The system integrates encryption mechanisms based on laconic cryptography principles \cite{cryptoeprint:2023/404}, efficient database storage, and planned Private Set Intersection (PSI) protocols for secure matching \cite{cryptoeprint:2024/1091}.
+
+\section{System Architecture}
+
+The system architecture is composed of the following modules:
+
+\begin{itemize}
+    \item \textbf{Data Ingestion and Preprocessing:} Handles the import and validation of transactional data from the PaySim dataset.
+    \item \textbf{Data Encryption Module:} Encrypts transaction records using a lattice-based encryption scheme with laconic principles \cite{cryptoeprint:2023/404}.
+    \item \textbf{Database Storage:} Stores the encrypted records securely in an SQLite database for efficient retrieval and future secure processing.
+    \item \textbf{Laconic PSI Module (Future Work):} Performs privacy-preserving record matching between encrypted transaction data and known fraud patterns \cite{cryptoeprint:2024/1091}.
+    \item \textbf{Fraud Detection Engine:} Analyzes matched records and flags suspicious transactions while maintaining data privacy.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{photos/1.2.png} % Insert system architecture diagram here
+\caption{System Architecture for Financial Fraud Detection}
+\label{fig:system_architecture}
+\end{figure}
+
+\begin{remark}
+The system is designed with modularity in mind, allowing seamless integration of additional cryptographic protocols such as Laconic PSI in later stages \cite{cryptoeprint:2024/1091}.
+\end{remark}
+
+\section{Data Encryption Workflow}
+
+The encryption workflow outlines the steps involved in securing financial transaction data before storing it. Each transaction is processed through encryption to maintain confidentiality.
+
+\begin{remark}
+At this stage, the focus is on ensuring secure encryption of transaction data. Efficiency optimizations, including storage size reduction, are planned for future phases \cite{cryptoeprint:2023/404}.
+\end{remark}
+
+The steps of the workflow are as follows:
+
+\begin{enumerate}
+    \item \textbf{Data Loading:} Transaction data is read from the PaySim dataset.
+    \item \textbf{Preprocessing:} Fields such as amount, sender ID, receiver ID, and balance information are formatted.
+    \item \textbf{Encryption Setup:} Keys are generated using lattice-based cryptographic primitives (via the Lattigo library) \cite{regev2024latticeslearningerrorsrandom}.
+    \item \textbf{Record Encryption:} Each transaction field is encrypted individually \cite{cryptoeprint:2023/404}.
+    \item \textbf{Database Insertion:} The encrypted records are stored into a structured SQLite database.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{photos/encryption_flow.png} % Insert data encryption workflow diagram here
+\caption{Data Encryption Workflow}
+\label{fig:data_encryption_workflow}
+\end{figure}
+
+\begin{remark}
+This encryption workflow lays the foundation for later integration with laconic PSI protocols, enabling privacy-preserving multi-party fraud detection \cite{cryptoeprint:2024/1091}.
+\end{remark}
+
+\clearpage

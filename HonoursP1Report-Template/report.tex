@@ -1,0 +1,152 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage{amsthm, amssymb, amsmath, mathrsfs, setspace}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tocbibind}
+\usepackage{caption}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{notation}[theorem]{Notation}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\renewcommand{\baselinestretch}{1.5}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+\enlargethispage{2cm}
+\begin{center}
+\vspace*{-1cm}
+\textbf{\Large FINANCIAL FRAUD DETECTION USING LACONIC CRYPTOGRAPHY}\\[10pt]
+
+\vspace*{1.5 cm}
+
+A Project Report Submitted \\
+In Partial Fulfilment of the Requirements  \\
+for the Degree of  \\
+\vspace{4.5mm}
+{\Large \bf BACHELOR OF TECHNOLOGY (HONORS)} \\
+in \\
+{\large \bf COMPUTER SCIENCE AND ENGINEERING WITH CYBER SECURITY} \\
+
+\vspace{9mm}
+{\em  by} \\ \vspace{2.5mm}
+{\large \bf SANTHOSH CEEMALA} \\
+{\large \bf (Roll No. 2022BCY0009)}\\[.35in]
+
+\vfill
+\includegraphics[width=6cm, height=3cm]{logo2.jpg}
+
+\vspace*{0.2cm}
+{\em\large to}\\
+{\bf \mbox{DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING}} \\
+{\bf \mbox{INDIAN INSTITUTE OF INFORMATION TECHNOLOGY KOTTAYAM}}\\
+{\bf KOTTAYAM-686635, INDIA}\\
+{\it April 2025}
+\end{center}
+\end{titlepage}
+
+\clearpage
+
+% Declaration
+\pagenumbering{roman} \setcounter{page}{2}
+\begin{center}
+{\large{\bf{DECLARATION}}}
+\end{center}
+
+\noindent I, \textbf{Santhosh Ceemala} (\textbf{Roll No: 2022BCY0009}), hereby declare that this report entitled
+\textbf{``Financial Fraud Detection using Laconic Cryptography''} submitted to the Indian
+Institute of Information Technology Kottayam towards partial
+requirement of {\bf Bachelor of Technology (Honours)} in \textbf{Computer Science and Engineering with Specialization in Cyber Security}
+is an original work carried out by me under the supervision of
+\textbf{Dr. A. Balu} and has not formed the basis for the award
+of any degree or diploma, in this or any other institution or
+university. I have sincerely tried to uphold the academic ethics
+and honesty. Whenever an external information or statement or
+result is used, it has been duly acknowledged and cited.
+
+\vspace{4cm}
+
+\noindent Kottayam-686635 \hfill \textbf{Santhosh Ceemala}
+
+\noindent April 2025
+
+\clearpage
+
+% Certificate
+\begin{center}
+{\large{\bf{CERTIFICATE}}}
+\end{center}
+
+\noindent This is to certify that the work contained in this
+project report entitled \textbf{``Financial Fraud Detection using Laconic Cryptography''}
+submitted by \textbf{Santhosh Ceemala} (\textbf{Roll No: 2022BCY0009}) to the Indian Institute of Information Technology Kottayam
+towards partial requirement of {\bf Bachelor of Technology (Honours)} in
+\textbf{Computer Science and Engineering with Specialization in Cyber Security} has been carried out by him under my
+supervision and that it has not been submitted elsewhere for the
+award of any degree.
+
+\vspace{4cm}
+
+\noindent Kottayam-686635 \hfill \textbf{(Dr. A. Balu)}
+
+\noindent April 2025 \hfill Project Supervisor
+
+\clearpage
+
+% Abstract
+\begin{center}
+{\Large{\bf{ABSTRACT}}}
+\end{center}
+
+The rise in financial fraud has prompted organizations to collaborate by comparing transaction data across entities. However, this raises critical concerns about user privacy. In order to address these concerns, this work proposes a privacy-preserving fraud detection framework that integrates Laconic Cryptography and Private Set Intersection (PSI) to enable the identification of fraudulent records without disclosing sensitive information.
+
+Our approach uses Laconic Encryption, a cryptographic primitive enabling sublinear communication in just two rounds, based on the Learning With Errors (LWE) assumption. One party generates a succinct digest of encrypted data, which the other uses to perform secure computations\textemdash reducing communication and computation overhead, and ensuring scalability.
+
+Unlike traditional fraud detection systems with centralized databases or high-cost multi-party computation, our framework integrates Laconic PSI tailored for financial scenarios. It securely computes intersections between encrypted datasets, such as transaction logs and fraud records, without exposing unmatched data. By leveraging Merkle Trees, SIS, and dual-Regev encryption, the system ensures strong privacy, quantum resistance, and practical efficiency.
+
+This framework bridges the gap between privacy, performance, and real-world deployment, enabling secure cross-border transaction monitoring, fraud detection across institutions, and insurance claim verification\textemdash while complying with regulations like GDPR and preserving user trust.
+
+\clearpage
+
+% Table of Contents
+\tableofcontents
+\clearpage
+
+% List of Figures and Tables
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+% Main Chapters
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\input{chapter1.tex}
+\input{HonoursP1Report-Template/chapter2}
+\input{chapter3.tex}
+\input{chapter4.tex}
+\input{chapter5.tex}
+\input{chapter6.tex}
+\input{chapter7.tex}
+
+% Bibliography
+\nocite{*}
+\bibliographystyle{plain}
+\bibliography{bib}
+
+\end{document}

@@ -1,0 +1,49 @@
+\chapter{Conclusion and Future Work}
+
+\section{Laconic Private Set Intersection (PSI) Integration}
+
+One of the primary directions for future work is the integration of Laconic Private Set Intersection (PSI) protocols \cite{cryptoeprint:2023/404}.  
+This would allow multiple financial institutions to collaboratively identify common fraudulent patterns without disclosing their respective sensitive datasets.
+
+The Laconic PSI protocol offers several advantages:
+
+\begin{itemize}
+    \item \textbf{Sublinear Communication Complexity:} Laconic techniques minimize the amount of data exchanged between parties during PSI computation \cite{cryptoeprint:2023/404}.
+    \item \textbf{Two-Round Protocol Design:} The PSI operation can be completed efficiently in just two rounds of interaction, reducing communication overhead \cite{cryptoeprint:2023/404}.
+    \item \textbf{Privacy Preservation:} Parties only learn about matched records without leaking any additional information, supporting regulatory compliance with GDPR and similar laws \cite{cryptoeprint:2023/404}.
+\end{itemize}
+
+Integrating Laconic PSI would enable secure, scalable, and efficient cross-institutional fraud detection mechanisms.
+
+\section{Additional Enhancements and Experiments}
+
+Several technical improvements and additional experiments are planned to extend the capabilities of the system:
+
+\begin{itemize}
+    \item \textbf{Ciphertext Packing:} Explore the use of packing techniques to combine multiple transaction fields into a single ciphertext, thereby reducing storage and bandwidth costs \cite{begum2023secure}.
+    \item \textbf{Parameter Optimization:} Fine-tune cryptographic parameters such as the ring dimension and modulus size to balance security levels and computational efficiency \cite{zhao2025vlwe}.
+    \item \textbf{Selective Field Encryption:} Encrypt only highly sensitive fields to reduce overall data expansion while maintaining necessary privacy.
+    \item \textbf{Post-Encryption Compression:} Investigate compression algorithms compatible with encrypted data to further reduce storage overhead.
+    \item \textbf{Validation on Real Datasets:} Extend experiments beyond the PaySim dataset to real-world transaction datasets to validate system scalability and adaptability \cite{cryptoeprint:2023/404}.
+\end{itemize}
+
+These enhancements aim to make the system more practical for deployment in large-scale real-world financial ecosystems.
+
+\section{Conclusion}
+
+This project established a foundational framework for privacy-preserving financial fraud detection using efficient Laconic Cryptography techniques.  
+By implementing lattice-based encryption over a large-scale dataset, the system achieved strong confidentiality guarantees while revealing important performance trade-offs, especially in storage overhead.
+
+Key outcomes of the project include:
+
+\begin{itemize}
+    \item Successful encryption of over 1 million records with consistent fixed-size ciphertexts.
+    \item Achieving encryption throughput of approximately 384,000 operations per second \cite{zhao2025vlwe}.
+    \item Identifying clear patterns in ciphertext expansion based on data field types \cite{cryptoeprint:2023/404}.
+\end{itemize}
+
+Despite facing challenges such as significant storage expansion, the project sets a clear path forward toward integrating Laconic PSI, optimizing encryption overhead, and enhancing system scalability.
+
+With further research and development, the system has the potential to become a practical solution for secure and privacy-compliant fraud detection across financial institutions \cite{cryptoeprint:2023/404}.
+
+\clearpage

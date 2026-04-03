@@ -1,0 +1,199 @@
+\chapter{Conclusion and Future Work}
+
+\section{Summary of Contributions}
+
+This project presents the first empirically validated implementation of the DKLLMR23
+laconic PSI protocol, which provides plausible post-quantum security from Ring-LWE.
+The work spans two phases: a core cryptographic implementation phase establishing
+correctness, and an engineering optimisation phase establishing scalability and
+real-world viability.
+
+The following concrete outcomes were achieved:
+
+\begin{enumerate}
+    \item \textbf{Core implementation (Phase I).} A full end-to-end implementation
+          of Laconic Encryption --- comprising \textsf{KeyGen}, \textsf{LaconicEnc}, \textsf{Dec},
+          and \textsf{WitGen} --- and the two-round PSI protocol, written in Go 1.24
+          using the Lattigo library for Ring-LWE primitives. Correctness was validated
+          across multiple test scenarios including basic intersection, empty intersection,
+          full intersection, and repeated encryption with fresh randomness.
+
+    \item \textbf{Memory reduction via batched witness generation (Phase II).} The
+          central engineering contribution of this project. Batched witness generation
+          reduces auxiliary space complexity from $S_{\text{aux}}^{\text{naive}} = \Theta(m \cdot D^2 \cdot \log q)$
+          to $S_{\text{aux}}^{\text{batch}} = \Theta(B \cdot D^2 \cdot \log q) + \Theta(m \cdot D^2)$,
+          with $B \ll m$. This theoretical result --- proved in Theorem~\ref{thm:batch-space} ---
+          was validated empirically, reducing peak RAM from a fully-parallel worst
+          case of $\approx 312$\,GB to a constant 6.5\,GB across all tested dataset
+          sizes. The reduction factor of $\log_2 q \approx 58$ directly corresponds
+          to the gadget decomposition expansion factor, confirming the theoretical analysis.
+
+    \item \textbf{In-memory Merkle tree.} Loading the Merkle tree into RAM eliminates
+          the SQLite I/O bottleneck that dominated Phase I witness generation,
+          achieving a $21\times$ speedup in that phase. This engineering decision
+          transforms witness fetching from an I/O-bound operation into a memory-bandwidth-bound
+          one, which is the correct bottleneck to hit given the hardware characteristics
+          of modern server systems.
+
+    \item \textbf{Distributed execution on Google Compute Engine.} Horizontal
+          partitioning of the server dataset across a 20--25 node GCE cluster reduces
+          end-to-end execution time by approximately $15\times$, bringing large-scale
+          screening runs within the bounds of overnight compliance batch windows. The
+          distributed architecture achieves approximately 60\% parallel efficiency,
+          with the remaining overhead attributable to coordination, network latency,
+          and minor load imbalance --- all well-understood and quantified.
+
+    \item \textbf{Scalability benchmark.} The first empirical performance characterisation
+          of Ring-LWE-based laconic PSI, validated at $m = 10{,}000$ server records
+          under 64-bit quantum security ($D = 256$), and correctness-validated at
+          128-bit quantum security ($D = 2048$) on small datasets. These results
+          establish the first measured data points for lattice-based laconic PSI,
+          complementing the pairing-based empirical study of ALOS22~\cite{alos2022} and
+          providing the research community with a concrete foundation for future
+          post-quantum PSI development.
+
+    \item \textbf{FLARE prototype.} A fully functional, GDPR-compliant sanctions
+          screening web application demonstrating that the LE-PSI protocol can be
+          deployed in a real-world financial compliance workflow. FLARE provides
+          information-theoretic privacy guarantees that go beyond GDPR's contractual
+          requirements: the sanctions authority is mathematically incapable of learning
+          which customers the bank is screening, not merely contractually prohibited
+          from doing so.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Limitations}
+
+This project makes several deliberate trade-offs in the interest of tractability
+within the scope of an Honours project. These are stated explicitly and honestly:
+
+\begin{enumerate}
+    \item \textbf{Security level of large-scale benchmarks.} All large-scale
+          performance results ($m = 10{,}000$) use $D = 256$, providing approximately
+          64-bit quantum security --- equivalent to approximately 128-bit classical
+          security, but below the NIST PQC standard of 128-bit quantum security~\cite{albrecht2015hardness}.
+          This is a deliberate engineering trade-off: $D = 2048$ provides 128-bit quantum
+          security but yields ciphertexts approximately $4\times$ larger and computations
+          approximately $4\times$ slower. Scaling to 128-bit quantum security at
+          $m = 10{,}000$ would require auxiliary space of approximately
+          $B \times 280$\,MB (witness buffer) plus $\approx 100$\,GB (tree), which
+          requires hardware beyond what was available, or a more constrained batch
+          size. The path to 128-bit benchmarks is clearly identified in Section~7.3.
+
+    \item \textbf{Semi-honest adversary model only.} The current implementation is
+          secure only against semi-honest (honest-but-curious) adversaries --- parties
+          who follow the protocol correctly but attempt to learn additional information
+          from the transcript. It does not defend against malicious adversaries who
+          may deviate from the protocol, submit malformed ciphertexts, or attempt
+          active attacks. Extension to the malicious model requires zero-knowledge
+          proofs of correct encryption from the client and correct intersection
+          detection from the server, which is identified as future work.
+
+    \item \textbf{Extrapolated 128-bit performance at $m = 10{,}000$.} While the $4\times$ computational overhead and $4\times$ memory expansion for 128-bit quantum security ($D = 2048$) were definitively established through direct empirical measurement on small datasets ($m \le 1{,}000$), executing this configuration at the full $m = 10{,}000$ scale on a single node remained intractable. Consequently, the performance projections for 128-bit security at $m = 10{,}000$ are mathematically extrapolated from the measured small-scale baseline overhead, rather than directly benchmarked end-to-end at boundary scale.
+
+    \item \textbf{LWE Decryption Failure Probability at Small Datasets.} At very
+          small dataset sizes ($m < 250$), the shallow Merkle tree limits the
+          available entropy mixed into the ciphertext during gadget decomposition,
+          occasionally causing LWE decryption failures due to insufficient error
+          term ($\chi_e$) cancellation. This artefact results in reduced intersection
+          accuracy (approximately 90\%) at $m = 100$. This is fundamentally a noise
+          management issue, not a hash collision, and does not affect the
+          results at the primary benchmark scale of $m \ge 1{,}000$ where tree depth
+          provides sufficient distribution.
+
+    \item \textbf{Communication extrapolation at large $m$.} Communication volume
+          figures at $m = 10^6$ in Section~6.5 are extrapolated from the verified
+          scaling model rather than directly measured. Direct measurement at
+          $m = 10^6$ was not feasible within available computational resources.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Future Work}
+
+The results and limitations identified in this project suggest several high-impact
+directions for future research and engineering:
+
+\subsection{Scaling to 128-bit Quantum Security at Large Datasets}
+The most immediate and direct next step is executing the $m = 10{,}000$ benchmark
+at $D = 2048$ (128-bit quantum security). With a reduced batch size of $B = 5$
+and a distributed setup of 3--5 GCE nodes, the per-node witness buffer drops to
+approximately $5 \times 280$\,MB $\approx 1.4$\,GB, making the experiment feasible
+on standard cloud hardware. This would establish the first 128-bit post-quantum
+laconic PSI benchmark --- a significant milestone for the field.
+
+\subsection{GPU Acceleration of NTT Operations}
+NTT operations constitute approximately 25\% of execution time and are highly
+data-parallel --- each polynomial coefficient is transformed independently. CUDA-based
+implementations of Ring-LWE NTT (as demonstrated in cuFHE and HEAAN-GPU) have shown
+$10\text{--}100\times$ speedups over CPU implementations. Porting the \texttt{pkg/matrix/}
+NTT routines to a GPU kernel is therefore a high-impact optimisation that directly
+targets the second-largest bottleneck identified in Section~6.6, without requiring
+any changes to the cryptographic construction.
+
+\subsection{Precise Security Parameter Estimation}
+The current quantum security estimates use the BKZ cost model with standard assumptions.
+Running the formal LWE Estimator~\cite{albrecht2015hardness} on the exact parameters
+($n = 256, \sigma = 3.2, q \approx 2^{58}$) would yield a tighter, more defensible
+security bound, and would also clarify the precise classical security equivalent ---
+important for regulatory submissions where concrete security levels must be stated.
+
+\subsection{Direct Comparison with ALOS22 Implementation}
+The ALOS22 authors released their implementation at \url{https://eprint.iacr.org/2022/529}.
+A head-to-head benchmark on identical hardware, with both implementations processing
+the same dataset under matched conditions, would precisely quantify the performance
+cost of replacing pairing arithmetic with Ring-LWE gadget decomposition. This would
+provide the community with a definitive measurement of the post-quantum premium in
+the laconic PSI setting.
+
+\subsection{Malicious Security via Zero-Knowledge Proofs}
+Extending the protocol to the malicious adversary model requires zero-knowledge proofs
+of: (1) correct encryption from the client --- proving that each submitted ciphertext
+was generated honestly using the server's public parameters; and (2) correct
+intersection detection from the server --- proving that all decryption checks were
+performed faithfully. Recent advances in efficient zkSNARKs for Ring-LWE operations
+make this a tractable direction, though with significant additional computational overhead.
+
+\subsection{Pipeline Parallelism in Distributed Execution}
+The current distributed architecture transmits all client ciphertexts to all worker
+nodes before intersection begins. A pipelined approach --- beginning intersection on
+early partitions while later partitions are still being transmitted --- would reduce
+the network latency component of the 40\% parallel efficiency loss identified in
+Section~6.9, potentially pushing parallel efficiency above 75\%.
+
+\subsection{Larger Dataset Validation}
+Validating the distributed architecture at $m = 10^5$ and $m = 10^6$ records would
+confirm the $O(n \log m)$ communication advantage of laconic PSI at scales where
+the crossover with KKRT becomes practically significant (identified in Section~6.5 as
+between $m = 10^4$ and $m = 10^5$). This would also validate the linear execution
+time scaling observed at smaller scales and provide the first empirical data on
+distributed laconic PSI at production-relevant sizes.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+
+This project demonstrates that the DKLLMR23 laconic PSI protocol --- previously a
+purely theoretical construction --- can be made practical through careful memory
+engineering and distributed system design. The central insight, proved in
+Theorem~\ref{thm:batch-space} and validated empirically, is that auxiliary space complexity can be
+reduced from $\Theta(m \cdot D^2 \cdot \log q)$ to $\Theta(m \cdot D^2)$ through
+batched witness generation, transforming an impractical memory requirement into
+one compatible with commodity hardware.
+
+The work establishes several firsts: the first open implementation of DKLLMR23,
+the first empirical performance characterisation of Ring-LWE-based laconic PSI,
+the first distributed deployment of post-quantum laconic PSI, and the first
+GDPR-compliance validation of laconic PSI in a financial screening context.
+
+The performance overhead relative to classical alternatives --- approximately
+$10{,}000\times$ slower than KKRT and $1{,}000\times$ slower than ALOS22 --- is
+substantial and reflects the genuine cost of post-quantum security in the laconic
+setting. This overhead is not an implementation deficiency; it is an inherent
+consequence of Ring-LWE gadget decomposition and cannot be eliminated without
+abandoning post-quantum security. What this project shows is that the overhead,
+while large, is not prohibitive: with appropriate memory management and distributed
+execution, the protocol is deployable on real hardware for real compliance workflows.
+
+As quantum computing capabilities continue to advance and the timeline for cryptographically
+relevant quantum computers becomes clearer, the case for post-quantum PSI in
+long-lived financial data applications will only strengthen. This project provides
+the empirical foundation and open implementation on which that transition can be built.

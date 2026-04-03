@@ -1,0 +1,184 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage{amsthm, amssymb, amsmath, mathrsfs, setspace}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tocbibind}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{url}
+
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{notation}[theorem]{Notation}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\renewcommand{\baselinestretch}{1.5}
+
+% (listings package not used — figures included as PNGs)
+
+\begin{document}
+\sloppy  % Relaxed line-breaking to suppress overfull hbox warnings
+
+% ─── Title Page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+\enlargethispage{2cm}
+\begin{center}
+\vspace*{-1cm}
+\textbf{\Large FINANCIAL FRAUD DETECTION WITH EFFICIENT\\
+LACONIC CRYPTOGRAPHY}\\[10pt]
+
+\vspace*{1.5cm}
+
+A Project Report Submitted \\
+In Partial Fulfilment of the Requirements \\
+for the Degree of \\
+\vspace{4.5mm}
+{\Large \bf BACHELOR OF TECHNOLOGY (HONORS)} \\
+in \\
+{\large \bf COMPUTER SCIENCE AND ENGINEERING WITH CYBER SECURITY} \\
+
+\vspace{9mm}
+{\em by} \\ \vspace{2.5mm}
+{\large \bf SANTHOSH CEEMALA} \\
+{\large \bf (Roll No. 2022BCY0009)}\\[.35in]
+
+\vfill
+\includegraphics[width=6cm, height=3cm]{logo2.jpg}
+
+\vspace*{0.2cm}
+{\em\large to}\\
+{\bf \mbox{DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING}} \\
+{\bf \mbox{INDIAN INSTITUTE OF INFORMATION TECHNOLOGY KOTTAYAM}}\\
+{\bf KOTTAYAM-686635, INDIA}\\
+{\it April 2026}
+\end{center}
+\end{titlepage}
+
+\clearpage
+
+% ─── Declaration ──────────────────────────────────────────────────────────────
+\pagenumbering{roman} \setcounter{page}{2}
+\begin{center}
+{\large{\bf{DECLARATION}}}
+\end{center}
+
+\noindent I, \textbf{Santhosh Ceemala} (\textbf{Roll No: 2022BCY0009}), hereby declare that
+this report entitled \textbf{``Financial Fraud Detection with Efficient Laconic Cryptography''}
+submitted to the Indian Institute of Information Technology Kottayam towards partial
+requirement of {\bf Bachelor of Technology (Honours)} in \textbf{Computer Science and
+Engineering with Specialization in Cyber Security} is an original work carried out by me
+under the supervision of \textbf{Dr.~A.~Balu} and has not formed the basis for the award
+of any degree or diploma, in this or any other institution or university. Whenever an
+external information or statement or result is used, it has been duly acknowledged and cited.
+
+\vspace{4cm}
+
+\noindent Kottayam-686635 \hfill \textbf{Santhosh Ceemala}
+
+\noindent April 2026
+
+\clearpage
+
+% ─── Certificate ──────────────────────────────────────────────────────────────
+\begin{center}
+{\large{\bf{CERTIFICATE}}}
+\end{center}
+
+\noindent This is to certify that the work contained in this project report entitled
+\textbf{``Financial Fraud Detection with Efficient Laconic Cryptography''} submitted by
+\textbf{Santhosh Ceemala} (\textbf{Roll No: 2022BCY0009}) to the Indian Institute of
+Information Technology Kottayam towards partial requirement of {\bf Bachelor of Technology
+(Honours)} in \textbf{Computer Science and Engineering with Specialization in Cyber
+Security} has been carried out by him under my supervision and that it has not been
+submitted elsewhere for the award of any degree.
+
+\vspace{4cm}
+
+\noindent Kottayam-686635 \hfill \textbf{(Dr.~A.~Balu)}
+
+\noindent April 2026 \hfill Project Supervisor
+
+\clearpage
+
+% ─── Abstract ─────────────────────────────────────────────────────────────────
+\begin{center}
+{\Large{\bf{ABSTRACT}}}
+\end{center}
+
+Financial fraud detection and regulatory sanctions screening require financial institutions
+to cross-reference customer databases against third-party sanctions lists --- a process
+that creates a fundamental conflict between regulatory compliance and data privacy law
+(GDPR). This project addresses that conflict by designing and implementing \textbf{FLARE},
+a privacy-preserving sanctions screening system
+powered by post-quantum Laconic Private Set Intersection (LE-PSI).
+
+FLARE is built on the LE-PSI protocol of D\"{o}ttling et al.\ (DKLLMR23), which
+constructs laconic PSI from Ring Learning With Errors (Ring-LWE) --- a lattice-based
+hardness assumption standardised by NIST (FIPS 203) and widely believed to be quantum-resistant.
+The laconic property --- $O(n \log m)$ communication complexity --- is critical for
+unbalanced sanctions screening where the server set $m$ (sanctions list) greatly exceeds
+the client set $n$ (customer portfolio), enabling sublinear growth in server-side
+communication cost.
+
+The central engineering contribution is a batched witness generation scheme that reduces
+peak auxiliary memory by 97.9\% --- from a fully-parallel worst case exceeding 300~GB
+to a constant footprint compatible with commodity server hardware --- enabling the
+protocol to run without specialised infrastructure. Further, a distributed
+execution architecture deployed across a Google Compute Engine cluster achieves a
+$15\times$ reduction in end-to-end latency, bringing execution time within the bounds
+of overnight compliance batch windows. We compare empirically against ALOS22 (classical
+laconic PSI baseline from pairings) and KKRT16 (OT-based PSI), and demonstrate FLARE
+as a fully functional GDPR-compliant web application with a Next.js front-end, Go
+back-end, and real-time screening pipeline.
+
+\textbf{Limitations acknowledged:} The large-scale benchmark operates at 64-bit quantum security
+(ring dimension $D = 256$), below the NIST-recommended 128-bit standard. Correctness at
+128-bit security ($D = 2048$) is validated on small datasets. The implementation assumes
+a semi-honest adversary model. These constraints and pathways to address them are
+discussed in Chapter~7.
+
+\clearpage
+
+% ─── ToC / LoF / LoT ──────────────────────────────────────────────────────────
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+% ─── Chapters ─────────────────────────────────────────────────────────────────
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\input{chapter1.tex}
+\input{chapter2.tex}
+\input{chapter3.tex}
+\input{chapter4.tex}
+\input{chapter5.tex}
+\input{chapter6.tex}
+\input{chapter7.tex}
+
+% ─── Bibliography ─────────────────────────────────────────────────────────────
+\nocite{*}
+\bibliographystyle{plain}
+\bibliography{bib}
+
+\end{document}

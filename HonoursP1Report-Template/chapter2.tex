@@ -1,0 +1,55 @@
+\chapter{Literature Review}
+
+\section{Introduction}
+
+Financial fraud detection requires balancing strong privacy guarantees, efficiency, and scalability. Advances in laconic cryptography, secure multiparty computation, and privacy-preserving set operations have enabled new fraud detection frameworks. This chapter critically analyzes key contributions from recent literature that influenced our system design.
+
+\section{Efficient Laconic Encryption}
+
+Döttling et al. (2023) introduced an efficient laconic encryption framework based on Learning With Errors (LWE) assumptions, achieving sublinear communication complexity \cite{cryptoeprint:2023/404}.  
+Their approach forms the cryptographic foundation for our system's low-communication secure transaction processing.  
+However, their scheme primarily addresses theoretical security without addressing potential real-world noise or storage overheads, motivating us to explore optimizations for practical deployments.
+
+\section{Delegated Private Matching}
+
+Mouris et al. (2023) proposed delegated private matching protocols that enable secure multi-party computations with improved privacy guarantees \cite{cryptoeprint:2023/012}.  
+While effective for privacy preservation, their protocols introduce significant computational overhead on clients, which we aim to reduce by optimizing parameter choices and encryption strategies.
+
+\section{Secure Multiparty PageRank Algorithm}
+
+Sangers et al. (2018) developed a secure multiparty PageRank algorithm for collaborative fraud detection \cite{cryptoeprint:2018/917}.  
+Although their work demonstrated collaborative analytics over encrypted data, it relied heavily on synchronous communication and incurred high setup costs, which limits scalability. Our framework addresses these limitations using laconic cryptographic techniques.
+
+\section{Privacy-Preserving Set Similarity}
+
+Shokri et al. (2024) introduced MatcHEd, a privacy-preserving set similarity protocol based on MinHash \cite{cryptoeprint:2024/1091}.  
+While highly efficient for similarity detection, MatcHEd is less suitable for exact set intersection, a critical requirement in fraud detection scenarios, motivating our adoption of Laconic PSI for precise record matching.
+
+\section{Differentially Oblivious Database Joins}
+
+Chu et al. (2021) proposed differentially oblivious database joins to prevent inference attacks during secure data processing \cite{cryptoeprint:2021/593}.  
+Although their methods greatly improve privacy, they sometimes trade efficiency, particularly for large datasets. Our design carefully integrates oblivious techniques only where critical to maintain system performance.
+
+\section{PSI with Payload Transmission}
+
+Wu et al. (2023) presented PSKPIR, an extension of PSI with payload transmission for batch retrieval of associated data \cite{cryptoeprint:2023/1641}.  
+Their design inspired our approach to efficiently retrieve fraud-related transaction attributes after secure intersection computation. We adapt their ideas for encrypted financial record matching.
+
+\section{Research Gaps Identified}
+
+Despite significant progress, existing systems face several challenges:
+
+\begin{itemize}
+    \item \textbf{Scalability vs. Security Trade-off:} Many PSI-based solutions achieve reduced communication but remain computationally expensive for real-time fraud detection.
+    \item \textbf{Lack of Real-World Testing:} Most solutions are evaluated on synthetic or limited datasets, highlighting the need for real-world financial dataset experiments.
+    \item \textbf{Data Leakage Risks:} Existing solutions may expose metadata or access patterns, necessitating careful design to minimize leakage.
+\end{itemize}
+
+Our framework addresses these issues by building on sublinear communication models, differentially oblivious techniques, and modular system design for scalability.
+
+\section{Conclusion}
+
+The surveyed literature provides a strong foundation for designing practical and privacy-preserving fraud detection systems.  
+Our work builds upon these advancements while addressing limitations related to efficiency, real-world deployment, and leakage resilience, moving towards scalable, secure fraud detection architectures.
+
+\clearpage

@@ -1,0 +1,100 @@
+\chapter{Theoretical Background}
+
+In this chapter, we discuss the theoretical foundations underpinning this project, focusing on laconic cryptography, Learning With Errors (LWE), Merkle trees, Private Set Intersection (PSI), and the Number Theoretic Transform (NTT). Definitions and mathematical formulations are cited from established literature.
+
+\section{Laconic Cryptography}
+
+\begin{definition}\label{def:laconic}
+\textbf{Laconic Cryptography:} A cryptographic primitive is characterized as \textit{laconic} when its communication complexity grows sublinearly with respect to the input size, while still ensuring standard security guarantees~\cite{dottling2023efficient}.
+\end{definition}
+
+The key idea is to exchange succinct digests of encrypted data instead of transmitting the entire encrypted dataset, thereby significantly enhancing scalability for large datasets.
+
+\begin{remark}
+The communication complexity of laconic encryption schemes typically grows as $O(\lambda \cdot \log n)$, where $\lambda$ is the security parameter and $n$ is the size of the dataset~\cite{dottling2023efficient}.
+\end{remark}
+
+\section{Learning With Errors (LWE)}
+
+\begin{definition}\label{def:lwe}
+\textbf{Learning With Errors (LWE):} The LWE problem involves distinguishing between samples of the form $(\mathbf{a}, \langle \mathbf{a}, \mathbf{s} \rangle + e)$ and uniformly random samples, where $\mathbf{a} \in \mathbb{Z}_q^n$ is random, $\mathbf{s} \in \mathbb{Z}_q^n$ is a secret vector, and $e$ is a small error sampled from a distribution $\chi$~\cite{regev2005lattices}.
+\end{definition}
+
+Formally, the LWE problem is:
+
+\begin{equation}\label{eq:lwe}
+b = \langle \mathbf{a}, \mathbf{s} \rangle + e \mod q,
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\mathbf{a} \in \mathbb{Z}_q^n$: Random vector,
+    \item $\mathbf{s} \in \mathbb{Z}_q^n$: Secret vector,
+    \item $e$: Small noise sampled from $\chi$,
+    \item $q$: Modulus.
+\end{itemize}
+
+The hardness of LWE forms the basis for post-quantum secure cryptographic systems.
+
+\section{Merkle Trees}
+
+\begin{definition}\label{def:merkle}
+\textbf{Merkle Tree:} A Merkle tree constitutes a hierarchical binary tree structure in which each terminal (leaf) node contains the cryptographic hash value of an individual data element, whereas each internal (non-leaf) node contains the cryptographic hash derived from the concatenation of its respective child nodes' hash values~\cite{merkle1987digital}.
+\end{definition}
+
+The Merkle tree is constructed as:
+
+\begin{equation}\label{eq:merkle}
+\text{Hash}_{i,j} = H(\text{Hash}_{i-1,2j-1} \,\|\, \text{Hash}_{i-1,2j}),
+\end{equation}
+
+where $H$ is a collision-resistant hash function and $\|$ denotes concatenation.
+
+\begin{remark}
+Merkle trees provide an efficient mechanism for verifying the integrity of data and are widely employed for compact and secure data authentication in cryptographic systems.
+\end{remark}
+
+\section{Private Set Intersection (PSI)}
+
+\begin{definition}\label{def:psi}
+\textbf{Private Set Intersection (PSI):} PSI is a cryptographic protocol that allows two parties, each possessing a private dataset, to jointly compute the intersection of their datasets without disclosing any elements beyond those in the intersection~\cite{pinkas2018efficient}.
+\end{definition}
+
+The goal is formally expressed as:
+
+\begin{equation}\label{eq:psi}
+\text{Output} = X \cap Y,
+\end{equation}
+
+where $X$ and $Y$ are private input sets.
+
+\begin{remark}
+PSI protocols form the basis for privacy-preserving matching in fraud detection across institutions without exposing non-intersecting data.
+\end{remark}
+
+\section{Number Theoretic Transform (NTT)}
+
+\begin{definition}\label{def:ntt}
+\textbf{Number Theoretic Transform (NTT):} NTT is the analogue of the Fast Fourier Transform (FFT) over finite fields, enabling efficient polynomial multiplication modulo a prime number~\cite{lindner2011better}.
+\end{definition}
+
+Consider a polynomial expressed as:
+
+\[
+f(x) = a_0 + a_1x + a_2x^2 + \dots + a_{n-1}x^{n-1}.
+\]
+
+The NTT of $f(x)$ is given by:
+
+\begin{equation}\label{eq:ntt}
+F(k) = \sum_{i=0}^{n-1} a_i \omega^{ik} \mod p,
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $p$: Prime modulus,
+    \item $\omega$: Primitive $n$-th root of unity modulo $p$,
+    \item $F(k)$: NTT coefficient at index $k$.
+\end{itemize}
+
+\clearpage

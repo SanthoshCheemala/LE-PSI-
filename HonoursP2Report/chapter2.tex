@@ -1,0 +1,234 @@
+\chapter{Literature Review}
+
+\section{Introduction}
+
+Private Set Intersection has been studied since the early 2000s, with protocols
+evolving from public-key-based constructions to highly optimised Oblivious Transfer
+(OT) extensions. This chapter surveys the most relevant lines of work: classical
+OT-based PSI, homomorphic encryption-based PSI, laconic PSI from pairings, and
+the lattice-based laconic PSI protocol that this project implements. We also review
+the post-quantum cryptography standardisation landscape and identify the research
+gaps that this project addresses.
+
+Two important nuances regarding post-quantum status and prior laconic PSI work are
+addressed carefully throughout this chapter, as they are frequently mischaracterised
+in the broader PSI literature:
+
+\begin{enumerate}
+    \item \textbf{OT-based protocols such as KKRT16 are not unconditionally
+          non-post-quantum.} Their base OT can be instantiated from lattice or
+          code-based assumptions via OT extension, making the full pipeline
+          potentially post-quantum. The fundamental limitation of these protocols
+          relative to laconic PSI is $O(n + m)$ communication scaling, not
+          quantum vulnerability per se.
+    \item \textbf{Prior laconic PSI implementations exist.} Aranha, Lin, Orlandi,
+          and Simkin (ALOS22)~\cite{alos2022} provide the first empirically evaluated
+          laconic PSI protocol, constructed from pairings. This project is correctly
+          positioned as the first \textit{post-quantum} laconic PSI implementation,
+          complementing rather than superseding ALOS22.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Classical PSI: OT-Based Protocols}
+
+The most efficient PSI protocols in practice are based on Oblivious Transfer (OT)
+and OT extension. These protocols achieve remarkable computational performance ---
+processing millions of records in sub-second runtimes --- and represent the
+practical state of the art for balanced datasets.
+
+\subsection{KKRT16 --- Batched Oblivious PRF}
+Kolesnikov, Kumaresan, Rosulek, and Trieu~\cite{kolesnikov2016kkrt} construct
+PSI from batched Oblivious PRF (OPRF) atop OT extension, achieving $O(n + m)$
+communication and sub-second runtimes for $n = m = 10^4$. KKRT is the primary
+classical baseline in this project.
+
+\textbf{Post-quantum status.} KKRT is typically instantiated with an
+elliptic-curve-based base OT (e.g., Naor-Pinkas), which is vulnerable to Shor's
+algorithm. However, OT extension amortises the cost of base OT across many instances,
+meaning that replacing only the base OT with a lattice-based or code-based
+alternative adds only modest overhead to the full pipeline, making a fully
+post-quantum KKRT pipeline theoretically feasible. The fundamental limitation of
+KKRT relative to laconic PSI is therefore the $O(n + m)$ communication complexity,
+which grows linearly with the large server set size $m$ regardless of the base OT
+instantiation. In our experimental comparison (Section~6.8), KKRT is evaluated in
+its standard elliptic-curve instantiation, as no benchmarked post-quantum KKRT
+implementation exists at comparable scale.
+
+\subsection{OKVS-Based PSI}
+Garimella et al.~\cite{garimella2023okvs} achieve 20--40\% improvement over KKRT
+through Oblivious Key-Value Stores (OKVS), reducing ciphertext overhead while
+maintaining $O(n + m)$ communication. Like KKRT, the base OT can in principle be
+replaced with a post-quantum alternative. These protocols lack the sublinear
+server message that makes laconic PSI attractive for highly unbalanced settings
+where $m \gg n$.
+
+\subsection{Circuit-PSI}
+Pinkas et al.~\cite{pinkas2019circuit} combine garbled circuits with OPRF to
+compute arbitrary functions over the intersection without revealing the intersection
+itself. While powerful for computation-over-intersection scenarios, Circuit-PSI
+incurs $O(nm)$ gate count and $O(n + m)$ communication, making it unsuitable for
+the large, unbalanced datasets considered in this project.
+
+\subsection{HE-Based PSI for Unbalanced Datasets}
+Chen, Laine, and Rindal~\cite{chen2017fhe} apply Homomorphic Encryption
+(specifically CKKS/BFV) to PSI in the unbalanced regime where $m \gg n$, achieving
+sublinear communication in $n$. CKKS/BFV are Ring-LWE-based schemes and are
+conjectured to be post-quantum secure --- Shor's algorithm provides no advantage
+against them. However, unlike ML-KEM and ML-DSA, these FHE schemes have not
+undergone NIST's formal PQC standardisation process, so their parameter sets have
+received less public external security scrutiny. Furthermore, the server message in
+these constructions still scales with $m$, whereas in laconic PSI the server's first
+message is $O(\log m)$ and is reusable across all future client queries ---
+a qualitatively different and stronger property.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Laconic PSI from Pairings (ALOS22)}
+
+Aranha, Lin, Orlandi, and Simkin~\cite{alos2022} present the first empirically
+validated laconic PSI protocol, constructed from pairing-friendly elliptic curves
+(BLS12-381). This is the most directly comparable prior work to this project and
+serves as the classical laconic PSI performance baseline.
+
+\textbf{Construction.} ALOS22 builds on bilinear Diffie-Hellman (BDDH) and
+$q$-SDH assumptions over BLS12-381 pairings. The server compresses its dataset
+into a short digest using algebraic commitments, and the client encrypts each
+query element under the server's public parameters. The server performs decryption
+checks to identify intersection elements.
+
+\textbf{Communication.} $O(\log m)$ --- fully laconic. The server's first message
+grows only logarithmically with its dataset size, identical in asymptotic behaviour
+to DKLLMR23.
+
+\textbf{Performance.} ALOS22 reports millisecond-to-second runtimes for datasets
+of millions of records, exploiting the algebraic efficiency of pairing operations
+over BLS12-381. At $m = 10^4$, ALOS22 achieves approximately 0.1 minutes runtime,
+compared to 153 minutes for our Ring-LWE implementation. This performance gap is
+discussed in detail in Section~6.8.
+
+\textbf{Post-quantum status.} ALOS22 is \textit{not} post-quantum secure.
+Pairing-based constructions over elliptic curves are vulnerable to quantum Fourier
+sampling --- a generalisation of Shor's algorithm applied to the elliptic curve
+discrete logarithm problem --- meaning the BLS12-381 security assumption is broken
+in polynomial time by a sufficiently powerful quantum computer.
+
+\textbf{Significance for this project.} ALOS22 is the first paper to empirically
+demonstrate that laconic PSI is practically viable, providing the classical
+performance ceiling for laconic PSI. Our work is the direct post-quantum analogue:
+we provide the first empirical benchmark of Ring-LWE-based laconic PSI, playing
+the same foundational role for the post-quantum setting that ALOS22 played for
+the classical setting.
+
+\textbf{Performance gap analysis.} The approximately $1{,}000\times$ runtime overhead
+of our implementation relative to ALOS22 decomposes as follows. Ring-LWE gadget
+decomposition (GInvMNTT) expands each witness polynomial by a factor of
+$\log_2 q \approx 58$, a cost entirely absent in pairing-based constructions
+where witnesses are single group elements. This expansion is cryptographically
+necessary for Ring-LWE security and cannot be reduced without replacing the
+underlying construction. An additional $\approx 10\times$ overhead arises from
+Merkle proof generation and witness fetching. This decomposition is quantified
+empirically in Sections 6.6 and 6.8.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Laconic Encryption and PSI from Ring-LWE (DKLLMR23)}
+
+D\"{o}ttling, Kolonelos, Lai, Lin, Malavolta, and Rahimi~\cite{dottling2023efficient}
+construct Laconic Encryption (LE) from Ring-LWE and extend it to PSI. This is
+the protocol implemented in this project.
+
+\textbf{Construction overview.} The server builds a Merkle tree over its dataset
+and generates a Ring-LWE key pair per leaf. The Merkle root and public keys form
+a compact public parameter set (the digest). The client encrypts each of its
+elements under the server's public parameters, producing a ciphertext that can
+only be successfully decrypted if the encrypted element matches a server leaf.
+The server performs decryption checks using witness vectors derived from the Merkle
+tree. The formal definition of the laconic encryption primitive, including
+\textsf{LaconicEnc} and its inputs, is given in Chapter 3.
+
+\textbf{Hardness assumption.} Ring-LWE hardness --- widely believed to be post-quantum
+secure and closely related to the Module-LWE assumption standardised in NIST FIPS 203
+(ML-KEM)~\cite{nist2024mlkem}.
+
+\textbf{Communication complexity.} $O(n \log m)$ --- sublinear in server dataset
+size $m$. For $n = 10^3$ client records and $m = 10^6$ server records, this yields
+approximately 3.4~MB versus 97.8~MB for KKRT --- a $29\times$ reduction, measured
+empirically in Section 6.5.
+
+\textbf{Computation complexity.} $O(m \log m)$ server setup; $O(nm \cdot D)$
+intersection detection, where $D$ is the ring dimension.
+
+\textbf{Critical gap.} The DKLLMR23 paper provides no implementation or empirical
+benchmark. All performance claims are asymptotic. This project provides the first
+complete implementation and empirical evaluation, establishing the first measured
+performance data for Ring-LWE-based laconic PSI.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Post-Quantum Cryptography Standards}
+
+NIST completed its Post-Quantum Cryptography standardisation process in 2024,
+publishing:
+\begin{itemize}
+    \item \textbf{FIPS 203} (ML-KEM / Kyber)~\cite{nist2024mlkem}: Key encapsulation
+          based on Module-LWE.
+    \item \textbf{FIPS 204} (ML-DSA / Dilithium)~\cite{nist2024mldsa}: Digital
+          signatures based on Module-LWE/SIS.
+\end{itemize}
+
+Both standards confirm the maturity and confidence of the research community in
+lattice-based hardness assumptions for standardised cryptographic deployments. Our
+implementation uses Ring-LWE --- the ring-structured variant of LWE --- which is
+closely related to Module-LWE and shares the same underlying worst-case hardness
+reduction to lattice problems~\cite{lyubashevsky2010ideal}. The NIST standardisation
+process also considered isogeny-based schemes (SIKE), which were subsequently
+broken by classical attacks in 2022, reinforcing the importance of lattice-based
+approaches as the most robust post-quantum foundation currently available.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Research Gaps}
+
+The survey above identifies the following specific gaps directly addressed by this project:
+
+\begin{enumerate}
+    \item \textbf{No open implementation of DKLLMR23.} Despite the theoretical
+          construction existing since 2023, no open-source implementation exists
+          and no empirical benchmark has been reported.
+    \item \textbf{Memory scalability unknown.} The auxiliary space complexity
+          $S_{\text{aux}}(m) = O(m \cdot D^2 \cdot \log q)$ makes memory management
+          a non-trivial engineering problem at real-world scale. No prior work has
+          characterised this experimentally or proposed a solution.
+    \item \textbf{No post-quantum laconic PSI benchmark.} ALOS22 empirically
+          validated classical laconic PSI. There is no prior empirical data on
+          the performance cost of post-quantum laconic PSI, either at 64-bit or
+          128-bit quantum security levels.
+    \item \textbf{No real-world deployment study.} No prior work validates laconic
+          PSI in a GDPR-compliance scenario with concrete infrastructure, API design,
+          and audit trail requirements.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Summary Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Comparison of PSI protocols}
+\label{tab:psi-comparison}
+\begin{tabular}{@{}llcccl@{}}
+\toprule
+\textbf{Protocol} & \textbf{Assumption} & \textbf{PQ?} & \textbf{Laconic?} & \textbf{Communication} & \textbf{Empirical?} \\
+\midrule
+KKRT16~\cite{kolesnikov2016kkrt}  & OT (base OT replaceable) & Possible$^\dagger$ & No  & $O(n + m)$ & Yes \\
+OKVS~\cite{garimella2023okvs}     & OT (base OT replaceable) & Possible$^\dagger$ & No  & $O(n + m)$ & Yes \\
+ALOS22~\cite{alos2022}            & Pairing (BLS12-381)      & No                 & Yes & $O(\log m)$ & Yes \\
+HE-PSI~\cite{chen2017fhe}         & CKKS/BFV (lattice)       & Partial$^\ddagger$ & No  & $O(n)$      & Yes \\
+DKLLMR23 (ours)                   & Ring-LWE                 & \textbf{Yes}       & \textbf{Yes} & \textbf{$O(n \log m)$} & \textbf{This work} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent{\small $^\dagger$ \textit{Post-quantum instantiation of OT-based protocols is theoretically feasible via lattice-based base OT with OT extension, but no benchmarked implementation at comparable scale exists.}}\\
+\noindent{\small $^\ddagger$ \textit{CKKS/BFV are lattice-based but have not been standardised under NIST PQC; their post-quantum security margins are less precisely characterised than ML-KEM/ML-DSA.}}\\
+
+Our protocol is the only entry in Table~\ref{tab:psi-comparison} that is
+simultaneously \textbf{laconic} (sublinear server message, reusable across clients)
+and \textbf{plausibly post-quantum secure} under a NIST-endorsed hardness assumption.
+
+\clearpage

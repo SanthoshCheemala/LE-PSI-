@@ -1,0 +1,59 @@
+\chapter{Introduction}
+
+The modern financial ecosystem is increasingly vulnerable to fraudulent activities, requiring robust detection mechanisms that respect user privacy. Traditional fraud detection systems often rely on centralized databases or multi-party computations, which can expose sensitive information or result in heavy communication overhead. With the growth of privacy regulations such as GDPR, there is an urgent need for privacy-preserving fraud detection frameworks.
+
+Laconic cryptography offers a promising solution to this challenge. Introduced in recent cryptographic research, it enables protocols with succinct communication, allowing two-round computations with sublinear data transfer. This project explores the application of efficient laconic cryptography, particularly laconic encryption based on the Learning With Errors (LWE) assumption, to financial fraud detection systems.
+
+The initial phase of the project focuses on encrypting transactional records using a laconic encryption scheme implemented in the Go programming language. The encrypted data is stored in an efficient SQLite database to prepare for further secure computations, such as Private Set Intersection (PSI), in subsequent phases.
+
+\section{Background}
+
+\begin{definition}\label{laconic_definition}
+\textbf{Laconic Cryptography}: Laconic cryptography refers to a family of cryptographic primitives where the communication complexity is sublinear in the size of the input, while retaining strong security guarantees. It enables succinct proofs and encryptions with two-round interactions, based on hard lattice problems like Learning With Errors (LWE) \cite{cryptoeprint:2023/404}.
+\end{definition}
+
+The concept of laconic encryption was designed to address scalability challenges in secure multi-party computations by minimizing both communication and computational loads, particularly for large datasets.
+
+\begin{remark}
+Unlike traditional encryption schemes that require sending entire ciphertexts, laconic schemes allow sending compressed "digests" of encrypted data, leading to faster and more scalable secure protocols.
+\end{remark}
+
+\section{Motivation}
+
+Privacy-preserving fraud detection requires balancing two conflicting goals:
+\begin{enumerate}
+    \item Accurately identifying suspicious transactions.
+    \item Preserving the confidentiality of legitimate customer data.
+\end{enumerate}
+
+Existing methods either leak private information or are computationally expensive. Laconic encryption offers a groundbreaking middle path: detecting fraud across databases without revealing irrelevant information.
+
+This motivates the use of efficient laconic cryptographic techniques, supported by LWE-based security, to create a lightweight yet highly secure fraud detection framework.
+
+\section{Problem Statement}
+
+Financial institutions currently lack a practical mechanism to collaboratively detect fraudulent activity without exposing their complete transaction datasets. Traditional cryptographic methods either:
+\begin{itemize}
+    \item Incur prohibitive computational overhead, or
+    \item Compromise on data privacy.
+\end{itemize}
+
+Thus, the problem addressed in this project is:
+
+\begin{quote}
+\textit{"How can financial institutions collaboratively detect fraud with strong privacy guarantees and minimal communication overhead?"}
+\end{quote}
+
+\section{Project Scope}
+
+The project is divided into multiple phases. This report covers the first phase, which includes:
+\begin{itemize}
+    \item Designing and implementing laconic encryption schemes based on LWE hardness assumptions.
+    \item Encrypting financial transaction records derived from the PaySim dataset.
+    \item Storing encrypted data securely in a SQLite database using Go programming.
+    \item Preparing the foundation for implementing laconic PSI for secure record matching in future phases.
+\end{itemize}
+
+Further extensions will integrate privacy-preserving matching algorithms using Private Set Intersection (PSI) and conduct real-world evaluation scenarios.
+
+\clearpage
