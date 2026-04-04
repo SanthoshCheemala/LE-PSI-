@@ -28,27 +28,20 @@ echo "Security: 128-bit (PSI_SECURITY_LEVEL=128)" | tee -a "$log_file"
 echo "Log file: $log_file" | tee -a "$log_file"
 echo "==========================================================" | tee -a "$log_file"
 
-# We only run the small sizes because 10k at 128-bit will take 10+ hours on 1 node
-# We just need 50, 100, and 250 to PROVE the 4x overhead factor empirically
-DATASET_SIZES=(50 100 250)
+# main.go already has all test sizes hardcoded (50, 100, 250, 1000, 5000, 10000).
+# We run it ONCE and it executes all sizes sequentially.
 
 echo "Building test binary..." | tee -a "$log_file"
 go build -o psi_test ./scalability_tests/main.go
 
-for size in "${DATASET_SIZES[@]}"; do
-    echo "" | tee -a "$log_file"
-    echo "----------------------------------------------------------" | tee -a "$log_file"
-    echo "Running benchmark at m=${size}" | tee -a "$log_file"
-    echo "----------------------------------------------------------" | tee -a "$log_file"
-    
-    # Use the standard shell builtin 'time' since /usr/bin/time might not be installed
-    time ./psi_test -size=$size -mode=full 2>&1 | tee -a "$log_file"
-    
-    echo "Finished m=${size} benchmark." | tee -a "$log_file"
-    
-    # Rest to let memory clear
-    sleep 5
-done
+echo "" | tee -a "$log_file"
+echo "----------------------------------------------------------" | tee -a "$log_file"
+echo "Running ALL benchmarks (sizes defined in main.go)" | tee -a "$log_file"
+echo "----------------------------------------------------------" | tee -a "$log_file"
+
+time ./psi_test 2>&1 | tee -a "$log_file"
+
+echo "Finished all benchmarks." | tee -a "$log_file"
 
 # Cleanup
 rm psi_test
