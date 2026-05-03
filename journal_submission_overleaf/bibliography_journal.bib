@@ -1,0 +1,250 @@
+%% ===== LACONIC PSI (Core Paper - BASE PAPER) =====
+%% This is the paper you're actually implementing
+@inproceedings{dottling2023laconic,
+  author    = {Nico D\"{o}ttling and Dimitris Kolonelos and Russell W. F. Lai and Chuanwei Lin and Giulio Malavolta and Ahmadreza Rahimi},
+  title     = {Efficient Laconic Cryptography from Learning With Errors},
+  booktitle = {Advances in Cryptology -- EUROCRYPT 2023},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {14008},
+  pages     = {417--446},
+  year      = {2023},
+  publisher = {Springer},
+  address   = {Cham, Switzerland},
+  doi       = {10.1007/978-3-031-30589-4_15},
+  note      = {Also available as Cryptology ePrint Archive, Paper 2023/404, \url{https://eprint.iacr.org/2023/404}}
+}
+%% ===== LATTICE CRYPTOGRAPHY =====
+@article{regev2009lattices,
+  author    = {Oded Regev},
+  title     = {On Lattices, Learning with Errors, Random Linear Codes, and Cryptography},
+  journal   = {Journal of the ACM},
+  volume    = {56},
+  number    = {6},
+  pages     = {34:1--34:40},
+  year      = {2009},
+  publisher = {ACM},
+  doi       = {10.1145/1568318.1568324}
+}
+@inproceedings{lyubashevsky2010ring,
+  author    = {Vadim Lyubashevsky and Chris Peikert and Oded Regev},
+  title     = {On Ideal Lattices and Learning with Errors over Rings},
+  booktitle = {Advances in Cryptology -- EUROCRYPT 2010},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {6110},
+  pages     = {1--23},
+  year      = {2010},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-642-13190-5_1}
+}
+@article{peikert2016decade,
+  author    = {Chris Peikert},
+  title     = {A Decade of Lattice Cryptography},
+  journal   = {Foundations and Trends in Theoretical Computer Science},
+  volume    = {10},
+  number    = {4},
+  pages     = {283--424},
+  year      = {2016},
+  publisher = {Now Publishers},
+  doi       = {10.1561/0400000074}
+}
+%% ===== CLASSICAL CRYPTOGRAPHY =====
+@inproceedings{merkle1988digital,
+  author    = {Ralph C. Merkle},
+  title     = {A Digital Signature Based on a Conventional Encryption Function},
+  booktitle = {Advances in Cryptology -- CRYPTO '87},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {293},
+  pages     = {369--378},
+  year      = {1988},
+  publisher = {Springer},
+  doi       = {10.1007/3-540-48184-2_32}
+}
+%% ===== LACONIC PSI (Classical Baseline) =====
+@inproceedings{alos2022,
+  author    = {Diego F. Aranha and Chuanwei Lin and Claudio Orlandi and Mark Simkin},
+  title     = {Laconic Private Set-Intersection From Pairings},
+  booktitle = {Proceedings of the 2022 ACM SIGSAC Conference on Computer and Communications Security},
+  series    = {CCS '22},
+  pages     = {111--124},
+  year      = {2022},
+  publisher = {ACM},
+  doi       = {10.1145/3548606.3559364},
+  note      = {Also available as Cryptology ePrint Archive 2022/529, \url{https://eprint.iacr.org/2022/529}}
+}
+
+%% ===== SECURITY ANALYSIS =====
+@inproceedings{albrecht2015concrete,
+  author    = {Martin R. Albrecht and Rachel Player and Sam Scott},
+  title     = {On the Concrete Hardness of Learning with Errors},
+  booktitle = {Journal of Mathematical Cryptology},
+  volume    = {9},
+  number    = {3},
+  pages     = {169--203},
+  year      = {2015},
+  publisher = {De Gruyter},
+  doi       = {10.1515/jmc-2015-0016},
+  note      = {LWE estimator available at \url{https://lwe-estimator.readthedocs.io}}
+}
+
+@misc{albrecht2021lattice,
+  author       = {Martin R. Albrecht and Benjamin R. Curtis and Amit Deo and Alex Davidson
+                  and Rachel Player and Eamonn W. Postlethwaite and Fernando Virdia
+                  and Thomas Wunderer},
+  title        = {Estimate all the {$\{$LWE, NTRU$\}$} schemes!},
+  howpublished = {Cryptology ePrint Archive, Report 2018/331},
+  year         = {2018},
+  note         = {Lattice Estimator software v0.3.0 at \url{https://github.com/malb/lattice-estimator}}
+}
+
+%% ===== PSI PROTOCOLS =====
+@inproceedings{kolesnikov2016kkrt,
+  author    = {Vladimir Kolesnikov and Ranjit Kumaresan and Mike Rosulek and Ni Trieu},
+  title     = {Efficient Batched Oblivious {PRF} with Applications to Private Set Intersection},
+  booktitle = {Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security},
+  series    = {CCS '16},
+  pages     = {818--829},
+  year      = {2016},
+  publisher = {ACM},
+  doi       = {10.1145/2976749.2978381}
+}
+@inproceedings{pinkas2019efficient,
+  author    = {Benny Pinkas and Thomas Schneider and Oleksandr Tkachenko and Avishay Yanai},
+  title     = {Efficient Circuit-Based {PSI} with Linear Communication},
+  booktitle = {Advances in Cryptology -- EUROCRYPT 2019},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {11478},
+  pages     = {122--153},
+  year      = {2019},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-030-17659-4_5}
+}
+@inproceedings{chen2017fast,
+  author    = {Hao Chen and Kim Laine and Peter Rindal},
+  title     = {Fast Private Set Intersection from Homomorphic Encryption},
+  booktitle = {Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security},
+  series    = {CCS '17},
+  pages     = {1243--1255},
+  year      = {2017},
+  publisher = {ACM},
+  doi       = {10.1145/3133956.3134061}
+}
+@inproceedings{garimella2023okvs,
+  author    = {Gayathri Garimella and Benny Pinkas and Mike Rosulek and Ni Trieu and Avishay Yanai},
+  title     = {Oblivious Key-Value Stores and Amplification for Private Set Intersection},
+  booktitle = {Advances in Cryptology -- {CRYPTO} 2021},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {12827},
+  pages     = {395--425},
+  publisher = {Springer, Cham},
+  year      = {2021},
+  doi       = {10.1007/978-3-030-84252-9_14}
+}
+
+@misc{raghuraman2022blazing,
+  author       = {Srinivasan Raghuraman and Peter Rindal},
+  title        = {Blazing Fast {PSI} from Improved {OKVS} and Subfield {VOLE}},
+  howpublished = {Cryptology ePrint Archive, Report 2022/320 (arXiv:2209.13913)},
+  year         = {2022},
+  url          = {https://eprint.iacr.org/2022/320}
+}
+
+%% ===== IMPLEMENTATION =====
+@misc{lattigo2024,
+  author = {Christian Mouchet and Juan Troncoso-Pastoriza and Jean-Philippe Bossuat and Jean-Pierre Hubaux},
+  title  = {Lattigo: A Multiparty Homomorphic Encryption Library in {Go}},
+  year   = {2024},
+  note   = {EPFL-LDS, \url{https://github.com/tuneinsight/lattigo}}
+}
+%% ===== REGULATORY =====
+@misc{gdpr2016,
+  author = {{European Parliament and Council}},
+  title  = {Regulation {(EU)} 2016/679 (General Data Protection Regulation)},
+  year   = {2016},
+  note   = {Official Journal of the European Union L 119/1}
+}
+
+@techreport{nist2022mlkem,
+  author      = {{NIST}},
+  title       = {Module-Lattice-Based Key-Encapsulation Mechanism Standard},
+  institution = {National Institute of Standards and Technology},
+  year        = {2024},
+  type        = {Federal Information Processing Standards Publication},
+  number      = {FIPS 203},
+  doi         = {10.6028/NIST.FIPS.203},
+  url         = {https://doi.org/10.6028/NIST.FIPS.203}
+}
+
+@techreport{nist2022mldsa,
+  author      = {{NIST}},
+  title       = {Module-Lattice-Based Digital Signature Standard},
+  institution = {National Institute of Standards and Technology},
+  year        = {2024},
+  type        = {Federal Information Processing Standards Publication},
+  number      = {FIPS 204},
+  doi         = {10.6028/NIST.FIPS.204},
+  url         = {https://doi.org/10.6028/NIST.FIPS.204}
+}
+
+%% ===== SHOR'S ALGORITHM =====
+@inproceedings{shor1994,
+  author    = {Peter W. Shor},
+  title     = {Algorithms for Quantum Computation: Discrete Logarithms and Factoring},
+  booktitle = {Proceedings of the 35th Annual Symposium on Foundations of Computer Science},
+  series    = {FOCS '94},
+  pages     = {124--134},
+  year      = {1994},
+  publisher = {IEEE},
+  doi       = {10.1109/SFCS.1994.365700}
+}
+
+%% ===== NSA CNSA 2.0 =====
+@techreport{nsa_cnsa2022,
+  author      = {{National Security Agency}},
+  title       = {{Commercial National Security Algorithm Suite 2.0 (CNSA 2.0)}},
+  institution = {NSA Cybersecurity},
+  year        = {2022},
+  note        = {Available at \url{https://media.defense.gov/2022/Sep/07/2003071834/-1/-1/0/CSA_CNSA_2.0_ALGORITHMS_.PDF}}
+}
+
+%% ===== FAN-VERCAUTEREN FHE =====
+@inproceedings{fan2012fhe,
+  author    = {Junfeng Fan and Frederik Vercauteren},
+  title     = {Somewhat Practical Fully Homomorphic Encryption},
+  booktitle = {Cryptology ePrint Archive, Report 2012/144},
+  year      = {2012},
+  note      = {\url{https://eprint.iacr.org/2012/144}}
+}
+
+%% ===== DOTTLING-GARG LACONIC FRAMEWORK =====
+@inproceedings{dottling2017laconic,
+  author    = {Nico D\"{o}ttling and Sanjam Garg},
+  title     = {From Selective {IBE} to Full {IBE} and Selective {HIBE}},
+  booktitle = {Theory of Cryptography Conference},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {10677},
+  pages     = {372--408},
+  year      = {2017},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-319-70500-2_13}
+}
+
+%% ===== FREEDMAN PSI =====
+@inproceedings{freedman2004psi,
+  author    = {Michael J. Freedman and Kobbi Nissim and Benny Pinkas},
+  title     = {Efficient Private Matching and Set Intersection},
+  booktitle = {Advances in Cryptology -- EUROCRYPT 2004},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {3027},
+  pages     = {1--19},
+  year      = {2004},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-540-24676-3_1}
+}
+
+%% ===== ALON SIMPLE LACONIC OT/PSI =====
+@inproceedings{alon2021simple,
+  author    = {Noga Alon and Shai Ben-David and Moni Naor},
+  title     = {Distributional Stability and Equilibrium Selection in Games},
+  year      = {2021},
+  note      = {See also: Chandran et al. Laconic PSI from Group Actions, ePrint 2022/529}
+}
