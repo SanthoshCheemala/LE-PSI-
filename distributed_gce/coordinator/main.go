@@ -196,7 +196,7 @@ func fanOutIntersect(cfg Config, cts []psi.SerializableCxtx) ([]ShardIntersectRe
 	}
 	wg.Wait()
 
-	for k, e := range errs {
+	for _, e := range errs {
 		if e != nil {
 			return nil, e
 		}
