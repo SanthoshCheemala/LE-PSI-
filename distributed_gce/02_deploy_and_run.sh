@@ -127,12 +127,12 @@ echo "[3/5] Building binaries..."
 build_shard() {
   local name="$1" zone="$2"
   ssh_cmd "$name" "$zone" \
-    "cd $WORKDIR && PATH=\$PATH:/usr/local/go/bin go build -o bin/lepsi_shard ./distributed_gce/shard/ 2>&1"
+    "cd $WORKDIR && PATH=/usr/local/go/bin:\$PATH go build -o bin/lepsi_shard ./distributed_gce/shard/ 2>&1"
 }
 build_coord() {
   local name="$1" zone="$2"
   ssh_cmd "$name" "$zone" \
-    "cd $WORKDIR && PATH=\$PATH:/usr/local/go/bin go build -o bin/lepsi_coord ./distributed_gce/coordinator/ 2>&1"
+    "cd $WORKDIR && PATH=/usr/local/go/bin:\$PATH go build -o bin/lepsi_coord ./distributed_gce/coordinator/ 2>&1"
 }
 
 build_coord "$COORD_NAME" "$COORD_ZONE" &
