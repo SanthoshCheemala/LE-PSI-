@@ -10,7 +10,7 @@ ZONE="${ZONE:-us-central1-a}"
 K="${K:-7}"
 M="${M:-10000}"
 N="${N:-100}"
-WORKDIR="/home/santhosh/lepsi"
+WORKDIR='$HOME/lepsi'
 PSI_SRC="/Users/santhoshcheemala/ALL_IN_ONE/Research_Implimentation/PSI"
 RESULTS_DIR="$(cd "$(dirname "$0")" && pwd)/results"
 RUN_ID="$(date +%Y%m%d_%H%M%S)_m${M}_n${N}_K${K}"
@@ -154,7 +154,7 @@ while IFS=, read -r name zone ip; do
   (
     ssh_cmd "$name" "$zone" \
       "cd $WORKDIR && pkill lepsi_shard 2>/dev/null || true; sleep 1; \
-       SHARD_ID=$SHARD_ID PORT=8081 nohup ./bin/lepsi_shard > /tmp/shard_${SHARD_ID}.log 2>&1 &; \
+       SHARD_ID=$SHARD_ID PORT=8081 nohup ./bin/lepsi_shard > /tmp/shard_${SHARD_ID}.log 2>&1 & \
        sleep 2; curl -sf http://localhost:8081/health && echo ' shard $SHARD_ID OK' || echo ' shard $SHARD_ID FAILED'"
     echo "  [shard-$SHARD_ID] started on $name ($ip)"
   ) &
