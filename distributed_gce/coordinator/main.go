@@ -15,6 +15,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -84,10 +85,20 @@ type DistributedResult struct {
 
 // ── HTTP helpers ──────────────────────────────────────────
 
-// longClient has a 24-hour timeout so shard init/intersect can
-// run for hours without the coordinator dropping the connection.
+// longClient uses TCP keepalive (every 30s) so GCE doesn't drop
+// idle connections during long shard init/intersect operations,
+// plus a 24-hour overall timeout.
 var longClient = &http.Client{
 	Timeout: 24 * time.Hour,
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		IdleConnTimeout:       0, // never close idle connections
+		ResponseHeaderTimeout: 24 * time.Hour,
+		ExpectContinueTimeout: 0,
+	},
 }
 
 func postJSON(url string, body any, out any) error {

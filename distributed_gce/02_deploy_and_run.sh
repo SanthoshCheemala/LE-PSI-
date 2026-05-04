@@ -144,27 +144,60 @@ done <<< "$SHARD_ROWS"
 wait
 echo "  ✓ Binaries built"
 
-# ── Step 4: Start shard servers ──────────────────────────
+# ── Step 4: Start shard servers (with retry) ─────────────
 echo ""
 echo "[4/5] Starting shard servers..."
+
+start_shard() {
+  local name="$1" zone="$2" sid="$3"
+  ssh_cmd "$name" "$zone" \
+    "cd $WORKDIR && pkill lepsi_shard 2>/dev/null || true; sleep 1; \
+     SHARD_ID=$sid PORT=8081 nohup ./bin/lepsi_shard > /tmp/shard_${sid}.log 2>&1 & \
+     sleep 3; curl -sf http://localhost:8081/health && echo ' shard $sid OK' || echo ' shard $sid FAILED'"
+}
+
+MAX_RETRIES=3
 SHARD_ID=0
 while IFS=, read -r name zone ip; do
   [[ -z "$name" ]] && continue
-  wait_for_slot
-  (
-    ssh_cmd "$name" "$zone" \
-      "cd $WORKDIR && pkill lepsi_shard 2>/dev/null || true; sleep 1; \
-       SHARD_ID=$SHARD_ID PORT=8081 nohup ./bin/lepsi_shard > /tmp/shard_${SHARD_ID}.log 2>&1 & \
-       sleep 2; curl -sf http://localhost:8081/health && echo ' shard $SHARD_ID OK' || echo ' shard $SHARD_ID FAILED'"
-    echo "  [shard-$SHARD_ID] started on $name ($ip)"
-  ) &
+  for attempt in $(seq 1 $MAX_RETRIES); do
+    echo "  [shard-$SHARD_ID] attempt $attempt on $name ($ip)..."
+    if start_shard "$name" "$zone" "$SHARD_ID" 2>&1 | grep -q "OK"; then
+      echo "  [shard-$SHARD_ID] ✓ started"
+      break
+    fi
+    echo "  [shard-$SHARD_ID] ✗ failed, retrying in 15s..."
+    sleep 15
+    if [[ $attempt -eq $MAX_RETRIES ]]; then
+      echo "  ERROR: shard-$SHARD_ID failed after $MAX_RETRIES attempts. Aborting."
+      exit 1
+    fi
+  done
   SHARD_ID=$((SHARD_ID + 1))
 done <<< "$SHARD_ROWS"
-wait
 
 echo "  Waiting 10s for shard servers to stabilize..."
 sleep 10
-echo "  ✓ All shard servers running"
+
+# ── Verify ALL shards healthy from coordinator ───────────
+echo "  Verifying all shards from coordinator..."
+SHARD_URLS_ARRAY=(${SHARD_URLS//,/ })
+ALL_HEALTHY=true
+for i in "${!SHARD_URLS_ARRAY[@]}"; do
+  url="${SHARD_URLS_ARRAY[$i]}/health"
+  if ssh_cmd "$COORD_NAME" "$COORD_ZONE" "curl -sf $url" 2>/dev/null | grep -q "shard_id"; then
+    echo "  ✓ shard-$i reachable from coordinator"
+  else
+    echo "  ✗ shard-$i NOT reachable from coordinator at $url"
+    ALL_HEALTHY=false
+  fi
+done
+
+if [[ "$ALL_HEALTHY" != "true" ]]; then
+  echo "  ERROR: Not all shards are healthy. Aborting benchmark."
+  exit 1
+fi
+echo "  ✓ All shard servers verified and running"
 
 # ── Step 5: Run coordinator benchmark ────────────────────
 echo ""
