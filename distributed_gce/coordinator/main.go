@@ -84,12 +84,18 @@ type DistributedResult struct {
 
 // ── HTTP helpers ──────────────────────────────────────────
 
+// longClient has a 24-hour timeout so shard init/intersect can
+// run for hours without the coordinator dropping the connection.
+var longClient = &http.Client{
+	Timeout: 24 * time.Hour,
+}
+
 func postJSON(url string, body any, out any) error {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
+	resp, err := longClient.Post(url, "application/json", bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
