@@ -23,5 +23,10 @@ echo "  LE-PSI 10K PAPER BENCHMARK"
 echo "  Date: $(date)"
 echo "=========================================================="
 
-# Run the dedicated benchmark Go script
-go run scalability_tests/bench_10k.go
+# Run the dedicated benchmark Go script in the background
+echo "Starting benchmark in the background..."
+echo "Output will be saved to: 10k_benchmark.log"
+nohup go run scalability_tests/bench_10k.go > 10k_benchmark.log 2>&1 &
+
+echo "Process ID: $!"
+echo "You can safely close this terminal."
