@@ -29,7 +29,7 @@ gcloud compute instances create "lepsi-coord" \
   --machine-type="$MACHINE" \
   --image-family="$IMAGE_FAMILY" \
   --image-project="$IMAGE_PROJECT" \
-  --boot-disk-size=100GB \
+  --boot-disk-size=20GB \
   --boot-disk-type=pd-ssd \
   --labels="${LABEL},role=coordinator" \
   --tags="lepsi-psi" \
@@ -44,7 +44,7 @@ for i in $(seq 0 $((K - 1))); do
     --machine-type="$MACHINE" \
     --image-family="$IMAGE_FAMILY" \
     --image-project="$IMAGE_PROJECT" \
-    --boot-disk-size=100GB \
+    --boot-disk-size=20GB \
     --boot-disk-type=pd-ssd \
     --labels="${LABEL},role=shard,shard_id=${i}" \
     --tags="lepsi-psi" \

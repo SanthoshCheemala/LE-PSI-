@@ -94,6 +94,23 @@ func ReduceToTreeIndex(rawHash uint64, layers int) uint64 {
 	return rawHash & mask
 }
 
+// ReduceToTreeIndex2 provides a second independent hash-to-leaf mapping for
+// 2-choice Cuckoo placement. Uses golden-ratio bit scrambling to produce an
+// independent leaf index from the same raw hash.
+func ReduceToTreeIndex2(rawHash uint64, layers int) uint64 {
+	// Golden-ratio scramble: multiply by phi-derived constant, XOR with shift
+	scrambled := rawHash * 0x9E3779B97F4A7C15
+	scrambled ^= scrambled >> 17
+	var mask uint64
+	bits := uint(layers)
+	if bits == 0 || bits >= 64 {
+		mask = ^uint64(0)
+	} else {
+		mask = (uint64(1) << bits) - 1
+	}
+	return scrambled & mask
+}
+
 // CorrectnessCheck verifies decryption correctness using threshold-based matching.
 // Returns true if at least 95% of coefficients match between decrypted and original.
 //

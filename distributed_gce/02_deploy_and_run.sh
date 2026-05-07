@@ -79,26 +79,65 @@ echo "[1/5] Installing Go on all VMs..."
 install_go() {
   local name="$1" zone="$2"
   ssh_cmd "$name" "$zone" 'set -e
-    if ! command -v go &>/dev/null || [[ $(go version | grep -oP "go1\.\d+" | head -1) < "go1.21" ]]; then
-      echo "Installing Go 1.24..."
-      sudo apt-get update -y -q
-      sudo apt-get install -y -q gcc git sqlite3 libsqlite3-dev wget
-      wget -q https://go.dev/dl/go1.24.1.linux-amd64.tar.gz -O /tmp/go.tar.gz
-      sudo rm -rf /usr/local/go
-      sudo tar -C /usr/local -xzf /tmp/go.tar.gz
-      echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
-      rm /tmp/go.tar.gz
+    # If Go 1.24 already installed, skip
+    if /usr/local/go/bin/go version 2>/dev/null | grep -q "go1.24"; then
+      echo "Go 1.24 already installed"
+      /usr/local/go/bin/go version
+      exit 0
     fi
-    /usr/local/go/bin/go version'
+
+    echo "Installing Go 1.24.1..."
+
+    # Wait for apt lock (boot scripts hold it for ~60s)
+    for i in $(seq 1 24); do
+      if sudo apt-get update -y -q 2>/dev/null; then
+        break
+      fi
+      echo "  apt locked, waiting 5s (attempt $i/24)..."
+      sleep 5
+    done
+
+    sudo apt-get install -y -q gcc git wget 2>/dev/null || true
+
+    # Direct download — does not depend on apt
+    wget -q https://go.dev/dl/go1.24.1.linux-amd64.tar.gz -O /tmp/go.tar.gz
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+    rm /tmp/go.tar.gz
+
+    # Verify
+    if /usr/local/go/bin/go version | grep -q "go1.24"; then
+      echo "✓ Go installed successfully"
+      /usr/local/go/bin/go version
+    else
+      echo "✗ Go installation FAILED"
+      exit 1
+    fi'
 }
 
-install_go "$COORD_NAME" "$COORD_ZONE" &
+# Install sequentially to avoid SSH contention on fresh VMs
+ALL_VMS="$COORD_NAME,$COORD_ZONE,coord"
 while IFS=, read -r name zone ip; do
   [[ -z "$name" ]] && continue
-  wait_for_slot
-  install_go "$name" "$zone" &
+  ALL_VMS="$ALL_VMS
+$name,$zone,$ip"
 done <<< "$SHARD_ROWS"
-wait
+
+while IFS=, read -r name zone ip; do
+  [[ -z "$name" ]] && continue
+  echo "  Installing Go on $name..."
+  for attempt in 1 2 3; do
+    if install_go "$name" "$zone" 2>&1; then
+      break
+    fi
+    echo "  ✗ Go install failed on $name, retry $attempt/3 in 10s..."
+    sleep 10
+    if [[ $attempt -eq 3 ]]; then
+      echo "  ERROR: Go install failed on $name after 3 attempts"
+      exit 1
+    fi
+  done
+done <<< "$ALL_VMS"
 echo "  ✓ Go installed on all VMs"
 
 # ── Step 2: Upload source code ───────────────────────────

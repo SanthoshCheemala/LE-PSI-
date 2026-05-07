@@ -3,8 +3,10 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -18,6 +20,17 @@ import (
 	"github.com/tuneinsight/lattigo/v3/ring"
 	lattigo_utils "github.com/tuneinsight/lattigo/v3/utils"
 )
+
+type BenchmarkResult struct {
+	ServerSize int     `json:"server_size"`
+	ClientSize int     `json:"client_size"`
+	MaxWorkers int     `json:"max_workers"`
+	PeakRAM_MB float64 `json:"peak_ram_mb"`
+	InitSec    float64 `json:"init_time_sec"`
+	EncSec     float64 `json:"enc_time_sec"`
+	IntSec     float64 `json:"int_time_sec"`
+	TotalSec   float64 `json:"total_time_sec"`
+}
 
 func main() {
 	serverSize := 10000
@@ -102,7 +115,8 @@ func main() {
 	memoryTree, _ := LE.LoadTreeFromDB(db, leParams.Layers, leParams)
 
 	updatePeak(&peakRAM)
-	fmt.Printf("  ✓ Init done: %.1f s | Peak RAM: %.0f MB\n", time.Since(initStart).Seconds(), peakRAM)
+	initTime := time.Since(initStart).Seconds()
+	fmt.Printf("  ✓ Init done: %.1f s | Peak RAM: %.0f MB\n", initTime, peakRAM)
 
 	// ── Phase 2: Client Encryption
 	fmt.Printf("\n[Phase 2] Encrypting %d client queries...\n", clientSize)
@@ -140,7 +154,8 @@ func main() {
 	encWG.Wait()
 
 	updatePeak(&peakRAM)
-	fmt.Printf("  ✓ Encrypt done: %.1f s\n", time.Since(encStart).Seconds())
+	encTime := time.Since(encStart).Seconds()
+	fmt.Printf("  ✓ Encrypt done: %.1f s\n", encTime)
 
 	// ── Phase 3: Intersection (BOUNDED BATCHING)
 	fmt.Printf("\n[Phase 3] Intersection (Workers Capped at %d)...\n", maxWorkers)
@@ -184,7 +199,8 @@ func main() {
 	wg.Wait()
 
 	updatePeak(&peakRAM)
-	fmt.Printf("  ✓ Intersection done: %.1f s\n", time.Since(intStart).Seconds())
+	intTime := time.Since(intStart).Seconds()
+	fmt.Printf("  ✓ Intersection done: %.1f s\n", intTime)
 
 	// ── Summary
 	totalSec := time.Since(start).Seconds()
@@ -193,6 +209,30 @@ func main() {
 	fmt.Printf("  PEAK RAM        : %.2f GB (%.1f MB)\n", peakRAM/1024, peakRAM)
 	fmt.Printf("  MATCHES         : %d / %d expected\n", len(matches), clientSize)
 	fmt.Println("==================================================")
+
+	// Save to JSON
+	resultObj := BenchmarkResult{
+		ServerSize: serverSize,
+		ClientSize: clientSize,
+		MaxWorkers: maxWorkers,
+		PeakRAM_MB: peakRAM,
+		InitSec:    initTime,
+		EncSec:     encTime,
+		IntSec:     intTime,
+		TotalSec:   totalSec,
+	}
+
+	os.MkdirAll("scalability_results", 0755)
+	fileName := fmt.Sprintf("bench_10k_%s.json", time.Now().Format("20060102_150405"))
+	outPath := filepath.Join("scalability_results", fileName)
+	file, _ := os.Create(outPath)
+	defer file.Close()
+	
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	encoder.Encode(resultObj)
+
+	fmt.Printf("\n✓ Saved benchmark data to: %s\n\n", outPath)
 }
 
 func getRAM_MB() float64 {

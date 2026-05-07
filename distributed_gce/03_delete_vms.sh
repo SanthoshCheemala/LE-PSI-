@@ -5,7 +5,7 @@
 # ============================================================
 set -euo pipefail
 
-PROJECT="${PROJECT:-distributed-sim}"
+PROJECT="${PROJECT:-lepsi-distributed-493617}"
 
 echo "Deleting all lepsi-dist VMs in project $PROJECT..."
 

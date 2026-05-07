@@ -275,6 +275,7 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 			defer wg.Done()
 			for i := range workChan {
 				publicKeys[i], privateKeys[i] = leParams.KeyGen()
+				// Compute both candidate leaves for 2-choice placement
 				hashedClient[i] = ReduceToTreeIndex(private_set_X[i], leParams.Layers)
 			}
 		}()
@@ -286,6 +287,23 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	close(workChan)
 	wg.Wait()
 	monitor.TrackKeyGeneration(keyGenStart)
+
+	// 2-choice Cuckoo leaf placement: try leaf1 first, fall back to leaf2
+	occupied := make(map[uint64]bool)
+	for i := 0; i < X_size; i++ {
+		leaf1 := ReduceToTreeIndex(private_set_X[i], leParams.Layers)
+		leaf2 := ReduceToTreeIndex2(private_set_X[i], leParams.Layers)
+		if !occupied[leaf1] {
+			hashedClient[i] = leaf1
+			occupied[leaf1] = true
+		} else if !occupied[leaf2] {
+			hashedClient[i] = leaf2
+			occupied[leaf2] = true
+		} else {
+			// Both occupied — overwrite leaf1 (collision remains for this item)
+			hashedClient[i] = leaf1
+		}
+	}
 
 	for i := 0; i < X_size; i++ {
 		LE.Upd(db, hashedClient[i], leParams.Layers, publicKeys[i], leParams)

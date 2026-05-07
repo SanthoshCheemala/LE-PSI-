@@ -7,13 +7,13 @@
 set -euo pipefail
 
 PROJECT="${PROJECT:-lepsi-distributed-493617}"
-ZONE="${ZONE:-us-central1-a}"
-K="${K:-3}"
+ZONE="${ZONE:-us-central1-c}"
+K="${K:-7}"
 N=100
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # m values to benchmark (skip 1000 if already done)
-M_VALUES=(2000 4000 8000)
+M_VALUES=(1000 2000 4000 8000 10000)
 
 echo "============================================================"
 echo "  LE-PSI MULTI-BENCHMARK RUNNER"
