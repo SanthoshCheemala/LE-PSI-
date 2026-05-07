@@ -176,7 +176,6 @@ func main() {
 			workerSem <- struct{}{} // Cap concurrent goroutines
 			defer func() {
 				<-workerSem
-				runtime.GC() // Clean up witness immediately
 			}()
 
 			w1, w2 := LE.WitGenMemory(memoryTree, leParams, hashedServer[idx])
@@ -193,6 +192,11 @@ func main() {
 					}
 					matchMu.Unlock()
 				}
+			}
+
+			// Print progress every 1000 items to show it's working fast
+			if (idx+1)%1000 == 0 {
+				fmt.Printf("    ... processed %d / %d records\n", idx+1, X_size)
 			}
 		}(i)
 	}
