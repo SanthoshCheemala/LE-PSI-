@@ -24,19 +24,15 @@ if [[ ! -d "$LIBPSI_DIR/.git" ]]; then
 fi
 
 cd "$LIBPSI_DIR"
-set +e
 python3 build.py --par="$THREADS" 2>&1 | tee "$RESULTS/build.log"
-BUILD_STATUS=${PIPESTATUS[0]}
-set -e
 
-if [[ "$BUILD_STATUS" -ne 0 && -f "$LIBPSI_DIR/out/libOTe/out/coproto/thirdparty/getBoost.cmake" ]]; then
-  echo "libPSI build failed; retrying after patching stale Boost download URL" | tee -a "$RESULTS/build.log"
+FRONTEND="$(find "$LIBPSI_DIR/out/build" -path '*/frontend/frontend.exe' -type f | head -1)"
+if [[ -z "$FRONTEND" && -f "$LIBPSI_DIR/out/libOTe/out/coproto/thirdparty/getBoost.cmake" ]]; then
+  echo "libPSI frontend missing; retrying after patching stale Boost download URL" | tee -a "$RESULTS/build.log"
   sed -i 's#https://boostorg.jfrog.io/artifactory/main/release#https://archives.boost.io/release#' \
     "$LIBPSI_DIR/out/libOTe/out/coproto/thirdparty/getBoost.cmake"
   rm -f "$LIBPSI_DIR/out/libOTe/out/boost_1_86_0.tar.bz2"
   python3 build.py --par="$THREADS" 2>&1 | tee -a "$RESULTS/build.log"
-elif [[ "$BUILD_STATUS" -ne 0 ]]; then
-  exit "$BUILD_STATUS"
 fi
 
 FRONTEND="$(find "$LIBPSI_DIR/out/build" -path '*/frontend/frontend.exe' -type f | head -1)"
