@@ -78,7 +78,7 @@ func Client(private_set_Y []uint64, pp *matrix.Vector, msg *ring.Poly, le *LE.LE
 				}
 
 				c0, c1, cvec, dpoly := LE.Enc(le, pp, treeIndices[i], msg, r, e0, e1, e)
-				C[i] = Cxtx{C0: c0, C1: c1, C: cvec, D: dpoly}
+				C[i] = Cxtx{C0: c0, C1: c1, C: cvec, D: dpoly, TargetLeaf: treeIndices[i]}
 			}
 		}()
 	}

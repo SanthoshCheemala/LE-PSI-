@@ -1,5 +1,0 @@
-First end-to-end implementation of post-quantum laconic PSI.
-Batched witnesses cut peak RAM from 312 GB to 6.5 GB.
-25-node deployment reduces runtime from 153 min to 10.2 min.
-FLARE shows GDPR-aligned private sanctions screening.
-First empirical overhead study at 128-bit quantum security.

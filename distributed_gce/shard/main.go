@@ -135,25 +135,64 @@ func handleIntersect(w http.ResponseWriter, r *http.Request) {
 	ctx := serverCtx
 	mu.Unlock()
 
-	var req IntersectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// ── Stream-decode ciphertexts one at a time ──────────────
+	// Avoids holding the entire raw JSON (~3.6 GB) + all decoded
+	// SerializableCxtx structs in memory simultaneously.
+	// Each element is decoded → deserialized → appended, then the
+	// serializable form goes out of scope for GC.
+	dec := json.NewDecoder(r.Body)
+
+	// Read opening { of the JSON object
+	if t, err := dec.Token(); err != nil {
 		http.Error(w, "bad JSON: "+err.Error(), 400)
+		return
+	} else if delim, ok := t.(json.Delim); !ok || delim != '{' {
+		http.Error(w, "expected JSON object", 400)
 		return
 	}
 
-	log.Printf("[shard %d] /intersect: %d ciphertexts vs %d records",
-		shardID, len(req.Ciphertexts), len(ctx.OriginalHashes))
-
-	// Deserialize ciphertexts
-	ciphertexts := make([]psi.Cxtx, len(req.Ciphertexts))
-	for i, sc := range req.Ciphertexts {
-		ct, err := psi.DeserializeCxtx(sc, ctx.LEParams)
+	// Find the "ciphertexts" key
+	for dec.More() {
+		t, err := dec.Token()
 		if err != nil {
-			http.Error(w, fmt.Sprintf("deserialize ct[%d]: %v", i, err), 400)
+			http.Error(w, "bad JSON key: "+err.Error(), 400)
 			return
 		}
-		ciphertexts[i] = ct
+		if key, ok := t.(string); ok && key == "ciphertexts" {
+			break
+		}
 	}
+
+	// Read opening [ of the ciphertexts array
+	if t, err := dec.Token(); err != nil {
+		http.Error(w, "bad ciphertexts array: "+err.Error(), 400)
+		return
+	} else if delim, ok := t.(json.Delim); !ok || delim != '[' {
+		http.Error(w, "expected array for ciphertexts", 400)
+		return
+	}
+
+	// Decode each ciphertext individually — peak overhead is ~50 MB
+	// (one SerializableCxtx at a time) instead of ~7 GB (all at once)
+	var ciphertexts []psi.Cxtx
+	idx := 0
+	for dec.More() {
+		var sc psi.SerializableCxtx
+		if err := dec.Decode(&sc); err != nil {
+			http.Error(w, fmt.Sprintf("decode ct[%d]: %v", idx, err), 400)
+			return
+		}
+		ct, err := psi.DeserializeCxtx(sc, ctx.LEParams)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("deserialize ct[%d]: %v", idx, err), 400)
+			return
+		}
+		ciphertexts = append(ciphertexts, ct)
+		idx++
+	}
+
+	log.Printf("[shard %d] /intersect: %d ciphertexts vs %d records",
+		shardID, len(ciphertexts), len(ctx.OriginalHashes))
 
 	var memBefore runtime.MemStats
 	runtime.GC()

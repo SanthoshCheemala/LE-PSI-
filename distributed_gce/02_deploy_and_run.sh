@@ -140,15 +140,19 @@ while IFS=, read -r name zone ip; do
 done <<< "$ALL_VMS"
 echo "  ✓ Go installed on all VMs"
 
-# ── Step 2: Upload source code ───────────────────────────
+# ── Step 2: Upload source code (minimal — no results/logs) ──
 echo ""
-echo "[2/5] Uploading PSI source code..."
+echo "[2/5] Uploading PSI source code (minimal)..."
 upload_source() {
   local name="$1" zone="$2"
-  ssh_cmd "$name" "$zone" "mkdir -p $WORKDIR/bin"
-  for pkg in pkg internal utils distributed_gce go.mod go.sum; do
+  ssh_cmd "$name" "$zone" "mkdir -p $WORKDIR/bin $WORKDIR/distributed_gce"
+  # Only sync Go source packages + module files
+  for pkg in pkg internal utils go.mod go.sum; do
     scp_dir "$PSI_SRC/$pkg" "$name" "$zone" "$WORKDIR/" 2>/dev/null || true
   done
+  # Only sync coordinator and shard source dirs (NOT results/)
+  scp_dir "$PSI_SRC/distributed_gce/coordinator" "$name" "$zone" "$WORKDIR/distributed_gce/" 2>/dev/null || true
+  scp_dir "$PSI_SRC/distributed_gce/shard" "$name" "$zone" "$WORKDIR/distributed_gce/" 2>/dev/null || true
 }
 
 upload_source "$COORD_NAME" "$COORD_ZONE" &
@@ -158,7 +162,7 @@ while IFS=, read -r name zone ip; do
   upload_source "$name" "$zone" &
 done <<< "$SHARD_ROWS"
 wait
-echo "  ✓ Source uploaded"
+echo "  ✓ Source uploaded (coordinator + shard only)"
 
 # ── Step 3: Build on each VM ─────────────────────────────
 echo ""
@@ -182,6 +186,16 @@ while IFS=, read -r name zone ip; do
 done <<< "$SHARD_ROWS"
 wait
 echo "  ✓ Binaries built"
+
+# ── Step 3.5: Kill stale processes on all VMs ────────────
+echo ""
+echo "[3.5/5] Killing stale processes on all VMs..."
+ssh_cmd "$COORD_NAME" "$COORD_ZONE" "pkill -9 lepsi_coord 2>/dev/null; rm -f /tmp/coord.log /tmp/coord.pid /tmp/cts_payload.json" || true
+while IFS=, read -r name zone ip; do
+  [[ -z "$name" ]] && continue
+  ssh_cmd "$name" "$zone" "pkill -9 lepsi_shard 2>/dev/null" || true
+done <<< "$SHARD_ROWS"
+echo "  ✓ Stale processes killed"
 
 # ── Step 4: Start shard servers (with retry) ─────────────
 echo ""
@@ -246,7 +260,16 @@ BENCH_START=$(date +%s)
 ssh_cmd "$COORD_NAME" "$COORD_ZONE" \
   "cd $WORKDIR && \
    M=$M N=$N SHARD_URLS='$SHARD_URLS' RESULT_DIR=/tmp/lepsi_results \
-   ./bin/lepsi_coord 2>&1 | tee /tmp/coord.log"
+   nohup ./bin/lepsi_coord > /tmp/coord.log 2>&1 & \
+   echo \$! > /tmp/coord.pid"
+
+echo "  Waiting for coordinator to finish..."
+while true; do
+  if ssh_cmd "$COORD_NAME" "$COORD_ZONE" "grep -q -E 'Results saved to|Benchmark failed' /tmp/coord.log 2>/dev/null"; then
+    break
+  fi
+  sleep 15
+done
 
 BENCH_END=$(date +%s)
 WALL_SEC=$((BENCH_END - BENCH_START))

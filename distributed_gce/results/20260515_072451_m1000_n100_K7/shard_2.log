@@ -1,0 +1,86 @@
+2026/05/15 01:56:10 LE-PSI shard server starting on :8081 (GOMAXPROCS=4)
+2026/05/15 01:57:04 [shard 2] /init received: 143 records
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Security Level: Fast Evaluation (Low Security)
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 12 (slots = 4096)
+ - Load Factor: 0.034912 (items/slot)
+ - Estimated Collision Probability: 9.176038e-01
+2026/05/15 01:57:04 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 143 records (est. RAM: 5.0 GB)
+       💾 Loading Merkle Tree into RAM for fast witness generation...
+       ✓ Tree loaded in 30.601482ms
+2026/05/15 01:57:59 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 143 records (est. RAM: 5.0 GB)
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 4
+Total Execution Time: 58.219264816s
+Key Generation Time: 716.401162ms (1.2%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 3.046352885s (5.2%)
+Intersection Detection Time: 0s (0.0%)
+==================================================
+2026/05/15 01:58:02 [shard 2] init done in 58.2s
+2026/05/15 02:00:56 [shard 2] /intersect: 200 ciphertexts vs 143 records
+2026/05/15 02:01:01 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 143 records (est. RAM: 5.0 GB)
+2026/05/15 02:01:06    ... Progress: 691/28600 (2.4%)
+2026/05/15 02:01:11    ... Progress: 1373/28600 (4.8%)
+2026/05/15 02:01:16    ... Progress: 2047/28600 (7.2%)
+2026/05/15 02:01:21    ... Progress: 2707/28600 (9.5%)
+2026/05/15 02:01:26    ... Progress: 3383/28600 (11.8%)
+2026/05/15 02:01:31    ... Progress: 4028/28600 (14.1%)
+2026/05/15 02:01:36    ... Progress: 4701/28600 (16.4%)
+2026/05/15 02:01:41    ... Progress: 5397/28600 (18.9%)
+2026/05/15 02:01:46    ... Progress: 6070/28600 (21.2%)
+2026/05/15 02:01:51    ... Progress: 6720/28600 (23.5%)
+2026/05/15 02:01:56    ... Progress: 7401/28600 (25.9%)
+2026/05/15 02:02:01    ... Progress: 8051/28600 (28.2%)
+2026/05/15 02:02:06    ... Progress: 8723/28600 (30.5%)
+2026/05/15 02:02:11    ... Progress: 9399/28600 (32.9%)
+2026/05/15 02:02:16    ... Progress: 10088/28600 (35.3%)
+2026/05/15 02:02:21    ... Progress: 10725/28600 (37.5%)
+2026/05/15 02:02:26    ... Progress: 11392/28600 (39.8%)
+2026/05/15 02:02:31    ... Progress: 12067/28600 (42.2%)
+2026/05/15 02:02:36    ... Progress: 12723/28600 (44.5%)
+2026/05/15 02:02:41    ... Progress: 13387/28600 (46.8%)
+2026/05/15 02:02:46    ... Progress: 14082/28600 (49.2%)
+2026/05/15 02:02:51    ... Progress: 14737/28600 (51.5%)
+2026/05/15 02:02:56    ... Progress: 15391/28600 (53.8%)
+2026/05/15 02:03:01    ... Progress: 16083/28600 (56.2%)
+2026/05/15 02:03:06    ... Progress: 16727/28600 (58.5%)
+2026/05/15 02:03:11    ... Progress: 17390/28600 (60.8%)
+2026/05/15 02:03:16    ... Progress: 18105/28600 (63.3%)
+2026/05/15 02:03:21    ... Progress: 18732/28600 (65.5%)
+2026/05/15 02:03:26    ... Progress: 19365/28600 (67.7%)
+2026/05/15 02:03:31    ... Progress: 20053/28600 (70.1%)
+2026/05/15 02:03:36    ... Progress: 20104/28600 (70.3%)
+2026/05/15 02:03:41    ... Progress: 20259/28600 (70.8%)
+2026/05/15 02:03:46    ... Progress: 20829/28600 (72.8%)
+2026/05/15 02:03:51    ... Progress: 21500/28600 (75.2%)
+2026/05/15 02:03:56    ... Progress: 22152/28600 (77.5%)
+2026/05/15 02:04:01    ... Progress: 22780/28600 (79.7%)
+2026/05/15 02:04:06    ... Progress: 23453/28600 (82.0%)
+2026/05/15 02:04:11    ... Progress: 24102/28600 (84.3%)
+2026/05/15 02:04:16    ... Progress: 24709/28600 (86.4%)
+2026/05/15 02:04:21    ... Progress: 25357/28600 (88.7%)
+2026/05/15 02:04:26    ... Progress: 26016/28600 (91.0%)
+2026/05/15 02:04:31    ... Progress: 26691/28600 (93.3%)
+2026/05/15 02:04:36    ... Progress: 27350/28600 (95.6%)
+2026/05/15 02:04:41    ... Progress: 27988/28600 (97.9%)
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 4
+Total Execution Time: 3m44.446982087s
+Key Generation Time: 0s (0.0%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 0s (0.0%)
+Intersection Detection Time: 3m44.446981351s (100.0%)
+Throughput: 127.42 operations/second
+Parallel Efficiency: 4.0x speedup potential
+==================================================
+2026/05/15 02:04:45 [shard 2] intersection done: 0 matches in 224.7s

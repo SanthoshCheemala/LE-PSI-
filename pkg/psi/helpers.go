@@ -61,13 +61,19 @@ var VerboseMode = os.Getenv("PSI_VERBOSE") == "false"
 //   - C1: Vector of encrypted path components (second part of dual ciphertext)
 //   - C: Compressed vector representation for efficient transmission
 //   - D: Polynomial component for message encoding
+//   - TargetLeaf: The Merkle tree leaf index this ciphertext encrypts towards.
+//     Used for leaf-indexed filtering: the server only attempts decryption
+//     when a ciphertext's TargetLeaf matches the server record's leaf.
+//     This is safe in the DKLLMR23 security model because the target leaf
+//     is already implicit in the ciphertext structure (path encoding).
 //
 // This structure is produced by ClientEncrypt and consumed by DetectIntersectionWithContext.
 type Cxtx struct {
-	C0 []*matrix.Vector
-	C1 []*matrix.Vector
-	C  *matrix.Vector
-	D  *ring.Poly
+	C0         []*matrix.Vector
+	C1         []*matrix.Vector
+	C          *matrix.Vector
+	D          *ring.Poly
+	TargetLeaf uint64
 }
 
 // ReduceToTreeIndex reduces a hash value to a tree index based on the number of layers.

@@ -244,20 +244,14 @@ func Dec(le *LE, sk *matrix.Vector, vec1 []*matrix.Vector, vec2 []*matrix.Vector
 	m := le.R.NewPoly()
 	le.R.Sub(d, ctd, m)
 
-	ctd1 := make([]*ring.Poly, le.Layers)
-	// TODO we are using WaitGroups for the parallel decryption as the order matters.
+	// Sequential layer processing — each layer is a single Mul+Mul+Add+InvNTT,
+	// which is cheaper than goroutine spawn/schedule overhead. Outer parallelism
+	// across server records (in DetectIntersectionWithContext) provides CPU saturation.
 	for i := 0; i < le.Layers; i++ {
-		ctd1[i] = le.R.NewPoly()
-	}
-	wg := sync.WaitGroup{}
-	for i := 0; i < le.Layers; i++ {
-
-		wg.Add(1)
-		go DecParallel(le, c0[i], c1[i], vec1[i], vec2[i], ctd1, i, &wg)
-	}
-	wg.Wait()
-	for i := 0; i < le.Layers; i++ {
-		le.R.Sub(m, ctd1[i], m)
+		p := le.R.NewPoly()
+		le.R.Add(matrix.Mul(c0[i], vec1[i], le.R), matrix.Mul(c1[i], vec2[i], le.R), p)
+		le.R.InvNTT(p, p)
+		le.R.Sub(m, p, m)
 	}
 	return m
 }

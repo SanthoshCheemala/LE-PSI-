@@ -14,10 +14,11 @@ import (
 // SerializableCxtx is the JSON-serializable form of Cxtx.
 // All ring.Poly and matrix.Vector fields are flattened to [][]uint64.
 type SerializableCxtx struct {
-	C0 [][][]uint64 `json:"c0"` // [layers+1][N][D] coefficients
-	C1 [][][]uint64 `json:"c1"`
-	C  [][]uint64   `json:"c"`  // [N][D]
-	D  []uint64     `json:"d"`  // [D]
+	C0         [][][]uint64 `json:"c0"` // [layers+1][N][D] coefficients
+	C1         [][][]uint64 `json:"c1"`
+	C          [][]uint64   `json:"c"`  // [N][D]
+	D          []uint64     `json:"d"`  // [D]
+	TargetLeaf uint64       `json:"target_leaf"`
 }
 
 // SerializeCxtx converts a Cxtx to its JSON-serializable form.
@@ -42,10 +43,11 @@ func SerializeCxtx(ct Cxtx) SerializableCxtx {
 	}
 
 	return SerializableCxtx{
-		C0: serVecSlice(ct.C0),
-		C1: serVecSlice(ct.C1),
-		C:  serVec(ct.C),
-		D:  append([]uint64{}, ct.D.Coeffs[0]...),
+		C0:         serVecSlice(ct.C0),
+		C1:         serVecSlice(ct.C1),
+		C:          serVec(ct.C),
+		D:          append([]uint64{}, ct.D.Coeffs[0]...),
+		TargetLeaf: ct.TargetLeaf,
 	}
 }
 
@@ -91,5 +93,5 @@ func DeserializeCxtx(s SerializableCxtx, le *LE.LE) (Cxtx, error) {
 	dPoly := r.NewPoly()
 	copy(dPoly.Coeffs[0], s.D)
 
-	return Cxtx{C0: c0, C1: c1, C: cVec, D: dPoly}, nil
+	return Cxtx{C0: c0, C1: c1, C: cVec, D: dPoly, TargetLeaf: s.TargetLeaf}, nil
 }

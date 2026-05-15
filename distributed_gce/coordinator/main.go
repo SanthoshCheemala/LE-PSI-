@@ -9,7 +9,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -102,11 +102,13 @@ var longClient = &http.Client{
 }
 
 func postJSON(url string, body any, out any) error {
-	data, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	resp, err := longClient.Post(url, "application/json", bytes.NewReader(data))
+	pr, pw := io.Pipe()
+	go func() {
+		err := json.NewEncoder(pw).Encode(body)
+		pw.CloseWithError(err)
+	}()
+
+	resp, err := longClient.Post(url, "application/json", pr)
 	if err != nil {
 		return err
 	}
@@ -160,13 +162,15 @@ func initShards(cfg Config, serverSet []uint64) ([]ShardInitResp, error) {
 	return results, nil
 }
 
-// ── Phase 2: Client encryption (using shard-0 params) ────
+// ── Phase 2: Client encryption — writes to disk to avoid OOM ─
 
-func runClient(initResps []ShardInitResp, clientSet []uint64, cfg Config) ([]psi.SerializableCxtx, error) {
+const ctsPayloadPath = "/tmp/cts_payload.json"
+
+func runClientToDisk(initResps []ShardInitResp, clientSet []uint64, cfg Config) error {
 	// Use public params from shard-0 (all shards share same LE params)
 	pp0, msg0, le0, err := psi.DeserializeParameters(initResps[0].Params)
 	if err != nil {
-		return nil, fmt.Errorf("deserialize params: %w", err)
+		return fmt.Errorf("deserialize params: %w", err)
 	}
 
 	// Build tree indices for client set
@@ -177,36 +181,80 @@ func runClient(initResps []ShardInitResp, clientSet []uint64, cfg Config) ([]psi
 
 	// Encrypt
 	rawCts := psi.Client(treeIndices, pp0, msg0, le0)
+	log.Printf("[coord] client: encrypted %d ciphertexts", len(rawCts))
 
-	// Serialize for HTTP transport
-	serialized := make([]psi.SerializableCxtx, len(rawCts))
-	for j, ct := range rawCts {
-		serialized[j] = psi.SerializeCxtx(ct)
+	// Write the full request payload directly to disk, serializing one
+	// ciphertext at a time so we never hold the entire serialized array
+	// in RAM alongside the raw ciphertexts.
+	f, err := os.Create(ctsPayloadPath)
+	if err != nil {
+		return fmt.Errorf("create payload file: %w", err)
 	}
-	log.Printf("[coord] client: encrypted %d ciphertexts", len(serialized))
-	return serialized, nil
+	defer f.Close()
+
+	// Write opening JSON: {"ciphertexts":[
+	f.WriteString(`{"ciphertexts":[`)
+	enc := json.NewEncoder(f)
+	for i, ct := range rawCts {
+		if i > 0 {
+			f.WriteString(",")
+		}
+		if err := enc.Encode(psi.SerializeCxtx(ct)); err != nil {
+			return fmt.Errorf("encode ct[%d]: %w", i, err)
+		}
+		// Allow GC to reclaim this ciphertext's polynomials immediately
+		rawCts[i] = psi.Cxtx{}
+	}
+	f.WriteString("]}")
+	log.Printf("[coord] Wrote ciphertext payload to %s", ctsPayloadPath)
+	return nil
 }
 
-// ── Phase 3: Fan out to all shards ───────────────────────
+// ── Phase 3: Fan out to all shards (sequential, file-streamed) ─
 
-func fanOutIntersect(cfg Config, cts []psi.SerializableCxtx) ([]ShardIntersectResp, error) {
+func fanOutIntersect(cfg Config) ([]ShardIntersectResp, error) {
 	results := make([]ShardIntersectResp, cfg.K)
 	errs := make([]error, cfg.K)
 	var wg sync.WaitGroup
 
-	req := ShardIntersectReq{Ciphertexts: cts}
-
+	// Send to ALL shards in PARALLEL — each goroutine opens its own
+	// file handle. Data lives in OS page cache, NOT in Go heap.
+	// This keeps coordinator RSS at ~200 MB while sending concurrently.
 	for k := 0; k < cfg.K; k++ {
 		k := k
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			log.Printf("[coord] → shard-%d /intersect", k)
-			err := postJSON(cfg.ShardURLs[k]+"/intersect", req, &results[k])
+
+			f, err := os.Open(ctsPayloadPath)
+			if err != nil {
+				errs[k] = fmt.Errorf("open payload for shard-%d: %w", k, err)
+				return
+			}
+			defer f.Close()
+
+			resp, err := longClient.Post(
+				cfg.ShardURLs[k]+"/intersect",
+				"application/json",
+				f,
+			)
 			if err != nil {
 				errs[k] = fmt.Errorf("shard-%d intersect: %w", k, err)
 				return
 			}
+
+			raw, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if resp.StatusCode != 200 {
+				errs[k] = fmt.Errorf("shard-%d HTTP %d: %s", k, resp.StatusCode, raw)
+				return
+			}
+			if err := json.Unmarshal(raw, &results[k]); err != nil {
+				errs[k] = fmt.Errorf("shard-%d unmarshal: %w", k, err)
+				return
+			}
+
 			log.Printf("[coord] ✓ shard-%d: %d matches in %.1fs",
 				k, len(results[k].Matches), results[k].IntersectSec)
 		}()
@@ -260,23 +308,34 @@ func runBenchmark(cfg Config) (*DistributedResult, error) {
 	res.InitTimeNS = time.Since(initStart).Nanoseconds()
 	log.Printf("[coord] ✓ All shards initialized in %.1f min", float64(res.InitTimeNS)/1e9/60)
 
-	// Phase 2: Client encrypt
+	// Phase 2: Client encrypt → write to disk
 	log.Printf("[coord] Phase 2: Client encryption (n=%d)...", cfg.N)
-	cts, err := runClient(initResps, clientSet, cfg)
+	err = runClientToDisk(initResps, clientSet, cfg)
 	if err != nil {
 		res.ErrorMessage = err.Error()
 		return res, err
 	}
 
-	// Phase 3: Fan-out intersection
+	// Free ALL large objects — ciphertexts are safely on disk now
+	initResps = nil
+	serverSet = nil
+	clientSet = nil
+	runtime.GC()
+	debug.FreeOSMemory()
+	log.Printf("[coord] Memory reclaimed — ciphertexts on disk, RAM near zero.")
+
+	// Phase 3: Fan-out intersection (sequential, file-streamed)
 	intersectStart := time.Now()
 	log.Printf("[coord] Phase 3: Fan-out intersection to %d shards...", cfg.K)
-	shardResps, err := fanOutIntersect(cfg, cts)
+	shardResps, err := fanOutIntersect(cfg)
 	if err != nil {
 		res.ErrorMessage = err.Error()
 		return res, err
 	}
 	res.IntersectTimeNS = time.Since(intersectStart).Nanoseconds()
+
+	// Cleanup temp file
+	os.Remove(ctsPayloadPath)
 
 	// Aggregate
 	totalMatches := 0
