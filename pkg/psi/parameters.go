@@ -21,16 +21,18 @@ import (
 //
 // Cryptographic Parameters (Environment Configurable):
 //   - Q: Modulus = 180143985094819841 (~2^58)
-//   - D: Ring dimension = 256 (fast evaluation) OR 2048 (secure-parameter mode)
+//   - D: Ring dimension = 256 (fast evaluation) OR 2048 (larger-D mode)
 //   - N: Matrix dimension = 4
 //   - qBits: Modulus bit length = 58
 //
 // Security Configuration:
-//   - By default, D=256 is used for fast evaluations, but it does NOT
-//     provide full 128-bit post-quantum security for the 58-bit modulus.
-//   - Set the environment variable `PSI_SECURITY_LEVEL=128` to enforce D=2048.
-//     Any concrete security claim should be tied to an estimator run using the
-//     same q, sigma, and error distribution as the code.
+//   - By default, D=256 is used for fast evaluations; it is not an
+//     estimator-backed production-security setting for the 58-bit modulus.
+//   - The legacy environment variable `PSI_SECURITY_LEVEL=128` selects D=2048.
+//     Treat the variable name as a mode selector, not as a standalone security
+//     proof. Any concrete security claim should be tied to an estimator run
+//     using the same q, sigma, and error distribution as the code.
+//
 // The function automatically calculates:
 //   - Merkle tree layers: log2(16 * size) for 16x expansion factor
 //   - Load factor: items per slot ratio
@@ -47,19 +49,19 @@ import (
 func SetupLEParameters(size int) (*LE.LE, error) {
 	const (
 		Q     = uint64(180143985094819841) // Modulus (~2^58)
-		qBits = 58                          // Modulus bit length
-		N     = 4                           // Matrix dimension
-		c     = 16.0                        // Expansion factor (16x slots vs items)
+		qBits = 58                         // Modulus bit length
+		N     = 4                          // Matrix dimension
+		c     = 16.0                       // Expansion factor (16x slots vs items)
 	)
 
 	// Default to Fast Evaluation Mode (low security)
 	D := 256
 	securityMode := "Fast Evaluation (Low Security)"
 
-	// Enforce 128-bit post-quantum security if configured
+	// Select the larger-D mode when the legacy environment variable is set.
 	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
 		D = 2048
-		securityMode = "D=2048 Secure-Parameter Mode"
+		securityMode = "D=2048 Larger-D Evaluation Mode"
 	}
 
 	if D != 256 && D != 512 && D != 1024 && D != 2048 {
@@ -79,7 +81,7 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 		fmt.Println("Setting up LE with Parameters Q =", Q, "qBits =", qBits, "D =", D, "N =", N)
 		leParams = LE.Setup(Q, qBits, D, N)
 	}()
-	
+
 	if err != nil {
 		return nil, err
 	}

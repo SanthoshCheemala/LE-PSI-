@@ -55,5 +55,14 @@ shasum -a 256 -c SHA256SUMS
   filtering; this is an explicit implementation leakage term.
 - The single-node benchmark uses a controlled non-overlap client generator, so
   the targeted-decryption count equals the intended overlap count.
+- The benchmark scripts now also support `CLIENT_MODE=random` for a follow-up
+  random-client run, but the final 2026-05-15 tables are the controlled
+  single-node evidence unless that mode is rerun on the same GCE VM.
+- The distributed workload is generated differently from the controlled
+  single-node workload; do not compare the 24 distributed 10K matches as the
+  same workload as the 10 controlled single-node matches.
+- With `sigma=2^30`, do not reuse older exact 140-bit classical / 70-bit
+  quantum estimates unless the estimator is rerun with the actual code
+  parameters.
 - Distributed coordinator JSON does not provide a reliable RAM metric; use
   single-node RSS for memory claims unless distributed RSS is rerun.

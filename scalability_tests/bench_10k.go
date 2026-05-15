@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,30 +17,34 @@ import (
 )
 
 type BenchmarkResult struct {
-	RunID                 string  `json:"run_id"`
-	ServerSize            int     `json:"m"`
-	ClientSize            int     `json:"n"`
-	Mode                  string  `json:"mode"`
-	ChunkSize             int     `json:"chunk_size"`
-	WorkerCount           int     `json:"worker_count"`
-	LeafIndexedFiltering  bool    `json:"leaf_indexed_filtering"`
-	TargetedDecCalls      int     `json:"targeted_dec_calls"`
-	AllPairsDecCalls      int     `json:"all_pairs_dec_calls"`
-	CuckooRebuilds        int     `json:"cuckoo_rebuilds"`
-	D                     int     `json:"D"`
-	Q                     uint64  `json:"q"`
-	QBits                 int     `json:"qBits"`
-	NMatrix               int     `json:"N"`
-	Sigma                 float64 `json:"sigma"`
-	PeakHeapMB            uint64  `json:"peak_heap_mb"`
-	InitSec               float64 `json:"init_sec"`
-	EncSec                float64 `json:"enc_sec"`
-	IntersectSec          float64 `json:"intersect_sec"`
-	TotalSec              float64 `json:"total_sec"`
-	MatchesFound          int     `json:"matches_found"`
-	ActualDecCalls        int     `json:"actual_dec_calls"`
-	TotalPossibleDecCalls int     `json:"total_possible_dec_calls"`
-	ReductionFactor       float64 `json:"decryption_reduction_factor"`
+	RunID                  string  `json:"run_id"`
+	ServerSize             int     `json:"m"`
+	ClientSize             int     `json:"n"`
+	Mode                   string  `json:"mode"`
+	ChunkSize              int     `json:"chunk_size"`
+	WorkerCount            int     `json:"worker_count"`
+	ClientMode             string  `json:"client_mode"`
+	ClientSeed             int64   `json:"client_seed"`
+	NonOverlapAvoidsLeaves bool    `json:"non_overlap_avoids_occupied_leaves"`
+	ExpectedIntersection   int     `json:"expected_intersection"`
+	LeafIndexedFiltering   bool    `json:"leaf_indexed_filtering"`
+	TargetedDecCalls       int     `json:"targeted_dec_calls"`
+	AllPairsDecCalls       int     `json:"all_pairs_dec_calls"`
+	CuckooRebuilds         int     `json:"cuckoo_rebuilds"`
+	D                      int     `json:"D"`
+	Q                      uint64  `json:"q"`
+	QBits                  int     `json:"qBits"`
+	NMatrix                int     `json:"N"`
+	Sigma                  float64 `json:"sigma"`
+	PeakHeapMB             uint64  `json:"peak_heap_mb"`
+	InitSec                float64 `json:"init_sec"`
+	EncSec                 float64 `json:"enc_sec"`
+	IntersectSec           float64 `json:"intersect_sec"`
+	TotalSec               float64 `json:"total_sec"`
+	MatchesFound           int     `json:"matches_found"`
+	ActualDecCalls         int     `json:"actual_dec_calls"`
+	TotalPossibleDecCalls  int     `json:"total_possible_dec_calls"`
+	ReductionFactor        float64 `json:"decryption_reduction_factor"`
 }
 
 func envInt(name string, fallback int) int {
@@ -52,6 +57,14 @@ func envInt(name string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func envString(name string, fallback string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func heapMB() uint64 {
@@ -107,11 +120,49 @@ func buildBenchmarkClientSet(serverSet []uint64, treeIndices []uint64, layers in
 	return clientSet, len(overlapValues)
 }
 
+func buildRandomClientSet(serverSet []uint64, n int, desiredOverlap int, seed int64) ([]uint64, int) {
+	if desiredOverlap > n {
+		desiredOverlap = n
+	}
+	if desiredOverlap > len(serverSet) {
+		desiredOverlap = len(serverSet)
+	}
+
+	clientSet := make([]uint64, n)
+	copy(clientSet, serverSet[:desiredOverlap])
+
+	rng := rand.New(rand.NewSource(seed))
+	seen := make(map[uint64]bool, n)
+	for i := 0; i < desiredOverlap; i++ {
+		seen[clientSet[i]] = true
+	}
+
+	minNonServerValue := uint64(len(serverSet) + 1)
+	for i := desiredOverlap; i < n; i++ {
+		for {
+			candidate := rng.Uint64()
+			if candidate < minNonServerValue {
+				continue
+			}
+			if seen[candidate] {
+				continue
+			}
+			seen[candidate] = true
+			clientSet[i] = candidate
+			break
+		}
+	}
+
+	return clientSet, desiredOverlap
+}
+
 func main() {
 	serverSize := envInt("M", 10000)
 	clientSize := envInt("N", 100)
 	chunkSize := envInt("LEPSI_CHUNK_SIZE", 256)
 	workerCount := envInt("LEPSI_WORKERS", runtime.NumCPU())
+	clientMode := envString("CLIENT_MODE", "controlled")
+	clientSeed := int64(envInt("CLIENT_SEED", 20260515))
 	runID := fmt.Sprintf("bench_10k_chunked_%s", time.Now().UTC().Format("20060102_150405"))
 
 	fmt.Println("==================================================")
@@ -120,6 +171,7 @@ func main() {
 	fmt.Printf("  n (client size) : %d\n", clientSize)
 	fmt.Printf("  chunk_size      : %d\n", chunkSize)
 	fmt.Printf("  worker_count    : %d\n", workerCount)
+	fmt.Printf("  client_mode     : %s\n", clientMode)
 	fmt.Printf("  mode            : explicit_chunked\n")
 	fmt.Println("==================================================")
 
@@ -153,8 +205,20 @@ func main() {
 	updatePeak(&peakHeap)
 	fmt.Printf("  ✓ Init done: %.1f s\n", initSec)
 
-	clientSet, actualOverlap := buildBenchmarkClientSet(serverSet, ctx.TreeIndices, ctx.LEParams.Layers, clientSize, overlap)
-	fmt.Printf("  Client set prepared: expected_intersection=%d, non-overlap leaves avoid occupied server leaves\n", actualOverlap)
+	nonOverlapAvoidsLeaves := false
+	var clientSet []uint64
+	var actualOverlap int
+	switch clientMode {
+	case "controlled":
+		clientSet, actualOverlap = buildBenchmarkClientSet(serverSet, ctx.TreeIndices, ctx.LEParams.Layers, clientSize, overlap)
+		nonOverlapAvoidsLeaves = true
+		fmt.Printf("  Client set prepared: mode=controlled expected_intersection=%d, non-overlap leaves avoid occupied server leaves\n", actualOverlap)
+	case "random":
+		clientSet, actualOverlap = buildRandomClientSet(serverSet, clientSize, overlap, clientSeed)
+		fmt.Printf("  Client set prepared: mode=random seed=%d expected_intersection=%d, non-overlap leaves are random\n", clientSeed, actualOverlap)
+	default:
+		panic(fmt.Sprintf("unsupported CLIENT_MODE=%q; use controlled or random", clientMode))
+	}
 
 	fmt.Printf("\n[Phase 2] Client encryption...\n")
 	encStart := time.Now()
@@ -180,30 +244,34 @@ func main() {
 
 	totalSec := time.Since(start).Seconds()
 	resultObj := BenchmarkResult{
-		RunID:                 runID,
-		ServerSize:            serverSize,
-		ClientSize:            clientSize,
-		Mode:                  stats.Mode,
-		ChunkSize:             stats.ChunkSize,
-		WorkerCount:           stats.WorkerCount,
-		LeafIndexedFiltering:  stats.LeafIndexedFiltering,
-		TargetedDecCalls:      stats.TargetedDecCalls,
-		AllPairsDecCalls:      stats.AllPairsDecCalls,
-		CuckooRebuilds:        ctx.CuckooRebuilds,
-		D:                     ctx.LEParams.D,
-		Q:                     ctx.LEParams.Q,
-		QBits:                 ctx.LEParams.QBits,
-		NMatrix:               ctx.LEParams.N,
-		Sigma:                 ctx.LEParams.Sigma,
-		PeakHeapMB:            peakHeap,
-		InitSec:               initSec,
-		EncSec:                encSec,
-		IntersectSec:          intersectSec,
-		TotalSec:              totalSec,
-		MatchesFound:          len(matches),
-		ActualDecCalls:        stats.ActualDecCalls,
-		TotalPossibleDecCalls: stats.TotalPossibleDecCalls,
-		ReductionFactor:       stats.ReductionFactor,
+		RunID:                  runID,
+		ServerSize:             serverSize,
+		ClientSize:             clientSize,
+		Mode:                   stats.Mode,
+		ChunkSize:              stats.ChunkSize,
+		WorkerCount:            stats.WorkerCount,
+		ClientMode:             clientMode,
+		ClientSeed:             clientSeed,
+		NonOverlapAvoidsLeaves: nonOverlapAvoidsLeaves,
+		ExpectedIntersection:   actualOverlap,
+		LeafIndexedFiltering:   stats.LeafIndexedFiltering,
+		TargetedDecCalls:       stats.TargetedDecCalls,
+		AllPairsDecCalls:       stats.AllPairsDecCalls,
+		CuckooRebuilds:         ctx.CuckooRebuilds,
+		D:                      ctx.LEParams.D,
+		Q:                      ctx.LEParams.Q,
+		QBits:                  ctx.LEParams.QBits,
+		NMatrix:                ctx.LEParams.N,
+		Sigma:                  ctx.LEParams.Sigma,
+		PeakHeapMB:             peakHeap,
+		InitSec:                initSec,
+		EncSec:                 encSec,
+		IntersectSec:           intersectSec,
+		TotalSec:               totalSec,
+		MatchesFound:           len(matches),
+		ActualDecCalls:         stats.ActualDecCalls,
+		TotalPossibleDecCalls:  stats.TotalPossibleDecCalls,
+		ReductionFactor:        stats.ReductionFactor,
 	}
 
 	fmt.Println("\n==================================================")

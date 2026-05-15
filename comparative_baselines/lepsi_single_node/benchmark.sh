@@ -58,6 +58,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -80,6 +81,14 @@ func envInt(name string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func envString(name string, fallback string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func gitCommit() string {
@@ -221,6 +230,42 @@ func buildBenchmarkClientSet(serverSet []uint64, treeIndices []uint64, layers in
 	return clientSet, len(overlapValues)
 }
 
+func buildRandomClientSet(serverSet []uint64, n int, desiredOverlap int, seed int64) ([]uint64, int) {
+	if desiredOverlap > n {
+		desiredOverlap = n
+	}
+	if desiredOverlap > len(serverSet) {
+		desiredOverlap = len(serverSet)
+	}
+
+	clientSet := make([]uint64, n)
+	copy(clientSet, serverSet[:desiredOverlap])
+
+	rng := rand.New(rand.NewSource(seed))
+	seen := make(map[uint64]bool, n)
+	for i := 0; i < desiredOverlap; i++ {
+		seen[clientSet[i]] = true
+	}
+
+	minNonServerValue := uint64(len(serverSet) + 1)
+	for i := desiredOverlap; i < n; i++ {
+		for {
+			candidate := rng.Uint64()
+			if candidate < minNonServerValue {
+				continue
+			}
+			if seen[candidate] {
+				continue
+			}
+			seen[candidate] = true
+			clientSet[i] = candidate
+			break
+		}
+	}
+
+	return clientSet, desiredOverlap
+}
+
 func main() {
 	if len(os.Args) < 3 {
 		log.Fatal("Usage: lepsi_bench <m> <n>")
@@ -229,14 +274,16 @@ func main() {
 	n, _ := strconv.Atoi(os.Args[2])
 	chunkSize := envInt("LEPSI_CHUNK_SIZE", 256)
 	workerCount := envInt("LEPSI_WORKERS", runtime.NumCPU())
+	clientMode := envString("CLIENT_MODE", "controlled")
+	clientSeed := int64(envInt("CLIENT_SEED", 20260515))
 	runID := fmt.Sprintf("lepsi_single_%s_m%d_n%d", time.Now().UTC().Format("20060102_150405"), m, n)
 
 	doneRSS := make(chan struct{})
 	peakRSS, peakHeap := startMemoryMonitor(doneRSS)
 	defer close(doneRSS)
 
-	log.Printf("LE-PSI single-node benchmark: run_id=%s m=%d n=%d mode=explicit_chunked chunk_size=%d workers=%d",
-		runID, m, n, chunkSize, workerCount)
+	log.Printf("LE-PSI single-node benchmark: run_id=%s m=%d n=%d mode=explicit_chunked chunk_size=%d workers=%d client_mode=%s",
+		runID, m, n, chunkSize, workerCount, clientMode)
 
 	// Generate server dataset: {1, 2, ..., m}
 	serverSet := make([]uint64, m)
@@ -268,8 +315,20 @@ func main() {
 	initTime := time.Since(initStart)
 	log.Printf("  Init done: %v", initTime)
 
-	clientSet, actualOverlap := buildBenchmarkClientSet(serverSet, ctx.TreeIndices, ctx.LEParams.Layers, n, overlap)
-	log.Printf("  Client set prepared: expected_intersection=%d, non-overlap leaves avoid occupied server leaves", actualOverlap)
+	nonOverlapAvoidsLeaves := false
+	var clientSet []uint64
+	var actualOverlap int
+	switch clientMode {
+	case "controlled":
+		clientSet, actualOverlap = buildBenchmarkClientSet(serverSet, ctx.TreeIndices, ctx.LEParams.Layers, n, overlap)
+		nonOverlapAvoidsLeaves = true
+		log.Printf("  Client set prepared: mode=controlled expected_intersection=%d, non-overlap leaves avoid occupied server leaves", actualOverlap)
+	case "random":
+		clientSet, actualOverlap = buildRandomClientSet(serverSet, n, overlap, clientSeed)
+		log.Printf("  Client set prepared: mode=random seed=%d expected_intersection=%d, non-overlap leaves are random", clientSeed, actualOverlap)
+	default:
+		log.Fatalf("unsupported CLIENT_MODE=%q; use controlled or random", clientMode)
+	}
 
 	// Phase 2: Client encrypt
 	log.Println("  Phase 2: Client encrypt...")
@@ -328,6 +387,9 @@ func main() {
 		"chunk_size":             detectStats.ChunkSize,
 		"worker_count":           detectStats.WorkerCount,
 		"chunks_processed":       detectStats.ChunksProcessed,
+		"client_mode":            clientMode,
+		"client_seed":            clientSeed,
+		"non_overlap_avoids_occupied_leaves": nonOverlapAvoidsLeaves,
 		"expected_intersection":  actualOverlap,
 		"matches_found":          len(Z),
 		"init_sec":               initTime.Seconds(),
@@ -347,6 +409,9 @@ func main() {
 	}
 
 	outFile := fmt.Sprintf("/tmp/lepsi_single_results/lepsi_m%d_n%d.json", m, n)
+	if clientMode != "controlled" {
+		outFile = fmt.Sprintf("/tmp/lepsi_single_results/lepsi_m%d_n%d_%s.json", m, n, clientMode)
+	}
 	f, err := os.Create(outFile)
 	if err != nil {
 		log.Fatal(err)
@@ -379,25 +444,31 @@ fi
 N="${N:-100}"
 LEPSI_CHUNK_SIZE="${LEPSI_CHUNK_SIZE:-256}"
 LEPSI_WORKERS="${LEPSI_WORKERS:-$CPU_COUNT}"
+CLIENT_MODE="${CLIENT_MODE:-controlled}"
+CLIENT_SEED="${CLIENT_SEED:-20260515}"
 
 for M in "${SIZES[@]}"; do
+  LOG_SUFFIX=""
+  if [[ "$CLIENT_MODE" != "controlled" ]]; then
+    LOG_SUFFIX="_${CLIENT_MODE}"
+  fi
   echo ""
   echo "╔══════════════════════════════════════════════════╗"
-  echo "║  LE-PSI chunked: m=$M, n=$N, chunk=$LEPSI_CHUNK_SIZE, workers=$LEPSI_WORKERS"
+  echo "║  LE-PSI chunked: m=$M, n=$N, chunk=$LEPSI_CHUNK_SIZE, workers=$LEPSI_WORKERS, client_mode=$CLIENT_MODE"
   echo "╚══════════════════════════════════════════════════╝"
 
   # Run and capture both stdout/stderr to a run log
-  LEPSI_CHUNK_SIZE="$LEPSI_CHUNK_SIZE" LEPSI_WORKERS="$LEPSI_WORKERS" \
-    /usr/bin/time "${TIME_ARGS[@]}" /tmp/lepsi_bench "$M" "$N" > "$RESULTS_DIR/run_m${M}.log" 2>&1 || {
-    echo "  ❌ Run failed for m=$M. Check $RESULTS_DIR/run_m${M}.log"
+  LEPSI_CHUNK_SIZE="$LEPSI_CHUNK_SIZE" LEPSI_WORKERS="$LEPSI_WORKERS" CLIENT_MODE="$CLIENT_MODE" CLIENT_SEED="$CLIENT_SEED" \
+    /usr/bin/time "${TIME_ARGS[@]}" /tmp/lepsi_bench "$M" "$N" > "$RESULTS_DIR/run_m${M}${LOG_SUFFIX}.log" 2>&1 || {
+    echo "  ❌ Run failed for m=$M. Check $RESULTS_DIR/run_m${M}${LOG_SUFFIX}.log"
     continue
   }
 
-  RSS=$(awk 'tolower($0) ~ /maximum resident/ { for (i=1; i<=NF; i++) if ($i ~ /^[0-9]+$/) value=$i } END { print value+0 }' "$RESULTS_DIR/run_m${M}.log" 2>/dev/null || echo "0")
+  RSS=$(awk 'tolower($0) ~ /maximum resident/ { for (i=1; i<=NF; i++) if ($i ~ /^[0-9]+$/) value=$i } END { print value+0 }' "$RESULTS_DIR/run_m${M}${LOG_SUFFIX}.log" 2>/dev/null || echo "0")
   echo "  Peak RSS: $((RSS/RSS_DIVISOR)) MB"
 
   # Print the last few lines of the run log (results summary)
-  tail -n 5 "$RESULTS_DIR/run_m${M}.log" | grep -v "Maximum resident"
+  tail -n 5 "$RESULTS_DIR/run_m${M}${LOG_SUFFIX}.log" | grep -v "Maximum resident"
 done
 
 echo ""

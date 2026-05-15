@@ -6,7 +6,7 @@ Purpose: this is a technical support document for manuscript writing. It is not 
 
 Repository state used for this dossier:
 
-- Working branch for cleanup: `codex/paper-artifact-cleanup`
+- Current GitHub-facing branch after cleanup: `main`
 - Final optimized branch before cleanup: `optimizations-v2`
 - Latest optimization commit on that branch: `bae5e17`
 - Single-node result commit recorded in JSON: `cea7d83`
@@ -53,6 +53,24 @@ Repository state used for this dossier:
 
 7. Suggested technical title:
    - "Laconic Private Set Intersection from Ring-LWE: Implementation and Empirical Evaluation"
+
+8. Remaining caveats before manuscript rewrite:
+   - The final single-node evidence uses a controlled client generator. Its
+     non-overlap items avoid occupied server leaves, so it understates random
+     target-leaf collisions by design. Use it as a controlled audit of the
+     optimized path. Current code also supports `CLIENT_MODE=random` for a
+     follow-up random-client run; see `scalability_tests/bench_10k.go:123-157`
+     and `comparative_baselines/lepsi_single_node/benchmark.sh:233-267`.
+   - Distributed matches are not directly comparable to controlled
+     single-node matches. The distributed coordinator uses a seeded random
+     workload with 10% intended client overlap at
+     `distributed_gce/coordinator/main.go:282-296`; therefore the 10K
+     distributed result with `24` shard-level matches is not the same workload
+     as the 10-match controlled single-node run.
+   - Do not reuse older exact security estimates such as "140-bit classical /
+     70-bit quantum" unless the estimator is rerun with the actual code
+     parameters, especially `sigma=2^30`. The repository now frames the final
+     tables as reduced-parameter evaluation only.
 
 ## A. Final Single-Node GCE Result
 
@@ -122,6 +140,7 @@ Correctness:
 - False positives: `0` for the controlled benchmark generator.
 - False negatives: `0` for the controlled benchmark generator.
 - Important caveat: the single-node benchmark deliberately chooses non-overlap client items whose candidate leaves avoid occupied server leaves. This makes `actual_dec_calls` equal the intended overlap count. This is valid for proving the optimized path ran, but the paper should describe it as a controlled leaf-filtered benchmark.
+- Follow-up support: current benchmark code supports `CLIENT_MODE=random` and `CLIENT_SEED=<int>` for random non-overlap client items. This mode is implemented in `scalability_tests/bench_10k.go:123-157` and selected at `scalability_tests/bench_10k.go:164-220`; the GCE script mirrors it in `comparative_baselines/lepsi_single_node/benchmark.sh:233-267` and `comparative_baselines/lepsi_single_node/benchmark.sh:277-330`. It was added after the final 2026-05-15 evidence bundle, so random-client results should be rerun on the same VM before citing.
 
 Single-node final table:
 
@@ -139,9 +158,10 @@ The final single-node benchmark uses explicit chunk-batched witness processing.
 
 Evidence:
 
-- Benchmark entry point: `scalability_tests/bench_10k.go:110-232`.
-- It calls chunked server initialization at `scalability_tests/bench_10k.go:146-153`.
-- It calls chunked intersection at `scalability_tests/bench_10k.go:167-178`.
+- Benchmark entry point: `scalability_tests/bench_10k.go:159-300`.
+- It calls chunked server initialization at `scalability_tests/bench_10k.go:198-206`.
+- It selects the controlled or random client generator at `scalability_tests/bench_10k.go:208-220`.
+- It calls chunked intersection at `scalability_tests/bench_10k.go:231-243`.
 - The chunk loop is in `pkg/psi/server.go:786-840`.
 - Witnesses are generated inside the chunk worker at `pkg/psi/server.go:813-816`.
 - Chunk-local state is released after `wg.Wait()`, and `runtime.GC()` is optionally called at `pkg/psi/server.go:835-839`.
@@ -214,6 +234,16 @@ Final distributed results:
 | 8000 | 100 | 7 | 237.135 | 40.517 | 126.434 | 237163 | 18 |
 | 10000 | 100 | 7 | 234.835 | 48.335 | 122.164 | 234865 | 24 |
 
+Important workload caveat:
+
+- The distributed client set is not generated the same way as the controlled
+  single-node client set. In the coordinator, the first 10% of client items are
+  copied from the server and the remaining items are random:
+  `distributed_gce/coordinator/main.go:282-296`.
+- Therefore, distributed `matches=24` at 10K should be described as the result
+  of that distributed random workload, not as a mismatch with the controlled
+  single-node `matches=10` workload.
+
 Coordinator log coverage:
 
 - Logs shard initialization start and success: `distributed_gce/coordinator/main.go:300-310`.
@@ -270,9 +300,9 @@ Final sigma:
 Final paper/security statement:
 
 - `D=256` is a reduced-parameter evaluation mode.
-- `D=2048` is available through `PSI_SECURITY_LEVEL=128` in `pkg/psi/parameters.go:55-63`.
+- `D=2048` is available through the legacy mode selector `PSI_SECURITY_LEVEL=128` in `pkg/psi/parameters.go:57-64`.
 - No final `D=2048` GCE benchmark was collected for the 1K-10K tables.
-- Any Lattice Estimator statement must match `D`, `q`, `qBits`, and `sigma=2^30` actually used, or be clearly separated as a secure-parameter projection.
+- Any Lattice Estimator statement must match `D`, `q`, `qBits`, `sigma=2^30`, and the error distribution actually used. Do not reuse older exact estimates such as "140-bit classical / 70-bit quantum" unless the estimator is rerun with these exact parameters.
 
 Hash length:
 

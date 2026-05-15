@@ -24,7 +24,7 @@ d256_int_ns     = [2436813118,  9972011884,  60452460216, 1113719388707, 6397059
 d256_peak_ram   = [125,   584,   584,    4510.5,  None,     18473.4]  # MB
 
 # ================================================================
-# REAL HPC DATA — D=2048 (128-bit PQ Security, 3 tests passed)
+# REAL HPC DATA — D=2048 larger-D mode (3 tests passed)
 # ================================================================
 d2048_sizes     = [50, 100, 250]
 d2048_peak_ram  = [4500.6, 4500.7, 4500.8]
@@ -52,7 +52,7 @@ ax.plot(d256_sizes, [t/60 for t in d256_total_sec],
         label='D=256')
 ax.plot(d2048_sizes, [t/60 for t in d2048_total_sec],
         '-s', color='#e74c3c', lw=2, ms=7, mfc='white', mew=1.5,
-        label='D=2048 (128-bit PQ)')
+        label='D=2048 larger-D')
 ax.set_xlabel('Dataset Size')
 ax.set_ylabel('Time (minutes)')
 ax.set_xscale('log')

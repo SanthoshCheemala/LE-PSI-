@@ -63,6 +63,19 @@ gcloud compute ssh psi-compare --zone=us-east1-b --command="
 "
 ```
 
+The final 2026-05-15 LE-PSI evidence uses the default controlled client
+generator. For a follow-up random-client stress run that includes natural
+target-leaf collisions, set `CLIENT_MODE=random`:
+
+```bash
+gcloud compute ssh psi-compare --zone=us-east1-b --command="
+  export PATH=\$PATH:/usr/local/go/bin
+  cd /tmp/lepsi-repo
+  CLIENT_MODE=random CLIENT_SEED=20260515 LEPSI_SIZES='10000' \
+    bash comparative_baselines/lepsi_single_node/benchmark.sh
+"
+```
+
 ### 5. Collect Results
 
 ```bash
@@ -102,6 +115,8 @@ like:
 
 Use phase labels carefully. APSI reports online time; LE-PSI reports server
 initialization, client encryption, and intersection separately.
+Also label LE-PSI single-node results by `client_mode`; controlled and random
+client workloads should not be mixed in one row without explanation.
 
 | m | Protocol | Machine | Reported time field | Peak memory field | Communication |
 |---:|---|---|---|---|---|

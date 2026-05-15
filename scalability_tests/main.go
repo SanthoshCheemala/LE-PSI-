@@ -160,7 +160,7 @@ type Transaction struct {
 
 func main() {
 	// D=256 MODE: Full scalability run up to 10K
-	// Uncomment next line to switch back to 128-bit (D=2048):
+	// Uncomment next line to switch back to D=2048 mode:
 	// os.Setenv("PSI_SECURITY_LEVEL", "128")
 
 	fmt.Println("=================================================")
@@ -168,7 +168,7 @@ func main() {
 	fmt.Println("  Testing PSI on Large Datasets")
 	securityLevel := os.Getenv("PSI_SECURITY_LEVEL")
 	if securityLevel == "128" {
-		fmt.Println("  🔒 SECURITY MODE: 128-bit Post-Quantum (D=2048)")
+		fmt.Println("  🔒 SECURITY MODE: D=2048 larger-D mode")
 	} else {
 		fmt.Println("  ⚡ SECURITY MODE: Fast Evaluation (D=256)")
 	}
@@ -345,7 +345,7 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	X_size := len(serverHashes)
 
 	// =====================================================================
-	// BATCHED WITNESS GENERATION (replaces psi.ServerInitialize for 128-bit)
+	// BATCHED WITNESS GENERATION (replaces psi.ServerInitialize for D=2048 mode)
 	// Instead of generating ALL witnesses at once (280MB × N = OOM),
 	// we build the tree once and generate witnesses in chunks of 250.
 	// =====================================================================
@@ -425,9 +425,9 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	}
 
 	// Extract crypto params for the report
-	secLabel := fmt.Sprintf("64-bit Security (D=%d)", leParams.D)
+	secLabel := fmt.Sprintf("Fast Evaluation (D=%d)", leParams.D)
 	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
-		secLabel = fmt.Sprintf("128-bit Post-Quantum (D=%d)", leParams.D)
+		secLabel = fmt.Sprintf("D=%d larger-D mode", leParams.D)
 	}
 	result.CryptographicParams = CryptoParams{
 		RingDimension:  leParams.D,
@@ -629,7 +629,7 @@ func extractCryptoParams(ctx *psi.ServerInitContext) CryptoParams {
 	le := ctx.LEParams
 	secMode := "Fast Evaluation (D=256)"
 	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
-		secMode = "128-bit Post-Quantum (D=2048)"
+		secMode = "D=2048 larger-D mode"
 	}
 	layers := 0
 	numSlots := 0

@@ -3,9 +3,10 @@
 LE-PSI is a Go implementation and evaluation artifact for DKLLMR-style
 laconic private set intersection using Ring-LWE-based laconic encryption.
 
-This repository is an implementation and benchmarking artifact. The default
-benchmark parameters are chosen for fast evaluation; they are not a claim of
-production 128-bit post-quantum security.
+This repository is an implementation and benchmarking artifact. The final
+reported parameters are chosen for reduced-parameter evaluation; they should not
+be used for exact bit-security claims without a fresh estimator run matching the
+code's `q`, `sigma`, and error distribution.
 
 ## What This Repository Contains
 
@@ -20,8 +21,10 @@ production 128-bit post-quantum security.
 ## Important Security and Leakage Notes
 
 The final reported runs use `D=256`, which is a reduced-parameter evaluation
-mode. The code supports `PSI_SECURITY_LEVEL=128` to select `D=2048`, but the
-final 1K-10K GCE results in this artifact were not collected at `D=2048`.
+mode. The legacy environment variable `PSI_SECURITY_LEVEL=128` selects
+`D=2048`, but the final 1K-10K GCE results in this artifact were not collected
+at `D=2048`, and no exact classical/quantum bit-security estimate is claimed for
+the final tables.
 
 The optimized implementation uses leaf-indexed filtering. Each ciphertext
 contains a visible target leaf so the server can avoid all-pairs decryption.
@@ -38,7 +41,7 @@ first 64 bits.
 | Parameter | Value |
 |---|---:|
 | Ring dimension `D` | 256 |
-| Secure-mode option | `PSI_SECURITY_LEVEL=128` selects `D=2048` |
+| Larger-D option | `PSI_SECURITY_LEVEL=128` selects `D=2048` |
 | Modulus `q` | 180143985094819841 |
 | `qBits` | 58 |
 | Matrix dimension `N` | 4 |
@@ -88,6 +91,9 @@ Mode: `explicit_chunked`, `chunk_size=256`, `leaf_indexed_filtering=true`.
 The single-node benchmark uses a controlled client generator whose non-overlap
 items avoid occupied server leaves. This is useful for auditing the
 leaf-filtered optimized path, but should be described as a controlled benchmark.
+For stress-testing random target-leaf collisions, the benchmark scripts also
+support `CLIENT_MODE=random`; that mode was added as a follow-up and is not part
+of the final 2026-05-15 evidence tables unless rerun on the same GCE VM.
 
 ## Distributed LE-PSI Results
 
@@ -105,6 +111,12 @@ Hardware: one coordinator plus seven `e2-highmem-4` shard VMs across
 The distributed path uses the same explicit chunked intersection logic on each
 shard. For the 10K distributed run, shard logs show 87 actual targeted
 decryptions versus 2,000,000 possible all-pairs decryptions.
+
+The distributed client generator is not identical to the controlled single-node
+generator. It uses a seeded random server/client workload with 10% intended
+client overlap, so the 10K distributed result reporting 24 shard-level matches
+should not be compared as the same workload as the single-node controlled
+10-match run.
 
 The distributed coordinator JSON field `peak_ram_per_shard_mb` is not a
 reliable RAM measurement in the final evidence bundle and should not be cited.
@@ -128,6 +140,13 @@ Run package tests:
 
 ```bash
 go test ./pkg/LE ./pkg/matrix ./pkg/psi
+```
+
+Run the optional random-client single-node benchmark mode:
+
+```bash
+CLIENT_MODE=random CLIENT_SEED=20260515 LEPSI_SIZES="10000" \
+  bash comparative_baselines/lepsi_single_node/benchmark.sh
 ```
 
 Regenerate support figures:

@@ -29,8 +29,8 @@
 //
 // Security:
 //   - Based on Ring Learning With Errors (Ring-LWE) hardness assumption
-//   - 128-bit security level configurable via PSI_SECURITY_LEVEL=128 (D=2048)
-//   - Server learns only the intersection (privacy-preserving)
+//   - D=2048 larger-D mode configurable via PSI_SECURITY_LEVEL=128
+//   - Optimized leaf-indexed mode exposes target leaf indices as documented
 //   - Client reveals nothing about non-matching elements
 //
 // Performance:
@@ -196,7 +196,7 @@ func CalculateOptimalWorkers(datasetSize int) int {
 
 	totalCores := runtime.NumCPU()
 
-	// Detect 128-bit security mode and adjust memory estimates.
+	// Detect D=2048 mode and adjust memory estimates.
 	// At D=256, each record uses ~1 MB in the single-node benchmark path.
 	// At D=2048, it uses substantially more RAM, so keep the conservative cap.
 	// Also, on HPC systems with cgroup limits, Go's memStats.Sys reports the
@@ -207,7 +207,7 @@ func CalculateOptimalWorkers(datasetSize int) int {
 
 	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
 		memPerRecord_GB = 0.280 // 280 MB per record at D=2048
-		maxWorkers = 4          // Hard cap for 128-bit mode on memory-constrained HPCs
+		maxWorkers = 4          // Hard cap for D=2048 mode on memory-constrained HPCs
 	}
 
 	const (
