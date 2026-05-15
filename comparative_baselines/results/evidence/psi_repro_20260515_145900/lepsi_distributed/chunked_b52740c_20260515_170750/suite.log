@@ -1,0 +1,49 @@
+remote chunked distributed suite
+timestamp=2026-05-15T17:10:18Z
+run_label=b52740c_chunked
+sizes=1000 2000 4000 8000 10000
+n=100 k=7
+shard_urls=http://10.142.0.25:8081,http://10.142.0.26:8081,http://10.142.0.23:8081,http://10.142.0.22:8081,http://10.142.0.27:8081,http://10.142.0.28:8081,http://10.142.0.29:8081
+workdir=/tmp/lepsi result_root=/tmp/lepsi_remote_chunked_results/chunked_b52740c_20260515_170750
+
+=== m=1000 n=100 K=7 run_id=20260515_171018_m1000_n100_K7_b52740c_chunked ===
+DONE m=1000 wall_ms=158133
+2026/05/15 17:12:56 [coord] RESULT: m=1000 n=100 K=7
+2026/05/15 17:12:56 [coord]   Total  : 2.64 min
+2026/05/15 17:12:56 [coord]   Init   : 0.10 min
+2026/05/15 17:12:56 [coord]   Intersect: 1.63 min
+2026/05/15 17:12:56 [coord]   Matches: 16
+
+=== m=2000 n=100 K=7 run_id=20260515_171256_m2000_n100_K7_b52740c_chunked ===
+DONE m=2000 wall_ms=164103
+2026/05/15 17:15:40 [coord] RESULT: m=2000 n=100 K=7
+2026/05/15 17:15:40 [coord]   Total  : 2.73 min
+2026/05/15 17:15:40 [coord]   Init   : 0.18 min
+2026/05/15 17:15:40 [coord]   Intersect: 1.72 min
+2026/05/15 17:15:40 [coord]   Matches: 18
+
+=== m=4000 n=100 K=7 run_id=20260515_171540_m4000_n100_K7_b52740c_chunked ===
+DONE m=4000 wall_ms=187550
+2026/05/15 17:18:47 [coord] RESULT: m=4000 n=100 K=7
+2026/05/15 17:18:47 [coord]   Total  : 3.13 min
+2026/05/15 17:18:47 [coord]   Init   : 0.34 min
+2026/05/15 17:18:47 [coord]   Intersect: 1.86 min
+2026/05/15 17:18:47 [coord]   Matches: 20
+
+=== m=8000 n=100 K=7 run_id=20260515_171848_m8000_n100_K7_b52740c_chunked ===
+DONE m=8000 wall_ms=237163
+2026/05/15 17:22:45 [coord] RESULT: m=8000 n=100 K=7
+2026/05/15 17:22:45 [coord]   Total  : 3.95 min
+2026/05/15 17:22:45 [coord]   Init   : 0.68 min
+2026/05/15 17:22:45 [coord]   Intersect: 2.11 min
+2026/05/15 17:22:45 [coord]   Matches: 18
+
+=== m=10000 n=100 K=7 run_id=20260515_172245_m10000_n100_K7_b52740c_chunked ===
+DONE m=10000 wall_ms=234865
+2026/05/15 17:26:40 [coord] RESULT: m=10000 n=100 K=7
+2026/05/15 17:26:40 [coord]   Total  : 3.91 min
+2026/05/15 17:26:40 [coord]   Init   : 0.81 min
+2026/05/15 17:26:40 [coord]   Intersect: 2.04 min
+2026/05/15 17:26:40 [coord]   Matches: 24
+
+all remote chunked runs finished at 2026-05-15T17:26:40Z

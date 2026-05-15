@@ -10,6 +10,12 @@ import (
 	"github.com/tuneinsight/lattigo/v3/ring"
 )
 
+type TreeStore interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
 /*
 TreeHash is a 2to1 hash function
 inputs: vectors of ring elements v1,v2 in normal(not NTT) form
@@ -40,7 +46,7 @@ output: the function has no output.
 
 	it updates the tree layer by layer
 */
-func Upd(db *sql.DB, row uint64, layer int, vec *matrix.Vector, le *LE) {
+func Upd(db TreeStore, row uint64, layer int, vec *matrix.Vector, le *LE) {
 	WriteToDB(db, layer, row, vec)
 	TreeUpd(le, db, layer, row, vec)
 	for i := layer - 1; i > 0; i-- {
@@ -63,7 +69,7 @@ outputs:
 
 	the function has no output
 */
-func TreeUpd(le *LE, db *sql.DB, layer int, row uint64, vec *matrix.Vector) {
+func TreeUpd(le *LE, db TreeStore, layer int, row uint64, vec *matrix.Vector) {
 	b := row & 1
 	var sibling uint64
 	if b == 0 {
@@ -280,7 +286,7 @@ Outputs:
 	a co-path from id to the root of the tree
 	a co-path is a path where all the siblings of each node in the path-node are also included in it.
 */
-func WitGen(db *sql.DB, le *LE, id uint64) ([]*matrix.Vector, []*matrix.Vector) {
+func WitGen(db TreeStore, le *LE, id uint64) ([]*matrix.Vector, []*matrix.Vector) {
 	vecLeft := make([]*matrix.Vector, le.Layers)
 	vecRight := make([]*matrix.Vector, le.Layers)
 	//TODO we are not using WaitGroups here, as there is no need for the witnesses to be generated in a specific order. However all the processes must be finished before performing the decryption.
@@ -299,13 +305,13 @@ func WitGen(db *sql.DB, le *LE, id uint64) ([]*matrix.Vector, []*matrix.Vector) 
 	wg.Wait()
 	return vecLeft, vecRight
 }
-func WitGenParLeft(le *LE, db *sql.DB, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
+func WitGenParLeft(le *LE, db TreeStore, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
 	defer wg.Done()
 	vecLeft[i-1] = ReadFromDB(db, i, ind, le).GInvMNTT(le.R)
 	vecRight[i-1] = ReadFromDB(db, i, ind+1, le).GInvMNTT(le.R)
 }
 
-func WitGenParRight(le *LE, db *sql.DB, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
+func WitGenParRight(le *LE, db TreeStore, i int, ind uint64, vecLeft, vecRight []*matrix.Vector, wg *sync.WaitGroup) {
 	defer wg.Done()
 	vecLeft[i-1] = ReadFromDB(db, i, ind-1, le).GInvMNTT(le.R)
 	vecRight[i-1] = ReadFromDB(db, i, ind, le).GInvMNTT(le.R)
@@ -318,7 +324,7 @@ CheckNode This function checks if a node is already filled in the tree or not.
 If it does not find any node, it returns the default value from the public parameters
 TODO complete the comments
 */
-func CheckNode(db *sql.DB, layer int, rowid uint64) bool {
+func CheckNode(db TreeStore, layer int, rowid uint64) bool {
 	query := "SELECT y_def FROM tree_" + strconv.Itoa(layer) + " WHERE rowid = ?"
 	row := db.QueryRow(query, rowid)
 	var exists bool
@@ -330,30 +336,15 @@ func CheckNode(db *sql.DB, layer int, rowid uint64) bool {
 ReadFromDB This function takes a location of a node in the tree as input and outputs the corresponding node
 TODO complete the comments
 */
-func ReadFromDB(db *sql.DB, layer int, row uint64, le *LE) (vec *matrix.Vector) {
+func ReadFromDB(db TreeStore, layer int, row uint64, le *LE) (vec *matrix.Vector) {
 
-	if CheckNode(db, layer, row) == false {
-		return le.YDefault
-	}
-	query1 := "SELECT p1 FROM tree_" + strconv.Itoa(layer) + " WHERE rowid = ?"
-	query2 := "SELECT p2 FROM tree_" + strconv.Itoa(layer) + " WHERE rowid = ?"
-	query3 := "SELECT p3 FROM tree_" + strconv.Itoa(layer) + " WHERE rowid = ?"
-	query4 := "SELECT p4 FROM tree_" + strconv.Itoa(layer) + " WHERE rowid = ?"
-	query5 := "SELECT y_def FROM tree_" + strconv.Itoa(layer) + " WHERE rowid = ?"
-
-	row1 := db.QueryRow(query1, row)
-	row2 := db.QueryRow(query2, row)
-	row3 := db.QueryRow(query3, row)
-	row4 := db.QueryRow(query4, row)
-	row5 := db.QueryRow(query5, row)
-
+	query := "SELECT p1, p2, p3, p4, y_def FROM tree_" + strconv.Itoa(layer) + " WHERE rowid = ?"
 	var p1B, p2B, p3B, p4B []byte
 	var yDef bool
-	row1.Scan(&p1B)
-	row2.Scan(&p2B)
-	row3.Scan(&p3B)
-	row4.Scan(&p4B)
-	row5.Scan(&yDef)
+	err := db.QueryRow(query, row).Scan(&p1B, &p2B, &p3B, &p4B, &yDef)
+	if err != nil || !yDef {
+		return le.YDefault
+	}
 
 	vecB := make([][]byte, 4)
 	vecB[0] = p1B
@@ -371,7 +362,7 @@ func ReadFromDB(db *sql.DB, layer int, row uint64, le *LE) (vec *matrix.Vector) 
 WriteToDB this function takes a vertex as input and encodes it to bytes arrays and writes it to the corresponding location of the database
 TODO complete the comment
 */
-func WriteToDB(db *sql.DB, layer int, row uint64, vec *matrix.Vector) {
+func WriteToDB(db TreeStore, layer int, row uint64, vec *matrix.Vector) {
 	vecB := vec.Encode()
 
 	var query1 string
@@ -412,14 +403,14 @@ func NewMemoryTree(depth int) *MemoryTree {
 }
 
 // LoadTreeFromDB loads the entire tree from SQLite into MemoryTree
-func LoadTreeFromDB(db *sql.DB, depth int, le *LE) (*MemoryTree, error) {
+func LoadTreeFromDB(db TreeStore, depth int, le *LE) (*MemoryTree, error) {
 	mt := NewMemoryTree(depth)
-	
+
 	// Iterate through all layers
 	for layer := 0; layer <= depth; layer++ {
 		// Prepare query to read all nodes in this layer
 		tableName := "tree_" + strconv.Itoa(layer)
-		
+
 		// Check if table exists (some layers might be empty if not initialized)
 		// But usually they exist. We'll try to query.
 		rows, err := db.Query("SELECT rowid, p1, p2, p3, p4 FROM " + tableName)
@@ -427,24 +418,24 @@ func LoadTreeFromDB(db *sql.DB, depth int, le *LE) (*MemoryTree, error) {
 			// If table doesn't exist or error, just continue (might be empty layer)
 			continue
 		}
-		defer rows.Close()
-		
 		for rows.Next() {
 			var rowID uint64
 			var p1B, p2B, p3B, p4B []byte
-			
+
 			if err := rows.Scan(&rowID, &p1B, &p2B, &p3B, &p4B); err != nil {
+				rows.Close()
 				return nil, err
 			}
-			
+
 			vecB := [][]byte{p1B, p2B, p3B, p4B}
 			vec := matrix.NewVector(4, le.R)
 			vec.Decode(vecB)
-			
+
 			mt.Layers[layer][rowID] = vec
 		}
+		rows.Close()
 	}
-	
+
 	return mt, nil
 }
 
@@ -453,11 +444,11 @@ func ReadFromMemory(mt *MemoryTree, layer int, row uint64, le *LE) *matrix.Vecto
 	if layer >= len(mt.Layers) {
 		return le.YDefault
 	}
-	
+
 	if vec, ok := mt.Layers[layer][row]; ok {
 		return vec
 	}
-	
+
 	return le.YDefault
 }
 
@@ -466,7 +457,7 @@ func WitGenMemory(mt *MemoryTree, le *LE, id uint64) ([]*matrix.Vector, []*matri
 	vecLeft := make([]*matrix.Vector, le.Layers)
 	vecRight := make([]*matrix.Vector, le.Layers)
 	wg := sync.WaitGroup{}
-	
+
 	for i := le.Layers; i > 0; i-- {
 		idInd := id >> (le.Layers - i)
 		b := (id >> (le.Layers - i)) & 1

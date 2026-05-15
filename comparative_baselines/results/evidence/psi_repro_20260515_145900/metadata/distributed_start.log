@@ -1,0 +1,65 @@
+starting lepsi-coord
+starting lepsi-shard-0
+starting lepsi-shard-1
+starting lepsi-shard-2
+starting lepsi-shard-3
+starting lepsi-shard-4
+starting lepsi-shard-5
+starting lepsi-shard-6
+Starting instance(s) lepsi-shard-6...
+Starting instance(s) lepsi-shard-0...
+Starting instance(s) lepsi-shard-5...
+Starting instance(s) lepsi-shard-1...
+Starting instance(s) lepsi-shard-3...
+Starting instance(s) lepsi-shard-2...
+Starting instance(s) lepsi-coord...
+Starting instance(s) lepsi-shard-4...
+.............................failed.
+ERROR: (gcloud.compute.instances.start)  - Quota 'CPUS_ALL_REGIONS' exceeded.  Limit: 32.0 globally.
+	metric name = compute.googleapis.com/cpus_all_regions
+	limit name = CPUS-ALL-REGIONS-per-project
+	limit = 32.0
+	dimensions = global: global
+Try your request in another zone, or view documentation on how to increase quotas: https://cloud.google.com/compute/quotas.
+
+.................................failed.
+ERROR: (gcloud.compute.instances.start)  - Quota 'CPUS_ALL_REGIONS' exceeded.  Limit: 32.0 globally.
+	metric name = compute.googleapis.com/cpus_all_regions
+	limit name = CPUS-ALL-REGIONS-per-project
+	limit = 32.0
+	dimensions = global: global
+Try your request in another zone, or view documentation on how to increase quotas: https://cloud.google.com/compute/quotas.
+
+......................................done.
+.......................................done.
+........................................done.
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-b/instances/lepsi-shard-6].
+Instance internal IP is 10.142.0.18
+Instance external IP is 35.231.144.112
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-b/instances/lepsi-shard-1].
+Instance internal IP is 10.142.0.15
+Instance external IP is 34.74.7.38
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-b/instances/lepsi-coord].
+Instance internal IP is 10.142.0.12
+Instance external IP is 34.24.151.124
+...................................................done.
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-b/instances/lepsi-shard-0].
+Instance internal IP is 10.142.0.13
+Instance external IP is 34.74.112.61
+......................................................done.
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-b/instances/lepsi-shard-4].
+Instance internal IP is 10.142.0.16
+Instance external IP is 34.138.41.101
+........................................................................done.
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-b/instances/lepsi-shard-5].
+Instance internal IP is 10.142.0.19
+Instance external IP is 34.73.50.103
+NAME           ZONE        MACHINE_TYPE                          STATUS      ROLE         SHARD_ID
+lepsi-coord    us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     coordinator
+lepsi-shard-0  us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        0
+lepsi-shard-1  us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        1
+lepsi-shard-2  us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        2
+lepsi-shard-3  us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        3
+lepsi-shard-4  us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        4
+lepsi-shard-5  us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        5
+lepsi-shard-6  us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        6

@@ -1,0 +1,32 @@
+[deploy] Getting VM list...
+
+[deploy] Coordinator: lepsi-coord
+  [lepsi-coord] Uploading...
+  [lepsi-coord] Building lepsi_coord...
+  [lepsi-coord] ✓ Done
+
+[deploy] Shards:
+  [lepsi-shard-0] Uploading...
+  [lepsi-shard-0] Building lepsi_shard...
+  [lepsi-shard-0] ✓ Done
+  [lepsi-shard-1] Uploading...
+  [lepsi-shard-1] Building lepsi_shard...
+  [lepsi-shard-1] ✓ Done
+  [lepsi-shard-2-rerun] Uploading...
+  [lepsi-shard-2-rerun] Building lepsi_shard...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+Connection to 34.24.87.216 closed by remote host.
+
+Recommendation: To check for possible causes of SSH connectivity issues and get
+recommendations, rerun the ssh command with the --troubleshoot option.
+
+gcloud compute ssh lepsi-shard-2-rerun --project=lepsi-distributed-493617 --zone=us-east1-c --troubleshoot
+
+Or, to investigate an IAP tunneling issue:
+
+gcloud compute ssh lepsi-shard-2-rerun --project=lepsi-distributed-493617 --zone=us-east1-c --troubleshoot --tunnel-through-iap
+
+ERROR: (gcloud.compute.ssh) [/usr/bin/ssh] exited with return code [255].

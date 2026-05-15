@@ -4,11 +4,46 @@ import (
 	"math"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tuneinsight/lattigo/v3/ring"
 	"github.com/tuneinsight/lattigo/v3/utils"
 )
+
+// polyPool reduces GC pressure by reusing ring.Poly scratch buffers.
+// Key insight: Dec calls Mul in a tight loop, and each Mul allocates N
+// temporary polys. With leaf-indexed filtering we have ~200 Dec calls,
+// each with ~14 layers × 2 Mul calls × 4 inner iterations = ~11,200
+// poly allocations. The pool recycles these instead of letting GC collect.
+var polyPool = sync.Pool{
+	New: func() interface{} {
+		// Placeholder — will be replaced with correct-size poly on first use.
+		// We can't call r.NewPoly() here because we don't have the ring.
+		return (*ring.Poly)(nil)
+	},
+}
+
+var binaryRandSeed uint64
+
+// getPoolPoly gets a poly from the pool, or allocates a new one if the
+// pooled poly is nil or wrong size. Caller must putPoolPoly after use.
+func getPoolPoly(r *ring.Ring) *ring.Poly {
+	if p, ok := polyPool.Get().(*ring.Poly); ok && p != nil && len(p.Coeffs) > 0 && len(p.Coeffs[0]) == r.N {
+		// Zero out for reuse
+		for i := range p.Coeffs[0] {
+			p.Coeffs[0][i] = 0
+		}
+		return p
+	}
+	return r.NewPoly()
+}
+
+func putPoolPoly(p *ring.Poly) {
+	if p != nil {
+		polyPool.Put(p)
+	}
+}
 
 type Vector struct {
 	Elements []*ring.Poly
@@ -61,9 +96,10 @@ the coefficients of the polynomials in the vector are from {0,1}
 func NewRandomVecBinary(n int, r *ring.Ring) (vec *Vector) {
 	vec = new(Vector)
 	vec.Elements = make([]*ring.Poly, n)
+	seed := time.Now().UnixNano() + int64(atomic.AddUint64(&binaryRandSeed, 1))
+	rng := rand.New(rand.NewSource(seed))
 	for i := 0; i < n; i++ {
-		p := NewRandomPolyBinary(r)
-		vec.Elements[i] = p
+		vec.Elements[i] = newRandomPolyBinaryWithRand(r, rng)
 	}
 	return
 }
@@ -73,13 +109,17 @@ NewRandomPolyBinary generates a new polynomial with random coefficients from {0,
 TODO this function is not using any secure random number generator
 */
 func NewRandomPolyBinary(r *ring.Ring) (poly *ring.Poly) {
+	seed := time.Now().UnixNano() + int64(atomic.AddUint64(&binaryRandSeed, 1))
+	return newRandomPolyBinaryWithRand(r, rand.New(rand.NewSource(seed)))
+}
+
+func newRandomPolyBinaryWithRand(r *ring.Ring, rng *rand.Rand) (poly *ring.Poly) {
 	p := r.NewPoly()
 	pCoeffs0 := make([][]uint64, 1)
 	pCoeffs0[0] = make([]uint64, r.N)
 
-	rand.Seed(time.Now().UnixNano())
 	for j := 0; j < r.N; j++ {
-		pCoeffs0[0][j] = uint64(rand.Intn(2))
+		pCoeffs0[0][j] = uint64(rng.Intn(2))
 	}
 	p.SetCoefficients(pCoeffs0)
 	return p
@@ -126,11 +166,10 @@ func Mul(vec1, vec2 *Vector, r *ring.Ring) (p *ring.Poly) {
 	n := len(vec1.Elements)
 	p = r.NewPoly()
 	for i := 0; i < n; i++ {
-
-		//fmt.Println(p.Coeffs[0][0])
-		p1 := r.NewPoly()
+		p1 := getPoolPoly(r)
 		r.MulCoeffs(vec1.Elements[i], vec2.Elements[i], p1)
 		r.Add(p, p1, p)
+		putPoolPoly(p1)
 	}
 	return p
 }
@@ -206,10 +245,10 @@ func (vec1 *Vector) GInvMNTT(r *ring.Ring) (vec2 *Vector) {
 	n := len(vec1.Elements)
 	m := n * 58
 	vec2 = NewVector(m, r)
-	
+
 	// Pre-compute modulus minus 1 for faster access
 	modMinus1 := r.Modulus[0] - 1
-	
+
 	for i := 0; i < n; i++ {
 		// Ensure we don't exceed the actual coefficient array size
 		maxCoeffs := len(vec1.Elements[i].Coeffs[0])
@@ -217,12 +256,12 @@ func (vec1 *Vector) GInvMNTT(r *ring.Ring) (vec2 *Vector) {
 		if maxCoeffs < r.N {
 			maxJ = maxCoeffs
 		}
-		
+
 		for j := 0; j < maxJ; j++ {
 			// Optimized: Inline CoeffToBin with bitwise operations
 			// This avoids allocating a new slice for every coefficient
 			val := vec1.Elements[i].Coeffs[0][j]
-			
+
 			for k := 0; k < 58; k++ {
 				if i*58+k < len(vec2.Elements) { // Additional bounds check
 					// Check k-th bit directly using bitwise AND
@@ -237,20 +276,20 @@ func (vec1 *Vector) GInvMNTT(r *ring.Ring) (vec2 *Vector) {
 			}
 		}
 	}
-	
+
 	// Optimized: Parallel NTT transformation
 	var wg sync.WaitGroup
 	chunkSize := (m + 95) / 96 // Distribute across ~96 cores
 	if chunkSize < 1 {
 		chunkSize = 1
 	}
-	
+
 	for i := 0; i < m; i += chunkSize {
 		end := i + chunkSize
 		if end > m {
 			end = m
 		}
-		
+
 		wg.Add(1)
 		go func(start, stop int) {
 			defer wg.Done()
@@ -260,7 +299,7 @@ func (vec1 *Vector) GInvMNTT(r *ring.Ring) (vec2 *Vector) {
 		}(i, end)
 	}
 	wg.Wait()
-	
+
 	return vec2
 }
 

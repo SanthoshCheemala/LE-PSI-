@@ -1,0 +1,22 @@
+{
+  "protocol": "Microsoft APSI (BFV/SEAL)",
+  "source_url": "https://github.com/microsoft/APSI",
+  "source_commit": "b967a12",
+  "timestamp": "2026-05-15T15:05:48Z",
+  "machine": "psi-compare",
+  "machine_type": "e2-highmem-8",
+  "vcpus": 8,
+  "ram_gb": 62,
+  "server_dataset_size": 10000,
+  "client_dataset_size": 100,
+  "expected_intersection": 10,
+  "matches_found": 10,
+  "online_time_ms": 319,
+  "sender_peak_rss_kb": 0,
+  "receiver_peak_rss_kb": 19956,
+  "communication_r_to_s_kb": 1049,
+  "communication_s_to_r_kb": 35,
+  "communication_total_kb": 1085,
+  "threads": 8,
+  "params_file": "1M-256.json"
+}

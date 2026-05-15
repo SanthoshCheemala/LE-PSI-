@@ -1,0 +1,54 @@
+Starting instance(s) lepsi-shard-2...
+............................failed.
+ERROR: (gcloud.compute.instances.start) ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+
+Starting instance(s) lepsi-shard-3...
+.............................failed.
+ERROR: (gcloud.compute.instances.start) ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+

@@ -7,7 +7,7 @@ set -euo pipefail
 
 PROJECT="${PROJECT:-lepsi-distributed-493617}"
 ZONE="${ZONE:-us-east1-b}"
-MACHINE="${MACHINE:-n1-highmem-8}"
+MACHINE="${MACHINE:-e2-highmem-8}"
 VM_NAME="lepsi-singlenode"
 WORKDIR="/tmp/lepsi"
 PSI_SRC="/Users/santhoshcheemala/ALL_IN_ONE/Research_Implimentation/PSI"
@@ -17,7 +17,7 @@ echo "════════════════════════�
 echo "  Single-Node GCE Benchmark"
 echo "  Project : $PROJECT"
 echo "  Zone    : $ZONE"
-echo "  Machine : $MACHINE (8 vCPUs, 52 GB RAM)"
+echo "  Machine : $MACHINE (8 vCPUs, ~64 GB RAM)"
 echo "══════════════════════════════════════════════════"
 
 # ── Step 1: Create VM ────────────────────────────────────

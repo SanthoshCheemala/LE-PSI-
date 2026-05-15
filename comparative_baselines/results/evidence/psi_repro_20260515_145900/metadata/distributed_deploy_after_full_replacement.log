@@ -1,0 +1,60 @@
+[deploy] Getting VM list...
+
+[deploy] Coordinator: lepsi-coord-rerun
+  [lepsi-coord-rerun] Uploading...
+  [lepsi-coord-rerun] Building lepsi_coord...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+  [lepsi-coord-rerun] ✓ Done
+
+[deploy] Shards:
+  [lepsi-shard-0-rerun-d] Uploading...
+  [lepsi-shard-0-rerun-d] Building lepsi_shard...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+  [lepsi-shard-0-rerun-d] ✓ Done
+  [lepsi-shard-1-rerun-d] Uploading...
+  [lepsi-shard-1-rerun-d] Building lepsi_shard...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+  [lepsi-shard-1-rerun-d] ✓ Done
+  [lepsi-shard-2-rerun] Uploading...
+  [lepsi-shard-2-rerun] Building lepsi_shard...
+  [lepsi-shard-2-rerun] ✓ Done
+  [lepsi-shard-3-rerun] Uploading...
+  [lepsi-shard-3-rerun] Building lepsi_shard...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+  [lepsi-shard-3-rerun] ✓ Done
+  [lepsi-shard-4-rerun-d] Uploading...
+  [lepsi-shard-4-rerun-d] Building lepsi_shard...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+  [lepsi-shard-4-rerun-d] ✓ Done
+  [lepsi-shard-5-rerun-d] Uploading...
+  [lepsi-shard-5-rerun-d] Building lepsi_shard...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+  [lepsi-shard-5-rerun-d] ✓ Done
+  [lepsi-shard-6-rerun-d] Uploading...
+  [lepsi-shard-6-rerun-d] Building lepsi_shard...
+go: downloading github.com/mattn/go-sqlite3 v1.14.28
+go: downloading github.com/tuneinsight/lattigo/v3 v3.0.6
+go: downloading golang.org/x/crypto v0.45.0
+go: downloading golang.org/x/sys v0.38.0
+  [lepsi-shard-6-rerun-d] ✓ Done
+
+✓ All binaries deployed. Now run:
+  PROJECT=lepsi-distributed-493617 ZONE=us-east1-c K=7 bash distributed_gce/run_all_benchmarks.sh

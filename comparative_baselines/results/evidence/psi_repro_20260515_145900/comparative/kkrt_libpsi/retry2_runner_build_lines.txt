@@ -1,0 +1,2 @@
+27:python3 build.py --par="$THREADS" 2>&1 | tee "$RESULTS/build.log"
+35:  python3 build.py --par="$THREADS" 2>&1 | tee -a "$RESULTS/build.log"

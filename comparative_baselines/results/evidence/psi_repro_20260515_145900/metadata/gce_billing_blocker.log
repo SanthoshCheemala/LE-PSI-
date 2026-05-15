@@ -1,0 +1,3 @@
+WARNING: Some requests did not succeed.
+ - This API method requires billing to be enabled. Please enable billing on project #lepsi-distributed-493617 by visiting https://console.developers.google.com/billing/enable?project=lepsi-distributed-493617 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry.
+

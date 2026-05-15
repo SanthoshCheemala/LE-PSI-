@@ -1,159 +1,196 @@
 # LE-PSI: Laconic Private Set Intersection from Ring-LWE
 
-A practical implementation of Laconic Private Set Intersection based on Ring Learning With Errors (Ring-LWE), providing lattice-based security with **O(n log m) communication complexity**.
+LE-PSI is a Go implementation and evaluation artifact for DKLLMR-style
+laconic private set intersection using Ring-LWE-based laconic encryption.
 
-## Overview
+This repository is an implementation and benchmarking artifact. The default
+benchmark parameters are chosen for fast evaluation; they are not a claim of
+production 128-bit post-quantum security.
 
-Private Set Intersection (PSI) allows two parties to discover shared elements without revealing their full datasets. Classical PSI protocols rely on discrete-log or factoring assumptions vulnerable to quantum attacks. LE-PSI implements the laconic encryption framework of [DKLLMR23] using Ring-LWE, offering security under lattice hardness assumptions.
+## What This Repository Contains
 
-**Key properties:**
-- **Lattice-based security** — Ring-LWE hardness (conjectured post-quantum resistant)
-- **O(n log m) communication** — Sublinear in server dataset size `m`
-- **Leaf-indexed filtering** — Server performs only O(n) decryptions instead of O(n·m) by matching ciphertexts to their target Merkle leaves
-- **2-choice Cuckoo placement** — Reduces collisions vs naive modular hashing
-- **Distributed scaling** — Horizontal sharding across GCE VMs
+- Core laconic encryption and PSI implementation in `pkg/`.
+- Explicit chunk-batched single-node benchmark path.
+- Leaf-indexed filtering that reduces decryption attempts by routing
+  ciphertexts to matching Merkle leaves.
+- Distributed GCE coordinator/shard benchmark scripts.
+- Same-machine Microsoft APSI comparison artifacts.
+- Reproducibility evidence for the final 2026-05-15 runs.
 
-## Cryptographic Parameters
+## Important Security and Leakage Notes
 
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| Ring dimension (D) | 256 (fast) / 2048 (secure) | Set via `PSI_SECURITY_LEVEL=128` |
-| Modulus (Q) | 2^58 | 180143985094819841 |
-| Matrix dimension (N) | 4 | |
-| Gaussian width (σ) | 2^30 | Lattigo `SamplerGaussian` |
-| Tree expansion | 16× | `layers = ceil(log2(16·m))` |
-| Hash truncation | 64-bit | SHA-256 → uint64 leaf indices |
-| Lattigo version | v3 | `github.com/tuneinsight/lattigo/v3` |
+The final reported runs use `D=256`, which is a reduced-parameter evaluation
+mode. The code supports `PSI_SECURITY_LEVEL=128` to select `D=2048`, but the
+final 1K-10K GCE results in this artifact were not collected at `D=2048`.
 
-> **Security note:** D=256 is used for fast evaluation but does NOT provide 128-bit post-quantum security for the 58-bit modulus. Set `PSI_SECURITY_LEVEL=128` to enforce D=2048 for full security.
+The optimized implementation uses leaf-indexed filtering. Each ciphertext
+contains a visible target leaf so the server can avoid all-pairs decryption.
+This exposes candidate leaf/bucket indices as an implementation leakage term.
+The current client emits two ciphertexts per client item and does not shuffle
+those adjacent pairs.
 
-## Installation
+Input records are canonicalized and represented as `uint64` identifiers. The
+utility preprocessing path hashes serialized records with SHA-256 and uses the
+first 64 bits.
+
+## Parameters Used in Final Evaluation Runs
+
+| Parameter | Value |
+|---|---:|
+| Ring dimension `D` | 256 |
+| Secure-mode option | `PSI_SECURITY_LEVEL=128` selects `D=2048` |
+| Modulus `q` | 180143985094819841 |
+| `qBits` | 58 |
+| Matrix dimension `N` | 4 |
+| Gaussian width `sigma` | 1073741824 (`2^30`) |
+| Tree expansion | `ceil(log2(16*m))` layers |
+| Lattigo | `github.com/tuneinsight/lattigo/v3 v3.0.6` |
+| Identifier width | SHA-256-derived `uint64` |
+
+## Final Evidence Bundle
+
+The main reproducibility bundle is:
+
+`comparative_baselines/results/evidence/psi_repro_20260515_145900/`
+
+It contains:
+
+- `lepsi_single/`: LE-PSI single-node logs and JSON for 1K, 2K, 4K, 8K, and 10K.
+- `lepsi_distributed/chunked_b52740c_20260515_170750/`: distributed coordinator
+  logs, result JSONs, shard logs, and summaries.
+- `comparative/apsi/`: Microsoft APSI 10K same-machine baseline.
+- `comparative/kkrt_libpsi/STATUS.md`: attempted KKRT/libPSI build status.
+- `comparative/alos22_relic/STATUS.md`: attempted ALOS22/RELIC status.
+- `MANIFEST` and `SHA256SUMS`.
+
+Additional paper-support material is in:
+
+`docs/paper_artifact/`
+
+That folder contains an audit-style dossier answering code/result questions and
+selected source-data-backed figures. It is not manuscript text.
+
+## Single-Node LE-PSI Results
+
+Hardware: GCE `psi-compare`, `e2-highmem-8`, 8 vCPUs, about 62.8 GiB RAM,
+`us-east1-b`.
+
+Mode: `explicit_chunked`, `chunk_size=256`, `leaf_indexed_filtering=true`.
+
+| m | n | total_sec | init_sec | enc_sec | intersect_sec | peak_rss_mb | matches | actual_dec_calls |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1000 | 100 | 19.944 | 6.509 | 12.316 | 1.120 | 6141 | 10 | 10 |
+| 2000 | 100 | 24.908 | 11.520 | 10.775 | 2.612 | 7532 | 10 | 10 |
+| 4000 | 100 | 41.877 | 23.438 | 11.278 | 7.161 | 11007 | 10 | 10 |
+| 8000 | 100 | 74.639 | 46.274 | 9.409 | 18.956 | 17162 | 10 | 10 |
+| 10000 | 100 | 94.516 | 56.496 | 9.364 | 28.655 | 20764 | 10 | 10 |
+
+The single-node benchmark uses a controlled client generator whose non-overlap
+items avoid occupied server leaves. This is useful for auditing the
+leaf-filtered optimized path, but should be described as a controlled benchmark.
+
+## Distributed LE-PSI Results
+
+Hardware: one coordinator plus seven `e2-highmem-4` shard VMs across
+`us-east1-c` and `us-east1-d`.
+
+| m | n | shards | total_sec | init_sec | intersect_sec | matches |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1000 | 100 | 7 | 158.108 | 6.070 | 98.064 | 16 |
+| 2000 | 100 | 7 | 164.080 | 10.519 | 103.077 | 18 |
+| 4000 | 100 | 7 | 187.506 | 20.134 | 111.825 | 20 |
+| 8000 | 100 | 7 | 237.135 | 40.517 | 126.434 | 18 |
+| 10000 | 100 | 7 | 234.835 | 48.335 | 122.164 | 24 |
+
+The distributed path uses the same explicit chunked intersection logic on each
+shard. For the 10K distributed run, shard logs show 87 actual targeted
+decryptions versus 2,000,000 possible all-pairs decryptions.
+
+The distributed coordinator JSON field `peak_ram_per_shard_mb` is not a
+reliable RAM measurement in the final evidence bundle and should not be cited.
+
+## Microsoft APSI Baseline
+
+Microsoft APSI was run on the same `psi-compare` `e2-highmem-8` VM for the 10K
+comparison.
+
+| protocol | m | n | online_ms | receiver_peak_rss_kb | communication_total_kb | matches |
+|---|---:|---:|---:|---:|---:|---:|
+| Microsoft APSI | 10000 | 100 | 319 | 19956 | 1085 | 10 |
+
+APSI is an HE-based asymmetric PSI baseline, not a laconic PSI baseline. Compare
+phase definitions carefully: APSI online time is not the same metric as full
+LE-PSI setup plus query time.
+
+## Reproduce Core Checks
+
+Run package tests:
 
 ```bash
-git clone https://github.com/SanthoshCheemala/LE-PSI-.git
-cd LE-PSI-
-go mod download
+go test ./pkg/LE ./pkg/matrix ./pkg/psi
 ```
 
-Requires Go 1.21+ and CGO (for SQLite).
-
-## Quick Start
-
-```go
-package main
-
-import (
-    "log"
-    "github.com/SanthoshCheemala/LE-PSI/pkg/psi"
-)
-
-func main() {
-    serverSet := []uint64{100, 200, 300, 400, 500}
-    clientSet := []uint64{200, 400, 600}
-
-    ctx, err := psi.ServerInitialize(serverSet, "tree.db")
-    if err != nil { log.Fatal(err) }
-
-    pp, msg, le := psi.GetPublicParameters(ctx)
-    ciphertexts := psi.ClientEncrypt(clientSet, pp, msg, le)
-
-    matches, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
-    if err != nil { log.Fatal(err) }
-
-    log.Printf("Intersection: %v", matches) // [200 400]
-}
-```
-
-## How It Works
-
-1. **Server** initializes a Merkle tree over its dataset and generates LE public parameters
-2. **Client** encrypts each element toward its two Cuckoo leaf positions using Laconic Encryption
-3. **Server** uses leaf-indexed filtering to attempt decryption only on matching leaves
-4. **Server** returns the intersection elements
-
-### Leaf-Indexed Filtering (Optimization)
-
-The naive intersection requires O(m × 2n) decryption attempts. Since LE decryption only succeeds when the ciphertext's target leaf matches the server record's leaf, we build a `map[leaf] → []ciphertext_indices` and skip all non-matching pairs:
-
-```
-Before: 143 server records × 200 ciphertexts = 28,600 Dec calls
-After:  Leaf-indexed filtering → 17 targeted Dec calls (99.94% reduction)
-```
-
-This is protocol-safe: the target leaf is already encoded in the ciphertext structure (path through the Merkle tree).
-
-## Project Structure
-
-```
-LE-PSI/
-├── pkg/psi/              # Core PSI: client, server, intersection logic
-│   ├── server.go          # ServerInitialize, DetectIntersectionWithContext
-│   ├── client.go          # ClientEncrypt (2-choice Cuckoo)
-│   ├── helpers.go         # Cxtx struct, hash functions, CorrectnessCheck
-│   ├── parameters.go      # SetupLEParameters (Ring-LWE config)
-│   └── cxtx_serial.go     # JSON serialization for distributed mode
-├── pkg/LE/               # Laconic Encryption primitives
-│   ├── le.go              # LE.Setup (key generation)
-│   └── LE_upd.go          # Enc, Dec, TreeHash, WitGen, MemoryTree
-├── pkg/matrix/           # Ring-LWE matrix/vector operations
-├── scalability_tests/    # Single-node benchmarks (1K–10K)
-├── distributed_gce/      # Multi-shard distributed benchmarks on GCE
-│   ├── coordinator/       # Fan-out coordinator
-│   ├── shard/             # Per-shard intersection server
-│   └── results/           # Benchmark JSON results
-├── comparative_baselines/ # APSI comparison scripts
-└── cmd/Flare/            # CLI demo tool
-```
-
-## Performance (Single Node, D=256)
-
-| Server (m) | Client (n) | Ciphertexts | Init (s) | Intersect (s) | Total (min) |
-|-----------|-----------|-------------|----------|---------------|-------------|
-| 1,000     | 100       | 200         | ~55      | < 1           | ~1          |
-| 2,000     | 100       | 200         | ~110     | < 1           | ~2          |
-| 4,000     | 100       | 200         | ~220     | < 1           | ~4          |
-
-> Note: Init time (key generation + Merkle tree) dominates. With leaf-indexed filtering, intersection is near-instant.
-
-## Distributed Mode (GCE)
-
-For large datasets, the server set is sharded across K VMs:
+Regenerate support figures:
 
 ```bash
-# Deploy to 7 shards
-PROJECT=lepsi-distributed-493617 ZONE=us-east1-b bash distributed_gce/deploy_latest.sh
-
-# Run benchmarks
-PROJECT=lepsi-distributed-493617 ZONE=us-east1-b K=7 bash distributed_gce/run_all_benchmarks.sh
+python3 docs/paper_artifact/figures/generate_figures.py
 ```
 
-Each shard initializes independently and processes intersection in parallel via streaming JSON.
+Verify the evidence bundle:
 
-## Security Model
+```bash
+cd comparative_baselines/results/evidence/psi_repro_20260515_145900
+sha256sum -c SHA256SUMS
+```
 
-- **Semi-honest** (honest-but-curious) adversary model
-- **Client privacy:** Server learns only |C| (client set size)
-- **Server privacy:** Client learns only C ∩ S
-- **Leakage:** Target leaf indices are visible to server (inherent in laconic encryption)
+On macOS:
 
-## Comparison with Classical PSI
+```bash
+shasum -a 256 -c SHA256SUMS
+```
 
-| Protocol | Security | Comm. Complexity | Time (m=10⁴) | Post-Quantum |
-|----------|----------|-----------------|---------------|--------------|
-| KKRT     | DL-based | O(n + m)        | ~0.04 s       | No           |
-| OKVS/VOLE| DL-based | O(n + m)        | ~0.02 s       | No           |
-| Microsoft APSI | BFV/SEAL | O(n)     | TBD           | Lattice-based|
-| **LE-PSI (Ours)** | Ring-LWE | **O(n log m)** | TBD    | **Yes**      |
+## Run Benchmarks
 
-> LE-PSI is slower than classical PSI due to Ring-LWE arithmetic overhead. The advantage is in the asymptotic communication savings when m ≫ n, and lattice-based security.
+Single-node LE-PSI:
+
+```bash
+bash comparative_baselines/lepsi_single_node/benchmark.sh
+```
+
+Microsoft APSI baseline, run on the GCE comparison VM:
+
+```bash
+bash comparative_baselines/apsi/run_apsi_10k.sh
+```
+
+Distributed remote chunked suite, run from the configured coordinator after
+shard servers are deployed and `SHARD_URLS` is set:
+
+```bash
+SIZES="1000 2000 4000 8000 10000" N=100 K=7 \
+  RUN_LABEL=b52740c_chunked \
+  bash distributed_gce/remote_coord_chunked_suite.sh
+```
+
+## Repository Layout
+
+```text
+pkg/LE/                  Laconic encryption primitives
+pkg/matrix/              Ring/matrix helpers
+pkg/psi/                 PSI server, client, chunked intersection, serialization
+comparative_baselines/   Same-machine baseline scripts and final evidence
+distributed_gce/         GCE coordinator/shard implementation and run scripts
+docs/paper_artifact/     Paper-support dossier, figures, and source data
+docs/legacy/             Notes about removed superseded documents
+cmd/Flare/               Proof-of-concept demo CLI
+```
 
 ## References
 
-- **[DKLLMR23]** Döttling, Garg, Ishai, Malavolta, Mour, Ostrovsky. "Trapdoor Hash Functions and Their Applications." Crypto 2019 / ePrint 2023/404.
-- **[Lattigo]** Mouchet et al. "Lattigo: A Multiparty Homomorphic Encryption Library in Go." EPFL-LDS. v3.
-- **[Ring-LWE]** Lyubashevsky, Peikert, Regev. "On Ideal Lattices and Learning with Errors over Rings." EUROCRYPT 2010.
-- **[APSI]** Microsoft. "Asymmetric PSI." ePrint 2021/1116.
+- DKLLMR-style laconic PSI and laconic encryption literature.
+- Lattigo v3: `github.com/tuneinsight/lattigo/v3`.
+- Microsoft APSI: `https://github.com/microsoft/APSI`.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE).
+MIT License. See `LICENSE`.

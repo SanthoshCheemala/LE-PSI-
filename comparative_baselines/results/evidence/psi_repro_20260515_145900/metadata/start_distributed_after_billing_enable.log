@@ -1,0 +1,167 @@
+Starting coordinator + shards after billing enable: 2026-05-15T15:44:46Z
+Starting instance(s) lepsi-coord, lepsi-shard-0, lepsi-shard-1, lepsi-shard-4, lepsi-shard-5, lepsi-shard-6...
+............................failed.
+ERROR: (gcloud.compute.instances.start) ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+, ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+, ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+, ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+, ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+, ---
+code: ZONE_RESOURCE_POOL_EXHAUSTED
+errorDetails:
+- help:
+    links:
+    - description: Troubleshooting documentation
+      url: https://cloud.google.com/compute/docs/resource-error
+- localizedMessage:
+    locale: en-US
+    message: A e2-highmem-4 VM instance is currently unavailable in the us-east1-b
+      zone. Alternatively, you can try your request again with a different VM hardware
+      configuration or at a later time. For more information, see the troubleshooting
+      documentation.
+- errorInfo:
+    domain: compute.googleapis.com
+    metadatas:
+      attachment: ''
+      vmType: e2-highmem-4
+      zone: us-east1-b
+      zonesAvailable: ''
+    reason: resource_availability
+message: The zone 'projects/lepsi-distributed-493617/zones/us-east1-b' does not have
+  enough resources available to fulfill the request.  Try a different zone, or try
+  again later.
+
+Starting instance(s) lepsi-shard-2-rerun, lepsi-shard-3-rerun...
+.................................................done.
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-c/instances/lepsi-shard-2-rerun].
+Instance internal IP is 10.142.0.23
+Instance external IP is 35.227.105.119
+Updated [https://compute.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-c/instances/lepsi-shard-3-rerun].
+Instance internal IP is 10.142.0.22
+Instance external IP is 35.231.144.112
+NAME                 ZONE        MACHINE_TYPE                          STATUS      ROLE         SHARD_ID  NETWORK_IP
+lepsi-coord          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  coordinator            10.142.0.12
+lepsi-shard-0        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        0         10.142.0.13
+lepsi-shard-1        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        1         10.142.0.15
+lepsi-shard-2        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        2         10.142.0.17
+lepsi-shard-3        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        3         10.142.0.14
+lepsi-shard-4        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        4         10.142.0.16
+lepsi-shard-5        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        5         10.142.0.19
+lepsi-shard-6        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        6         10.142.0.18
+lepsi-shard-2-rerun  us-east1-c  us-east1-c/machineTypes/e2-highmem-4  RUNNING     shard        2         10.142.0.23
+lepsi-shard-3-rerun  us-east1-c  us-east1-c/machineTypes/e2-highmem-4  RUNNING     shard        3         10.142.0.22

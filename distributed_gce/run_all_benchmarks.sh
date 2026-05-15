@@ -24,11 +24,11 @@ echo "════════════════════════�
 # ── Get VM info ──────────────────────────────────────────
 COORD_ROW="$(gcloud compute instances list \
   --project="$PROJECT" \
-  --filter="labels.experiment=lepsi-dist AND labels.role=coordinator" \
+  --filter="labels.experiment=lepsi-dist AND labels.role=coordinator AND status=RUNNING" \
   --format='csv[no-heading](name,zone,networkInterfaces[0].networkIP)' | head -1)"
 SHARD_ROWS="$(gcloud compute instances list \
   --project="$PROJECT" \
-  --filter="labels.experiment=lepsi-dist AND labels.role=shard" \
+  --filter="labels.experiment=lepsi-dist AND labels.role=shard AND status=RUNNING" \
   --sort-by="labels.shard_id" \
   --format='csv[no-heading](name,zone,networkInterfaces[0].networkIP)')"
 
@@ -36,10 +36,21 @@ COORD_NAME=$(echo "$COORD_ROW" | cut -d, -f1)
 COORD_ZONE=$(echo "$COORD_ROW" | cut -d, -f2)
 
 SHARD_URLS=""
+SHARD_COUNT=0
 while IFS=, read -r name zone ip; do
   [[ -z "$ip" ]] && continue
   SHARD_URLS="${SHARD_URLS:+$SHARD_URLS,}http://${ip}:8081"
+  SHARD_COUNT=$((SHARD_COUNT + 1))
 done <<< "$SHARD_ROWS"
+
+if [[ -z "$COORD_NAME" || "$SHARD_COUNT" -ne "$K" ]]; then
+  echo "ERROR: expected 1 running coordinator and K=$K running shards; found coordinator='${COORD_NAME:-}' shards=$SHARD_COUNT" >&2
+  gcloud compute instances list \
+    --project="$PROJECT" \
+    --filter="labels.experiment=lepsi-dist" \
+    --format='table(name,zone,status,labels.role,labels.shard_id,networkInterfaces[0].networkIP)'
+  exit 1
+fi
 
 ssh_cmd() {
   local name="$1" zone="$2" cmd="$3"

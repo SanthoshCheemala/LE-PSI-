@@ -1,0 +1,74 @@
+══════════════════════════════════════════════════
+  LE-PSI DISTRIBUTED BENCHMARK SUITE
+  Sizes  : 1000 2000 4000 8000 10000
+  K=7 shards, n=100
+══════════════════════════════════════════════════
+
+╔══════════════════════════════════════════════════╗
+║  m=1000, n=100, K=7                              
+╚══════════════════════════════════════════════════╝
+  Starting shards...
+    ✓ shard-0
+    ✓ shard-1
+    ✓ shard-2
+    ✓ shard-3
+    ✓ shard-4
+    ✓ shard-5
+    ✓ shard-6
+  Running (m=1000)...
+  Wall: 2.9 min
+  ✅ m=1000 DONE
+2026/05/15 16:18:17 [coord]   Total  : 2.71 min
+2026/05/15 16:18:17 [coord]   Init   : 0.24 min
+2026/05/15 16:18:17 [coord]   Intersect: 1.63 min
+2026/05/15 16:18:17 [coord]   Matches: 16
+2026/05/15 16:18:17 [coord]   Peak RAM/shard: 0 MB
+
+╔══════════════════════════════════════════════════╗
+║  m=2000, n=100, K=7                              
+╚══════════════════════════════════════════════════╝
+  Starting shards...
+    ✓ shard-0
+    ✓ shard-1
+    ✓ shard-2
+    ✓ shard-3
+    ✓ shard-4
+    ✓ shard-5
+    ✓ shard-6
+  Running (m=2000)...
+  Wall: 3.2 min
+  ✅ m=2000 DONE
+2026/05/15 16:24:58 [coord]   Total  : 3.05 min
+2026/05/15 16:24:58 [coord]   Init   : 0.51 min
+2026/05/15 16:24:58 [coord]   Intersect: 1.73 min
+2026/05/15 16:24:58 [coord]   Matches: 18
+2026/05/15 16:24:58 [coord]   Peak RAM/shard: 0 MB
+
+╔══════════════════════════════════════════════════╗
+║  m=4000, n=100, K=7                              
+╚══════════════════════════════════════════════════╝
+  Starting shards...
+    ✓ shard-0
+    ✓ shard-1
+    ✓ shard-2
+    ✓ shard-3
+    ✓ shard-4
+    ✓ shard-5
+    ✓ shard-6
+  Running (m=4000)...
+  Wall: 4.1 min
+  ✅ m=4000 DONE
+2026/05/15 16:32:38 [coord]   Total  : 3.93 min
+2026/05/15 16:32:38 [coord]   Init   : 1.09 min
+2026/05/15 16:32:38 [coord]   Intersect: 1.88 min
+2026/05/15 16:32:38 [coord]   Matches: 20
+2026/05/15 16:32:38 [coord]   Peak RAM/shard: 0 MB
+
+╔══════════════════════════════════════════════════╗
+║  m=8000, n=100, K=7                              
+╚══════════════════════════════════════════════════╝
+  Starting shards...
+    ✓ shard-0
+    ✓ shard-1
+    ✓ shard-2
+    ✓ shard-3

@@ -34,16 +34,16 @@ var (
 
 // InitRequest: coordinator pushes S_k and serialised public params
 type InitRequest struct {
-	ShardID     int           `json:"shard_id"`
-	Records     []uint64      `json:"records"` // server element hashes for this shard
+	ShardID int      `json:"shard_id"`
+	Records []uint64 `json:"records"` // server element hashes for this shard
 }
 
 type InitResponse struct {
-	ShardID    int                    `json:"shard_id"`
-	Records    int                    `json:"records"`
-	InitSec    float64                `json:"init_sec"`
-	PeakRAMMB  float64                `json:"peak_ram_mb"`
-	Params     *psi.SerializableParams `json:"params"` // coordinator forwards to client
+	ShardID   int                     `json:"shard_id"`
+	Records   int                     `json:"records"`
+	InitSec   float64                 `json:"init_sec"`
+	PeakRAMMB float64                 `json:"peak_ram_mb"`
+	Params    *psi.SerializableParams `json:"params"` // coordinator forwards to client
 }
 
 // IntersectRequest: client ciphertexts forwarded by coordinator
@@ -52,18 +52,38 @@ type IntersectRequest struct {
 }
 
 type MatchEntry struct {
-	ServerIdx int    `json:"i"` // index within this shard's records
-	ClientIdx int    `json:"j"`
+	ServerIdx int `json:"i"` // index within this shard's records
+	ClientIdx int `json:"j"`
 }
 
 type IntersectResponse struct {
-	ShardID      int          `json:"shard_id"`
-	Matches      []MatchEntry `json:"matches"`
-	IntersectSec float64      `json:"intersect_sec"`
-	PeakRAMMB    float64      `json:"peak_ram_mb"`
+	ShardID               int          `json:"shard_id"`
+	Matches               []MatchEntry `json:"matches"`
+	IntersectSec          float64      `json:"intersect_sec"`
+	PeakRAMMB             float64      `json:"peak_ram_mb"`
+	Mode                  string       `json:"mode,omitempty"`
+	ChunkSize             int          `json:"chunk_size,omitempty"`
+	WorkerCount           int          `json:"worker_count,omitempty"`
+	ChunksProcessed       int          `json:"chunks_processed,omitempty"`
+	LeafIndexedFiltering  bool         `json:"leaf_indexed_filtering,omitempty"`
+	ActualDecCalls        int          `json:"actual_dec_calls,omitempty"`
+	TotalPossibleDecCalls int          `json:"total_possible_dec_calls,omitempty"`
+	DecryptionReduction   float64      `json:"decryption_reduction_factor,omitempty"`
 }
 
 // ── Handlers ─────────────────────────────────────────────
+
+func envInt(name string, fallback int) int {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
+}
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
@@ -95,9 +115,9 @@ func handleInit(w http.ResponseWriter, r *http.Request) {
 	dbPath := fmt.Sprintf("/tmp/shard_%d.db", req.ShardID)
 	os.Remove(dbPath) // fresh start
 
-	ctx, err := psi.ServerInitialize(req.Records, dbPath)
+	ctx, err := psi.ServerInitializeChunked(req.Records, dbPath)
 	if err != nil {
-		http.Error(w, "ServerInitialize: "+err.Error(), 500)
+		http.Error(w, "ServerInitializeChunked: "+err.Error(), 500)
 		return
 	}
 
@@ -120,7 +140,7 @@ func handleInit(w http.ResponseWriter, r *http.Request) {
 		Params:    params,
 	}
 
-	log.Printf("[shard %d] init done in %.1fs", shardID, resp.InitSec)
+	log.Printf("[shard %d] chunked init done in %.1fs", shardID, resp.InitSec)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
@@ -199,10 +219,15 @@ func handleIntersect(w http.ResponseWriter, r *http.Request) {
 	runtime.ReadMemStats(&memBefore)
 	start := time.Now()
 
-	// Run intersection using existing DetectIntersectionWithContext
-	intersection, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
+	chunkSize := envInt("LEPSI_CHUNK_SIZE", 256)
+	workerCount := envInt("LEPSI_WORKERS", runtime.NumCPU())
+	intersection, detectStats, err := psi.DetectIntersectionChunkedWithContext(ctx, ciphertexts, psi.ChunkedDetectionOptions{
+		ChunkSize:   chunkSize,
+		WorkerCount: workerCount,
+		ForceGC:     true,
+	})
 	if err != nil {
-		http.Error(w, "intersection: "+err.Error(), 500)
+		http.Error(w, "chunked intersection: "+err.Error(), 500)
 		return
 	}
 
@@ -226,14 +251,22 @@ func handleIntersect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := IntersectResponse{
-		ShardID:      shardID,
-		Matches:      matches,
-		IntersectSec: time.Since(start).Seconds(),
-		PeakRAMMB:    float64(memAfter.Sys-memBefore.Sys) / (1024 * 1024),
+		ShardID:               shardID,
+		Matches:               matches,
+		IntersectSec:          time.Since(start).Seconds(),
+		PeakRAMMB:             float64(memAfter.Sys-memBefore.Sys) / (1024 * 1024),
+		Mode:                  detectStats.Mode,
+		ChunkSize:             detectStats.ChunkSize,
+		WorkerCount:           detectStats.WorkerCount,
+		ChunksProcessed:       detectStats.ChunksProcessed,
+		LeafIndexedFiltering:  detectStats.LeafIndexedFiltering,
+		ActualDecCalls:        detectStats.ActualDecCalls,
+		TotalPossibleDecCalls: detectStats.TotalPossibleDecCalls,
+		DecryptionReduction:   detectStats.ReductionFactor,
 	}
 
-	log.Printf("[shard %d] intersection done: %d matches in %.1fs",
-		shardID, len(matches), resp.IntersectSec)
+	log.Printf("[shard %d] chunked intersection done: %d matches in %.1fs mode=%s chunks=%d actual_dec_calls=%d total_possible_dec_calls=%d",
+		shardID, len(matches), resp.IntersectSec, resp.Mode, resp.ChunksProcessed, resp.ActualDecCalls, resp.TotalPossibleDecCalls)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }

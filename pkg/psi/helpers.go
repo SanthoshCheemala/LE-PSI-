@@ -133,7 +133,7 @@ func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 	q14 := le.Q / 4
 	q34 := (le.Q / 4) * 3
 	binaryDecrypted := le.R.NewPoly()
-	
+
 	for i := 0; i < le.R.N; i++ {
 		if decrypted.Coeffs[0][i] < q14 || decrypted.Coeffs[0][i] > q34 {
 			binaryDecrypted.Coeffs[0][i] = 0
@@ -141,19 +141,19 @@ func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 			binaryDecrypted.Coeffs[0][i] = 1
 		}
 	}
-	
+
 	matchCount := 0
 	for i := 0; i < le.R.N; i++ {
 		if binaryDecrypted.Coeffs[0][i] == original.Coeffs[0][i] {
 			matchCount++
 		}
 	}
-	
+
 	if VerboseMode {
 		matchPercentage := float64(matchCount) / float64(le.R.N)
 		fmt.Printf("Match rate: %.2f%% (%d/%d coefficients)\n", matchPercentage*100, matchCount, le.R.N)
 	}
-	
+
 	return float64(matchCount)/float64(le.R.N) >= 0.95
 }
 
@@ -173,7 +173,7 @@ func CorrectnessCheck(decrypted, original *ring.Poly, le *LE.LE) bool {
 // The function considers:
 //   - Available CPU cores (uses all detected cores for compute-bound work)
 //   - Available RAM (85% of total system RAM)
-//   - Memory per record (~35 MB empirically measured)
+//   - Memory per record (~1 MB for the default D=256 benchmark mode)
 //   - Safety margin (15%) to prevent memory exhaustion
 //
 // Algorithm:
@@ -196,12 +196,13 @@ func CalculateOptimalWorkers(datasetSize int) int {
 
 	totalCores := runtime.NumCPU()
 
-	// CRITICAL FIX: Detect 128-bit security mode and adjust memory estimates.
-	// At D=256, each record uses ~35 MB. At D=2048, it uses ~280 MB (8x larger).
+	// Detect 128-bit security mode and adjust memory estimates.
+	// At D=256, each record uses ~1 MB in the single-node benchmark path.
+	// At D=2048, it uses substantially more RAM, so keep the conservative cap.
 	// Also, on HPC systems with cgroup limits, Go's memStats.Sys reports the
 	// PHYSICAL server RAM (e.g., 188 GB), NOT the user's memory quota (~16 GB).
 	// We must use a conservative RAM estimate to avoid signal:killed.
-	memPerRecord_GB := 0.035 // Default for D=256
+	memPerRecord_GB := 0.001 // Default for D=256
 	maxWorkers := totalCores
 
 	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {

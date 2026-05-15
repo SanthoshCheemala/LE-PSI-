@@ -13,11 +13,11 @@ PSI_SRC="/Users/santhoshcheemala/ALL_IN_ONE/Research_Implimentation/PSI"
 echo "[deploy] Getting VM list..."
 COORD_ROW="$(gcloud compute instances list \
   --project="$PROJECT" \
-  --filter="labels.experiment=lepsi-dist AND labels.role=coordinator" \
+  --filter="labels.experiment=lepsi-dist AND labels.role=coordinator AND status=RUNNING" \
   --format='csv[no-heading](name,zone)' | head -1)"
 SHARD_ROWS="$(gcloud compute instances list \
   --project="$PROJECT" \
-  --filter="labels.experiment=lepsi-dist AND labels.role=shard" \
+  --filter="labels.experiment=lepsi-dist AND labels.role=shard AND status=RUNNING" \
   --sort-by="labels.shard_id" \
   --format='csv[no-heading](name,zone)')"
 

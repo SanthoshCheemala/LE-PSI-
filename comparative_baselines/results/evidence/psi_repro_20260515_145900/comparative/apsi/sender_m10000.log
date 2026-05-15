@@ -1,0 +1,28 @@
+INFO  15:05:45:039.894: Setting thread count to 8
+INFO  15:05:45:044.104: PSIParams have false-positive probability 2^(-52.557) per receiver item
+INFO  15:05:45:053.696: Start inserting 10000 items in SenderDB
+INFO  15:05:45:116.341: Found 10000 new items to insert in SenderDB
+INFO  15:05:45:121.545: Launching 1 insert-or-assign worker tasks
+INFO  15:05:45:139.950: Finished insert-or-assign worker tasks
+INFO  15:05:45:140.619: Start generating bin bundle caches
+INFO  15:05:45:172.912: Finished generating bin bundle caches
+INFO  15:05:45:172.988: Finished inserting 10000 items in SenderDB
+INFO  15:05:45:173.973: Created unlabeled SenderDB with 10000 items
+INFO  15:05:45:176.508: SenderDB has been stripped
+INFO  15:05:45:177.124: SenderDB packing rate: 0.2849
+INFO  15:05:45:177.159: SenderDB holds a total of 1 bin bundles across 1 bundle indices
+INFO  15:05:45:177.170: The largest bundle index holds 1 bin bundles
+INFO  15:05:45:177.254: ZMQSenderDispatcher listening on port 1213
+INFO  15:05:45:177.546: Waiting for request from Receiver
+INFO  15:05:48:137.313: Received parameter request
+INFO  15:05:48:137.373: Start processing parameter request
+INFO  15:05:48:137.475: Finished processing parameter request
+INFO  15:05:48:137.489: Waiting for request from Receiver
+INFO  15:05:48:187.715: Received OPRF request
+INFO  15:05:48:187.768: Start processing OPRF request for 100 items
+INFO  15:05:48:189.045: Finished processing OPRF request
+INFO  15:05:48:189.108: Waiting for request from Receiver
+INFO  15:05:48:250.788: Received query
+INFO  15:05:48:251.966: Start processing query request on database with 10000 items
+INFO  15:05:48:433.566: Finished processing query request
+INFO  15:05:48:437.996: Waiting for request from Receiver

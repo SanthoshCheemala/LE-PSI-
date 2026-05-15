@@ -14,11 +14,11 @@ results show how the core protocol compares head-to-head.
 
 ### 1. Create a GCE VM
 
-Use the same machine type as the distributed shards for consistency:
+Use the final single-node comparison machine type:
 
 ```bash
 gcloud compute instances create psi-compare \
-  --machine-type=e2-highmem-4 \
+  --machine-type=e2-highmem-8 \
   --zone=us-east1-b \
   --image-family=debian-12 \
   --image-project=debian-cloud \
@@ -47,7 +47,7 @@ gcloud compute ssh psi-compare --zone=us-east1-b --command="
 
 ```bash
 gcloud compute ssh psi-compare --zone=us-east1-b --command="
-  nohup bash /tmp/lepsi-repo/comparative_baselines/apsi/setup_and_benchmark.sh \
+  nohup bash /tmp/lepsi-repo/comparative_baselines/apsi/run_apsi_10k.sh \
     > /tmp/apsi_full.log 2>&1 &
 "
 ```
@@ -79,7 +79,12 @@ gcloud compute instances stop psi-compare --zone=us-east1-b --quiet
 
 ## Expected Output
 
-Each benchmark produces JSON files like:
+Final evidence from the 2026-05-15 run is stored under
+`comparative_baselines/results/evidence/psi_repro_20260515_145900/`.
+
+The APSI runner defaults to `M=10000` and `N=100` so comparative baselines stay
+focused on the same 10K setting used in the final table. It produces JSON files
+like:
 
 ```json
 {
@@ -87,16 +92,18 @@ Each benchmark produces JSON files like:
   "server_dataset_size": 10000,
   "client_dataset_size": 100,
   "matches_found": 10,
-  "receiver_online_time_ms": 1234,
-  "sender_peak_rss_kb": 512000
+  "online_time_ms": 319,
+  "receiver_peak_rss_kb": 19956,
+  "communication_total_kb": 1085
 }
 ```
 
 ## Paper Table Format
 
-| m     | Protocol | Init (s) | Online (s) | Peak RAM (MB) |
-|-------|----------|----------|------------|---------------|
-| 1,000 | LE-PSI   | ...      | ...        | ...           |
-| 1,000 | APSI     | ...      | ...        | ...           |
-| 10,000| LE-PSI   | ...      | ...        | ...           |
-| 10,000| APSI     | ...      | ...        | ...           |
+Use phase labels carefully. APSI reports online time; LE-PSI reports server
+initialization, client encryption, and intersection separately.
+
+| m | Protocol | Machine | Reported time field | Peak memory field | Communication |
+|---:|---|---|---|---|---|
+| 10000 | LE-PSI | `e2-highmem-8` | `total_sec`, plus phase fields | `peak_rss_mb` | protocol-specific, not measured in this runner |
+| 10000 | APSI | `e2-highmem-8` | `online_time_ms` | `receiver_peak_rss_kb` | `communication_total_kb` |
