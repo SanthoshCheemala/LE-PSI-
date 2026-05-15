@@ -1,0 +1,5 @@
+local_evidence_root=/Users/santhoshcheemala/ALL_IN_ONE/Research_Implimentation/PSI/comparative_baselines/results/evidence/psi_repro_20260515_145900
+remote_evidence_root=/tmp/psi_repro_20260515_145900
+single_node_vm=psi-compare
+project=lepsi-distributed-493617
+zone=us-east1-b

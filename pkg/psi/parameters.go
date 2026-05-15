@@ -21,16 +21,16 @@ import (
 //
 // Cryptographic Parameters (Environment Configurable):
 //   - Q: Modulus = 180143985094819841 (~2^58)
-//   - D: Ring dimension = 256 (Fast Testing) OR 2048 (True 128-bit PQ Security)
+//   - D: Ring dimension = 256 (fast evaluation) OR 2048 (secure-parameter mode)
 //   - N: Matrix dimension = 4
 //   - qBits: Modulus bit length = 58
 //
 // Security Configuration:
-//   - By default, D=256 is used for extremely fast evaluations, but it does NOT
+//   - By default, D=256 is used for fast evaluations, but it does NOT
 //     provide full 128-bit post-quantum security for the 58-bit modulus.
-//   - Set the environment variable `PSI_SECURITY_LEVEL=128` to enforce D=2048,
-//     which yields a lattice dimension of 8192 (N=4, D=2048). This comfortably
-//     provides >128-bit security against known quantum lattice attacks.
+//   - Set the environment variable `PSI_SECURITY_LEVEL=128` to enforce D=2048.
+//     Any concrete security claim should be tied to an estimator run using the
+//     same q, sigma, and error distribution as the code.
 // The function automatically calculates:
 //   - Merkle tree layers: log2(16 * size) for 16x expansion factor
 //   - Load factor: items per slot ratio
@@ -59,7 +59,7 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 	// Enforce 128-bit post-quantum security if configured
 	if os.Getenv("PSI_SECURITY_LEVEL") == "128" {
 		D = 2048
-		securityMode = "128-bit Post-Quantum Security Mode"
+		securityMode = "D=2048 Secure-Parameter Mode"
 	}
 
 	if D != 256 && D != 512 && D != 1024 && D != 2048 {

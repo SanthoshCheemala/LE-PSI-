@@ -1,0 +1,70 @@
+════════════════════════════════════════════════════════
+  LE-PSI SINGLE-NODE BENCHMARK (Comparative)
+  Machine: psi-compare | CPUs: 8 | RAM: 62G
+  Date: 2026-05-15T15:00:00Z
+════════════════════════════════════════════════════════
+
+[Step 1] Building LE-PSI benchmark binary...
+✓ Built and ready: /tmp/lepsi_bench
+
+[Step 2] Running benchmarks...
+
+╔══════════════════════════════════════════════════╗
+║  LE-PSI chunked: m=1000, n=100, chunk=256, workers=8
+╚══════════════════════════════════════════════════╝
+  Peak RSS: 6141 MB
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+╔══════════════════════════════════════════════════╗
+║  LE-PSI chunked: m=2000, n=100, chunk=256, workers=8
+╚══════════════════════════════════════════════════╝
+  Peak RSS: 7532 MB
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+╔══════════════════════════════════════════════════╗
+║  LE-PSI chunked: m=4000, n=100, chunk=256, workers=8
+╚══════════════════════════════════════════════════╝
+  Peak RSS: 11007 MB
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+╔══════════════════════════════════════════════════╗
+║  LE-PSI chunked: m=8000, n=100, chunk=256, workers=8
+╚══════════════════════════════════════════════════╝
+  Peak RSS: 17162 MB
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+╔══════════════════════════════════════════════════╗
+║  LE-PSI chunked: m=10000, n=100, chunk=256, workers=8
+╚══════════════════════════════════════════════════╝
+  Peak RSS: 20765 MB
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+════════════════════════════════════════════════════════
+  ALL LE-PSI SINGLE-NODE BENCHMARKS COMPLETE
+  Results: /tmp/lepsi_single_results/
+════════════════════════════════════════════════════════
+-rw-r--r-- 1 santhoshcheemala santhoshcheemala 990 May 15 15:04 /tmp/lepsi_single_results/lepsi_m10000_n100.json
+-rw-r--r-- 1 santhoshcheemala santhoshcheemala 981 May 15 15:00 /tmp/lepsi_single_results/lepsi_m1000_n100.json
+-rw-r--r-- 1 santhoshcheemala santhoshcheemala 982 May 15 15:00 /tmp/lepsi_single_results/lepsi_m2000_n100.json
+-rw-r--r-- 1 santhoshcheemala santhoshcheemala 985 May 15 15:01 /tmp/lepsi_single_results/lepsi_m4000_n100.json
+-rw-r--r-- 1 santhoshcheemala santhoshcheemala 988 May 15 15:02 /tmp/lepsi_single_results/lepsi_m8000_n100.json

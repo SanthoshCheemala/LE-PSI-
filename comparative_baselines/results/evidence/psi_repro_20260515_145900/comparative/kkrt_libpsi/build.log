@@ -1,0 +1,829 @@
+-- fetch options
+=======================================================
+-- Option: FETCH_AUTO            = ON
+-- Option: FETCH_SPARSEHASH      = 
+-- Option: FETCH_LIBOTE          = 
+
+-- General Options
+=======================================================
+-- Option: CMAKE_BUILD_TYPE = Release
+	Release
+	Debug
+	RELWITHDEBINFO
+-- Option: ENABLE_ALL_PSI         = ON/OFF
+
+
+-- PSI protocols
+=======================================================
+-- Option: ENABLE_DCW_PSI    = ON
+-- Option: ENABLE_DKT_PSI    = ON
+-- Option: ENABLE_GRR_PSI    = ON
+-- Option: ENABLE_RR16_PSI   = ON
+-- Option: ENABLE_RR17_PSI   = ON
+-- Option: ENABLE_RR17B_PSI  = ON
+-- Option: ENABLE_KKRT_PSI   = ON
+-- Option: ENABLE_ECDH_PSI   = ON
+-- Option: ENABLE_DRRN_PSI   = ON
+
+-- Option: ENABLE_RELIC      = ON
+-- Option: ENABLE_SODIUM     = OFF
+
+-- LIBPSI_THIRDPARTY_DIR=/tmp/libPSI/out/install/linux
+sparsehash-c11 already fetched.
+SPARSEHASH_INCLUDE_DIRS=/tmp/libPSI/out/install/linux/include
+============= Building libOTe =============
+Checkout f47217d924ceef9b65e04a9ae680b65a79a4425a 
+HEAD is now at f47217d fixes for new cryptoTools
+submodule
+Configure
+-- Building for x86-64
+-- cryptoTools options
+=======================================================
+-- Option: CRYPTO_TOOLS_STD_VER  = 20
+
+-- Option: NO_SYSTEM_PATH    = 
+-- Option: FETCH_AUTO        = ON
+-- Option: VERBOSE_FETCH     = 
+
+-- Option: FETCH_RELIC       = 
+-- Option: FETCH_SODIUM      = 
+-- Option: FETCH_BOOST       = 
+-- Option: FETCH_COPROTO     = 
+-- Option: FETCH_LIBDIVIDE   = ON
+
+-- Option: CMAKE_BUILD_TYPE  = Release
+	Release
+	Debug
+	RelWithDebInfo
+-- Option: ENABLE_SPAN_LITE  = OFF
+-- Option: ENABLE_GMP        = OFF
+-- Option: ENABLE_RELIC      = ON
+-- Option: ENABLE_SODIUM     = OFF
+-- Option: ENABLE_BOOST      = ON
+-- Option: ENABLE_OPENSSL    = OFF
+-- Option: ENABLE_COPROTO    = true
+-- Option: ENABLE_CIRCUITS   = OFF
+-- Option: ENABLE_ARM_AES    = OFF
+-- Option: ENABLE_SSE        = ON
+-- Option: ENABLE_AVX        = ON
+-- Option: ENABLE_PIC        = OFF
+-- Option: ENABLE_ASAN       = OFF
+
+
+relic already fetched.
+-- Relic_LIB:  /tmp/libPSI/out/libOTe/out/install/linux/lib/librelic_s.a
+-- Relic_inc:  /tmp/libPSI/out/libOTe/out/install/linux/include
+
+============= Building coproto =============
+'/usr/bin/git' 'show-ref' '--tags' 'c9e646b2f350c998e5225a67166573ad88ac9dbd' '--quiet'
+CHECK_TAG_REUSLT=1
+'/usr/bin/git' 'fetch'
+Checkout c9e646b2f350c998e5225a67166573ad88ac9dbd 
+'/usr/bin/git' 'checkout' 'c9e646b2f350c998e5225a67166573ad88ac9dbd'
+HEAD is now at c9e646b macoro bump
+M	thirdparty/getBoost.cmake
+-- Option: CMAKE_INSTALL_PREFIX    = /usr/local
+-- Option: CMAKE_BUILD_TYPE        = Release
+	Release
+	Debug
+	RELWITHDEBINFO
+-- Option: COPROTO_NO_SYSTEM_PATH  = 	  ~ do not look in system paths for dependencies
+-- Option: COPROTO_FETCH_AUTO      = 	  ~ automatically fetch dependencies
+-- Option: COPROTO_FETCH_SPAN      = OFF	  ~ always fetch span
+-- Option: COPROTO_FETCH_FUNCTION2 = ON	  ~ always fetch function2
+-- Option: COPROTO_FETCH_MACORO    = ON	  ~ always fetch macoro
+-- Option: COPROTO_FETCH_BOOST     = ON	  ~ always fetch boost
+
+-- Option: COPROTO_CPP_VER         = 20
+-- Option: COPROTO_PIC             = OFF
+-- Option: COPROTO_ASAN            = OFF
+-- Option: COPROTO_ENABLE_BOOST    = ON
+-- Option: COPROTO_ENABLE_SPAN     = 
+-- Option: COPROTO_ENABLE_OPENSSL  = OFF
+-- Option: COPROTO_ENABLE_ASSERTS  = ON
+
+-- Option: COPROTO_STAGE = /tmp/libPSI/out/libOTe/cmake/../out/install/linux
+============= Building macoro =============
+Checkout 305b716ec78e9d65275943bd53fa0ed4a7defee8 
+'/usr/bin/git' 'checkout' '305b716ec78e9d65275943bd53fa0ed4a7defee8'
+HEAD is now at 305b716 added missing header utility
+
+Options
+---------------------------
+CMAKE_BUILD_TYPE       = Release	  ~ build type
+MACORO_NO_SYSTEM_PATH  = 	  ~ do not look in system paths for dependencies
+MACORO_FETCH_AUTO      = true	  ~ automatically fetch dependencies as needed
+MACORO_FETCH_OPTIONAL  =   	  ~ fetch optional-lite
+MACORO_FETCH_VARIANT   =   	  ~ fetch variant-lite
+MACORO_CPP_VER         = 20	  ~ cpp standard version
+MACORO_OPTIONAL_LITE   =OFF	  ~ use optional lite
+MACORO_VARIANT_LITE    =OFF	  ~ use variant lite
+MACORO_PIC             =OFF	  ~ compile with -fPIC on unix
+MACORO_ASAN            =OFF	  ~ compile with asan
+MACORO_TESTS           =ON	  ~ compile the tests and frontend
+---------------------------
+
+-- Option: MACORO_STAGE = /tmp/libPSI/out/libOTe/out/macoro/out/install/linux
+============= Building function2 =============
+Checkout 02ca99831de59c7c3a4b834789260253cace0ced 
+'/usr/bin/git' 'checkout' '02ca99831de59c7c3a4b834789260253cace0ced'
+HEAD is now at 02ca998 Release 4.2.0 * Includes minor maintainance and stability patches from the last year * Closes #46
+Configure
+'/usr/bin/cmake' '-S' '/tmp/libPSI/out/libOTe/cmake/../out//function2' '-B' '/tmp/libPSI/out/libOTe/cmake/../out//function2/out/build/linux' '-DCMAKE_INSTALL_PREFIX=/usr/local' '-DCMAKE_BUILD_TYPE=Release' '-DBUILD_TESTING=OFF'
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/libPSI/out/libOTe/out/function2/out/build/linux
+Build
+'/usr/bin/cmake' '--build' '/tmp/libPSI/out/libOTe/cmake/../out//function2/out/build/linux' '--config' 'Release'
+Install
+'/usr/bin/cmake' '--install' '/tmp/libPSI/out/libOTe/cmake/../out//function2/out/build/linux' '--config' 'Release' '--prefix' '/tmp/libPSI/out/libOTe/cmake/../out/install/linux'
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/include/function2
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/include/function2/function2.hpp
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/./LICENSE.txt
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/./Readme.md
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/lib/cmake/function2/function2ConfigVersion.cmake
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/lib/cmake/function2/function2Config.cmake
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/lib/cmake/function2/function2Targets.cmake
+log /tmp/libPSI/out/libOTe/out/coproto/thirdparty/log-function2.txt
+==========================================
+============= Building Boost =============
+configure
+'bash' '/tmp/libPSI/out/libOTe/cmake/../out//boost_1_86_0/bootstrap.sh'
+Building B2 engine..
+
+###
+###
+### Using 'gcc' toolset.
+###
+###
+
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+###
+###
+
+> g++ -x c++ -std=c++11 -pthread -O2 -s -DNDEBUG bindjam.cpp builtins.cpp class.cpp command.cpp compile.cpp constants.cpp cwd.cpp debug.cpp debugger.cpp events.cpp execcmd.cpp execnt.cpp execunix.cpp filent.cpp filesys.cpp fileunix.cpp frames.cpp function.cpp glob.cpp hash.cpp hcache.cpp hdrmacro.cpp headers.cpp jam_strings.cpp jam.cpp jamgram.cpp lists.cpp make.cpp make1.cpp md5.cpp mem.cpp modules.cpp native.cpp option.cpp output.cpp parse.cpp pathnt.cpp pathsys.cpp pathunix.cpp regexp.cpp rules.cpp scan.cpp search.cpp startup.cpp tasks.cpp timestamp.cpp value.cpp variable.cpp w32_getreg.cpp mod_command_db.cpp mod_db.cpp mod_jam_builtin.cpp mod_jam_class.cpp mod_jam_errors.cpp mod_jam_modules.cpp mod_order.cpp mod_path.cpp mod_property_set.cpp mod_regex.cpp mod_sequence.cpp mod_set.cpp mod_string.cpp mod_summary.cpp mod_sysinfo.cpp mod_version.cpp -o b2
+tools/build/src/engine/b2
+Unicode/ICU support for Boost.Regex?... /usr
+Backing up existing B2 configuration in project-config.jam.1
+Generating B2 configuration in project-config.jam for gcc...
+
+Bootstrapping is done. To build, run:
+
+    ./b2
+    
+To generate header files, run:
+
+    ./b2 headers
+
+The configuration generated uses gcc to build by default. If that is
+unintended either use the --with-toolset option or adjust configuration, by
+editing 'project-config.jam'.
+
+Further information:
+
+   - Command line help:
+     ./b2 --help
+     
+   - Getting started guide: 
+     http://www.boost.org/more/getting_started/unix-variants.html
+     
+   - B2 documentation:
+     http://www.boost.org/build/
+
+install
+'/tmp/libPSI/out/libOTe/cmake/../out//boost_1_86_0/b2' '--with-system' '--with-thread' '--with-atomic' '--with-filesystem' '--with-regex' '--with-date_time' '-j' '8' 'install' '--prefix=/tmp/libPSI/out/libOTe/cmake/../out/install/linux'
+Performing configuration checks
+
+    - default address-model    : 64-bit (cached) [1]
+    - default architecture     : x86 (cached) [1]
+    - lockfree boost::atomic_flag : yes (cached) [2]
+    - cxx11_hdr_ratio          : yes (cached) [2]
+    - cxx11_template_aliases   : yes (cached) [2]
+    - cxx11_decltype           : yes (cached) [2]
+    - cxx11_char16_t           : yes (cached) [2]
+    - cxx11_char32_t           : yes (cached) [2]
+    - compiler supports SSE2   : yes (cached) [2]
+    - compiler supports SSE4.1 : yes (cached) [2]
+    - cxx11_static_assert      : yes (cached) [2]
+    - has std::atomic_ref      : no  (cached) [2]
+    - has -Wl,--no-undefined   : yes (cached) [2]
+    - has statx                : yes (cached) [2]
+    - has init_priority attribute : yes (cached) [2]
+    - has stat::st_blksize     : yes (cached) [2]
+    - has stat::st_mtim        : yes (cached) [2]
+    - has stat::st_mtimensec   : no  (cached) [2]
+    - has stat::st_mtimespec   : no  (cached) [2]
+    - has stat::st_birthtim    : no  (cached) [2]
+    - has stat::st_birthtimensec : no  (cached) [2]
+    - has stat::st_birthtimespec : no  (cached) [2]
+    - has fdopendir(O_NOFOLLOW) : yes (cached) [2]
+    - has dirent::d_type       : yes (cached) [2]
+    - has POSIX *at APIs       : yes (cached) [2]
+    - has fallocate            : yes (cached) [2]
+    - cxx11_rvalue_references  : yes (cached) [2]
+    - cxx11_scoped_enums       : yes (cached) [2]
+    - cxx11_noexcept           : yes (cached) [2]
+    - cxx11_nullptr            : yes (cached) [2]
+    - cxx11_defaulted_functions : yes (cached) [2]
+    - cxx11_defaulted_moves    : yes (cached) [2]
+    - cxx11_deleted_functions  : yes (cached) [2]
+    - cxx11_function_template_default_args : yes (cached) [2]
+    - cxx11_final              : yes (cached) [2]
+    - cxx11_override           : yes (cached) [2]
+    - has_icu builds           : yes (cached) [2]
+    - lockfree boost::atomic_flag : yes (cached) [3]
+    - cxx11_hdr_ratio          : yes (cached) [3]
+    - cxx11_template_aliases   : yes (cached) [3]
+    - cxx11_decltype           : yes (cached) [3]
+    - cxx11_char16_t           : yes (cached) [3]
+    - cxx11_char32_t           : yes (cached) [3]
+    - compiler supports SSE2   : yes (cached) [3]
+    - compiler supports SSE4.1 : yes (cached) [3]
+    - cxx11_static_assert      : yes (cached) [3]
+    - has std::atomic_ref      : no  (cached) [3]
+    - has statx                : yes (cached) [3]
+    - has init_priority attribute : yes (cached) [3]
+    - has stat::st_blksize     : yes (cached) [3]
+    - has stat::st_mtim        : yes (cached) [3]
+    - has stat::st_mtimensec   : no  (cached) [3]
+    - has stat::st_mtimespec   : no  (cached) [3]
+    - has stat::st_birthtim    : no  (cached) [3]
+    - has stat::st_birthtimensec : no  (cached) [3]
+    - has stat::st_birthtimespec : no  (cached) [3]
+    - has fdopendir(O_NOFOLLOW) : yes (cached) [3]
+    - has dirent::d_type       : yes (cached) [3]
+    - has POSIX *at APIs       : yes (cached) [3]
+    - has fallocate            : yes (cached) [3]
+    - cxx11_rvalue_references  : yes (cached) [3]
+    - cxx11_scoped_enums       : yes (cached) [3]
+    - cxx11_noexcept           : yes (cached) [3]
+    - cxx11_nullptr            : yes (cached) [3]
+    - cxx11_defaulted_functions : yes (cached) [3]
+    - cxx11_defaulted_moves    : yes (cached) [3]
+    - cxx11_deleted_functions  : yes (cached) [3]
+    - cxx11_function_template_default_args : yes (cached) [3]
+    - cxx11_final              : yes (cached) [3]
+    - cxx11_override           : yes (cached) [3]
+    - has_icu builds           : yes (cached) [3]
+
+[1] gcc-12
+[2] gcc-12/release/x86_64/threading-multi/visibility-hidden
+[3] gcc-12/release/x86_64/link-static/threading-multi/visibility-hidden
+
+Component configuration:
+
+    - atomic                   : building
+    - charconv                 : not building
+    - chrono                   : not building
+    - cobalt                   : not building
+    - container                : not building
+    - context                  : not building
+    - contract                 : not building
+    - coroutine                : not building
+    - date_time                : building
+    - exception                : not building
+    - fiber                    : not building
+    - filesystem               : building
+    - graph                    : not building
+    - graph_parallel           : not building
+    - headers                  : not building
+    - iostreams                : not building
+    - json                     : not building
+    - locale                   : not building
+    - log                      : not building
+    - math                     : not building
+    - mpi                      : not building
+    - nowide                   : not building
+    - process                  : not building
+    - program_options          : not building
+    - python                   : not building
+    - random                   : not building
+    - regex                    : building
+    - serialization            : not building
+    - stacktrace               : not building
+    - system                   : building
+    - test                     : not building
+    - thread                   : building
+    - timer                    : not building
+    - type_erasure             : not building
+    - url                      : not building
+    - wave                     : not building
+    - predef                   : not building
+
+...patience...
+...patience...
+...found 36513 targets...
+log /tmp/libPSI/out/libOTe/out/coproto/thirdparty/log-boost.txt
+==========================================
+
+
+Boost_LIB: Boost::system;Boost::thread;Boost::regex
+Boost_INC: 
+
+
+libdivide already fetched.
+-- LIBDIVIDE_INCLUDE_DIRS:  /tmp/libPSI/out/libOTe/out/install/linux/include
+-- General Options
+=======================================================
+-- Option: FETCH_BITPOLYMUL      = ON
+-- Option: ENABLE_BITPOLYMUL     = ON
+-- Option: ENABLE_ALL_OT         = ON/OFF
+
+
+-- Base OT protocols
+=======================================================
+-- Option: ENABLE_SIMPLESTOT     = ON
+-- Option: ENABLE_SIMPLESTOT_ASM = ON
+-- Option: ENABLE_MRR            = ON
+-- Option: ENABLE_MRR_TWIST      = OFF
+-- Option: ENABLE_MR             = ON
+-- Option: ENABLE_MR_KYBER       = ON
+-- Option: ENABLE_NP             = ON
+
+
+-- 1-out-of-2 OT Extension protocols
+=======================================================
+-- Option: ENABLE_KOS            = ON
+-- Option: ENABLE_IKNP           = ON
+-- Option: ENABLE_SILENTOT       = ON
+
+
+-- Option: ENABLE_SOFTSPOKEN_OT  = ON
+
+
+-- 1-out-of-2 Delta-OT Extension protocols
+=======================================================
+-- Option: ENABLE_DELTA_KOS      = ON
+
+
+-- 1-out-of-N OT Extension protocols
+=======================================================
+-- Option: ENABLE_OOS            = ON
+-- Option: ENABLE_KKRT           = ON
+-- Option: ENABLE_RR             = ON
+
+
+-- CRYPTO_TOOLS_STD_VER=20
+bitpolymul already fetched.
+-- bitpolymul_INCLUDE_DIRS=/tmp/libPSI/out/libOTe/out/install/linux/include
+-- bitpolymul_LIBRARIES=/tmp/libPSI/out/libOTe/out/install/linux/lib/libbitpolymul.a
+
+LIBOTE_STD_VER=20
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/libPSI/out/libOTe/out/build/linux
+Build
+[  1%] Built target macoro
+[  2%] Building CXX object macoro/tests/CMakeFiles/macoroTests.dir/task_tests.cpp.o
+In file included from /tmp/libPSI/out/libOTe/out/macoro/tests/task_tests.cpp:3:
+/tmp/libPSI/out/libOTe/out/macoro/macoro/../macoro/sync_wait.h: In instantiation of ‘macoro::blocking_task<Awaitable> macoro::make_blocking(Awaitable, std::source_location) [with Awaitable = task<int>&]’:
+/tmp/libPSI/out/libOTe/out/macoro/macoro/../macoro/sync_wait.h:210:61:   required from ‘decltype(auto) macoro::sync_wait(Awaitable&&, std::source_location) [with Awaitable = task<int>&]’
+/tmp/libPSI/out/libOTe/out/macoro/tests/task_tests.cpp:319:22:   required from here
+/tmp/libPSI/out/libOTe/out/macoro/macoro/../macoro/sync_wait.h:187:17: error: use of deleted function ‘macoro::detail::blocking_promise<macoro::task<int>&>::blocking_promise(const macoro::detail::blocking_promise<macoro::task<int>&>&)’
+  187 |                 co_await static_cast<Awaitable&&>(awaitable);
+      |                 ^~~~~~~~
+compilation terminated due to -Wfatal-errors.
+gmake[2]: *** [macoro/tests/CMakeFiles/macoroTests.dir/build.make:104: macoro/tests/CMakeFiles/macoroTests.dir/task_tests.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:403: macoro/tests/CMakeFiles/macoroTests.dir/all] Error 2
+gmake: *** [Makefile:136: all] Error 2
+CMake Error at thirdparty/fetch.cmake:31 (message):
+  Build failed
+Call Stack (most recent call first):
+  thirdparty/getLibOTe.cmake:53 (run)
+  cmake/findDependancies.cmake:134 (include)
+  CMakeLists.txt:12 (include)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/tmp/libPSI/out/build/linux/CMakeFiles/CMakeOutput.log".
+gmake: Makefile: No such file or directory
+gmake: *** No rule to make target 'Makefile'.  Stop.
+
+
+====== build.py (LIBPSI) ========
+mkdir -p out/build/linux
+cmake   -S . -B out/build/linux   -DSUDO_FETCH=OFF -DENABLE_ALL_PSI=ON -DFETCH_AUTO=ON -DPARALLEL_FETCH=8 -DCMAKE_BUILD_TYPE=Release 
+cmake --build out/build/linux   --parallel 8 
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+
+libPSI frontend missing; retrying after patching stale Boost download URL
+-- fetch options
+=======================================================
+-- Option: FETCH_AUTO            = ON
+-- Option: FETCH_SPARSEHASH      = 
+-- Option: FETCH_LIBOTE          = 
+
+-- General Options
+=======================================================
+-- Option: CMAKE_BUILD_TYPE = Release
+	Release
+	Debug
+	RELWITHDEBINFO
+-- Option: ENABLE_ALL_PSI         = ON/OFF
+
+
+-- PSI protocols
+=======================================================
+-- Option: ENABLE_DCW_PSI    = ON
+-- Option: ENABLE_DKT_PSI    = ON
+-- Option: ENABLE_GRR_PSI    = ON
+-- Option: ENABLE_RR16_PSI   = ON
+-- Option: ENABLE_RR17_PSI   = ON
+-- Option: ENABLE_RR17B_PSI  = ON
+-- Option: ENABLE_KKRT_PSI   = ON
+-- Option: ENABLE_ECDH_PSI   = ON
+-- Option: ENABLE_DRRN_PSI   = ON
+
+-- Option: ENABLE_RELIC      = ON
+-- Option: ENABLE_SODIUM     = OFF
+
+-- LIBPSI_THIRDPARTY_DIR=/tmp/libPSI/out/install/linux
+sparsehash-c11 already fetched.
+SPARSEHASH_INCLUDE_DIRS=/tmp/libPSI/out/install/linux/include
+============= Building libOTe =============
+Checkout f47217d924ceef9b65e04a9ae680b65a79a4425a 
+HEAD is now at f47217d fixes for new cryptoTools
+submodule
+Configure
+-- Building for x86-64
+-- cryptoTools options
+=======================================================
+-- Option: CRYPTO_TOOLS_STD_VER  = 20
+
+-- Option: NO_SYSTEM_PATH    = 
+-- Option: FETCH_AUTO        = ON
+-- Option: VERBOSE_FETCH     = 
+
+-- Option: FETCH_RELIC       = 
+-- Option: FETCH_SODIUM      = 
+-- Option: FETCH_BOOST       = 
+-- Option: FETCH_COPROTO     = 
+-- Option: FETCH_LIBDIVIDE   = ON
+
+-- Option: CMAKE_BUILD_TYPE  = Release
+	Release
+	Debug
+	RelWithDebInfo
+-- Option: ENABLE_SPAN_LITE  = OFF
+-- Option: ENABLE_GMP        = OFF
+-- Option: ENABLE_RELIC      = ON
+-- Option: ENABLE_SODIUM     = OFF
+-- Option: ENABLE_BOOST      = ON
+-- Option: ENABLE_OPENSSL    = OFF
+-- Option: ENABLE_COPROTO    = true
+-- Option: ENABLE_CIRCUITS   = OFF
+-- Option: ENABLE_ARM_AES    = OFF
+-- Option: ENABLE_SSE        = ON
+-- Option: ENABLE_AVX        = ON
+-- Option: ENABLE_PIC        = OFF
+-- Option: ENABLE_ASAN       = OFF
+
+
+relic already fetched.
+-- Relic_LIB:  /tmp/libPSI/out/libOTe/out/install/linux/lib/librelic_s.a
+-- Relic_inc:  /tmp/libPSI/out/libOTe/out/install/linux/include
+
+============= Building coproto =============
+'/usr/bin/git' 'show-ref' '--tags' 'c9e646b2f350c998e5225a67166573ad88ac9dbd' '--quiet'
+CHECK_TAG_REUSLT=1
+'/usr/bin/git' 'fetch'
+Checkout c9e646b2f350c998e5225a67166573ad88ac9dbd 
+'/usr/bin/git' 'checkout' 'c9e646b2f350c998e5225a67166573ad88ac9dbd'
+M	thirdparty/getBoost.cmake
+HEAD is now at c9e646b macoro bump
+-- Option: CMAKE_INSTALL_PREFIX    = /usr/local
+-- Option: CMAKE_BUILD_TYPE        = Release
+	Release
+	Debug
+	RELWITHDEBINFO
+-- Option: COPROTO_NO_SYSTEM_PATH  = 	  ~ do not look in system paths for dependencies
+-- Option: COPROTO_FETCH_AUTO      = 	  ~ automatically fetch dependencies
+-- Option: COPROTO_FETCH_SPAN      = OFF	  ~ always fetch span
+-- Option: COPROTO_FETCH_FUNCTION2 = ON	  ~ always fetch function2
+-- Option: COPROTO_FETCH_MACORO    = ON	  ~ always fetch macoro
+-- Option: COPROTO_FETCH_BOOST     = ON	  ~ always fetch boost
+
+-- Option: COPROTO_CPP_VER         = 20
+-- Option: COPROTO_PIC             = OFF
+-- Option: COPROTO_ASAN            = OFF
+-- Option: COPROTO_ENABLE_BOOST    = ON
+-- Option: COPROTO_ENABLE_SPAN     = 
+-- Option: COPROTO_ENABLE_OPENSSL  = OFF
+-- Option: COPROTO_ENABLE_ASSERTS  = ON
+
+-- Option: COPROTO_STAGE = /tmp/libPSI/out/libOTe/cmake/../out/install/linux
+============= Building macoro =============
+Checkout 305b716ec78e9d65275943bd53fa0ed4a7defee8 
+'/usr/bin/git' 'checkout' '305b716ec78e9d65275943bd53fa0ed4a7defee8'
+HEAD is now at 305b716 added missing header utility
+
+Options
+---------------------------
+CMAKE_BUILD_TYPE       = Release	  ~ build type
+MACORO_NO_SYSTEM_PATH  = 	  ~ do not look in system paths for dependencies
+MACORO_FETCH_AUTO      = true	  ~ automatically fetch dependencies as needed
+MACORO_FETCH_OPTIONAL  =   	  ~ fetch optional-lite
+MACORO_FETCH_VARIANT   =   	  ~ fetch variant-lite
+MACORO_CPP_VER         = 20	  ~ cpp standard version
+MACORO_OPTIONAL_LITE   =OFF	  ~ use optional lite
+MACORO_VARIANT_LITE    =OFF	  ~ use variant lite
+MACORO_PIC             =OFF	  ~ compile with -fPIC on unix
+MACORO_ASAN            =OFF	  ~ compile with asan
+MACORO_TESTS           =ON	  ~ compile the tests and frontend
+---------------------------
+
+-- Option: MACORO_STAGE = /tmp/libPSI/out/libOTe/out/macoro/out/install/linux
+============= Building function2 =============
+Checkout 02ca99831de59c7c3a4b834789260253cace0ced 
+'/usr/bin/git' 'checkout' '02ca99831de59c7c3a4b834789260253cace0ced'
+HEAD is now at 02ca998 Release 4.2.0 * Includes minor maintainance and stability patches from the last year * Closes #46
+Configure
+'/usr/bin/cmake' '-S' '/tmp/libPSI/out/libOTe/cmake/../out//function2' '-B' '/tmp/libPSI/out/libOTe/cmake/../out//function2/out/build/linux' '-DCMAKE_INSTALL_PREFIX=/usr/local' '-DCMAKE_BUILD_TYPE=Release' '-DBUILD_TESTING=OFF'
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/libPSI/out/libOTe/out/function2/out/build/linux
+Build
+'/usr/bin/cmake' '--build' '/tmp/libPSI/out/libOTe/cmake/../out//function2/out/build/linux' '--config' 'Release'
+Install
+'/usr/bin/cmake' '--install' '/tmp/libPSI/out/libOTe/cmake/../out//function2/out/build/linux' '--config' 'Release' '--prefix' '/tmp/libPSI/out/libOTe/cmake/../out/install/linux'
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/include/function2
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/include/function2/function2.hpp
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/./LICENSE.txt
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/./Readme.md
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/lib/cmake/function2/function2ConfigVersion.cmake
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/lib/cmake/function2/function2Config.cmake
+-- Up-to-date: /tmp/libPSI/out/libOTe/cmake/../out/install/linux/lib/cmake/function2/function2Targets.cmake
+log /tmp/libPSI/out/libOTe/out/coproto/thirdparty/log-function2.txt
+==========================================
+============= Building Boost =============
+configure
+'bash' '/tmp/libPSI/out/libOTe/cmake/../out//boost_1_86_0/bootstrap.sh'
+Building B2 engine..
+
+###
+###
+### Using 'gcc' toolset.
+###
+###
+
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+###
+###
+
+> g++ -x c++ -std=c++11 -pthread -O2 -s -DNDEBUG bindjam.cpp builtins.cpp class.cpp command.cpp compile.cpp constants.cpp cwd.cpp debug.cpp debugger.cpp events.cpp execcmd.cpp execnt.cpp execunix.cpp filent.cpp filesys.cpp fileunix.cpp frames.cpp function.cpp glob.cpp hash.cpp hcache.cpp hdrmacro.cpp headers.cpp jam_strings.cpp jam.cpp jamgram.cpp lists.cpp make.cpp make1.cpp md5.cpp mem.cpp modules.cpp native.cpp option.cpp output.cpp parse.cpp pathnt.cpp pathsys.cpp pathunix.cpp regexp.cpp rules.cpp scan.cpp search.cpp startup.cpp tasks.cpp timestamp.cpp value.cpp variable.cpp w32_getreg.cpp mod_command_db.cpp mod_db.cpp mod_jam_builtin.cpp mod_jam_class.cpp mod_jam_errors.cpp mod_jam_modules.cpp mod_order.cpp mod_path.cpp mod_property_set.cpp mod_regex.cpp mod_sequence.cpp mod_set.cpp mod_string.cpp mod_summary.cpp mod_sysinfo.cpp mod_version.cpp -o b2
+tools/build/src/engine/b2
+Unicode/ICU support for Boost.Regex?... /usr
+Backing up existing B2 configuration in project-config.jam.2
+Generating B2 configuration in project-config.jam for gcc...
+
+Bootstrapping is done. To build, run:
+
+    ./b2
+    
+To generate header files, run:
+
+    ./b2 headers
+
+The configuration generated uses gcc to build by default. If that is
+unintended either use the --with-toolset option or adjust configuration, by
+editing 'project-config.jam'.
+
+Further information:
+
+   - Command line help:
+     ./b2 --help
+     
+   - Getting started guide: 
+     http://www.boost.org/more/getting_started/unix-variants.html
+     
+   - B2 documentation:
+     http://www.boost.org/build/
+
+install
+'/tmp/libPSI/out/libOTe/cmake/../out//boost_1_86_0/b2' '--with-system' '--with-thread' '--with-atomic' '--with-filesystem' '--with-regex' '--with-date_time' '-j' '8' 'install' '--prefix=/tmp/libPSI/out/libOTe/cmake/../out/install/linux'
+Performing configuration checks
+
+    - default address-model    : 64-bit (cached) [1]
+    - default architecture     : x86 (cached) [1]
+    - lockfree boost::atomic_flag : yes (cached) [2]
+    - cxx11_hdr_ratio          : yes (cached) [2]
+    - cxx11_template_aliases   : yes (cached) [2]
+    - cxx11_decltype           : yes (cached) [2]
+    - cxx11_char16_t           : yes (cached) [2]
+    - cxx11_char32_t           : yes (cached) [2]
+    - compiler supports SSE2   : yes (cached) [2]
+    - compiler supports SSE4.1 : yes (cached) [2]
+    - cxx11_static_assert      : yes (cached) [2]
+    - has std::atomic_ref      : no  (cached) [2]
+    - has -Wl,--no-undefined   : yes (cached) [2]
+    - has statx                : yes (cached) [2]
+    - has init_priority attribute : yes (cached) [2]
+    - has stat::st_blksize     : yes (cached) [2]
+    - has stat::st_mtim        : yes (cached) [2]
+    - has stat::st_mtimensec   : no  (cached) [2]
+    - has stat::st_mtimespec   : no  (cached) [2]
+    - has stat::st_birthtim    : no  (cached) [2]
+    - has stat::st_birthtimensec : no  (cached) [2]
+    - has stat::st_birthtimespec : no  (cached) [2]
+    - has fdopendir(O_NOFOLLOW) : yes (cached) [2]
+    - has dirent::d_type       : yes (cached) [2]
+    - has POSIX *at APIs       : yes (cached) [2]
+    - has fallocate            : yes (cached) [2]
+    - cxx11_rvalue_references  : yes (cached) [2]
+    - cxx11_scoped_enums       : yes (cached) [2]
+    - cxx11_noexcept           : yes (cached) [2]
+    - cxx11_nullptr            : yes (cached) [2]
+    - cxx11_defaulted_functions : yes (cached) [2]
+    - cxx11_defaulted_moves    : yes (cached) [2]
+    - cxx11_deleted_functions  : yes (cached) [2]
+    - cxx11_function_template_default_args : yes (cached) [2]
+    - cxx11_final              : yes (cached) [2]
+    - cxx11_override           : yes (cached) [2]
+    - has_icu builds           : yes (cached) [2]
+    - lockfree boost::atomic_flag : yes (cached) [3]
+    - cxx11_hdr_ratio          : yes (cached) [3]
+    - cxx11_template_aliases   : yes (cached) [3]
+    - cxx11_decltype           : yes (cached) [3]
+    - cxx11_char16_t           : yes (cached) [3]
+    - cxx11_char32_t           : yes (cached) [3]
+    - compiler supports SSE2   : yes (cached) [3]
+    - compiler supports SSE4.1 : yes (cached) [3]
+    - cxx11_static_assert      : yes (cached) [3]
+    - has std::atomic_ref      : no  (cached) [3]
+    - has statx                : yes (cached) [3]
+    - has init_priority attribute : yes (cached) [3]
+    - has stat::st_blksize     : yes (cached) [3]
+    - has stat::st_mtim        : yes (cached) [3]
+    - has stat::st_mtimensec   : no  (cached) [3]
+    - has stat::st_mtimespec   : no  (cached) [3]
+    - has stat::st_birthtim    : no  (cached) [3]
+    - has stat::st_birthtimensec : no  (cached) [3]
+    - has stat::st_birthtimespec : no  (cached) [3]
+    - has fdopendir(O_NOFOLLOW) : yes (cached) [3]
+    - has dirent::d_type       : yes (cached) [3]
+    - has POSIX *at APIs       : yes (cached) [3]
+    - has fallocate            : yes (cached) [3]
+    - cxx11_rvalue_references  : yes (cached) [3]
+    - cxx11_scoped_enums       : yes (cached) [3]
+    - cxx11_noexcept           : yes (cached) [3]
+    - cxx11_nullptr            : yes (cached) [3]
+    - cxx11_defaulted_functions : yes (cached) [3]
+    - cxx11_defaulted_moves    : yes (cached) [3]
+    - cxx11_deleted_functions  : yes (cached) [3]
+    - cxx11_function_template_default_args : yes (cached) [3]
+    - cxx11_final              : yes (cached) [3]
+    - cxx11_override           : yes (cached) [3]
+    - has_icu builds           : yes (cached) [3]
+
+[1] gcc-12
+[2] gcc-12/release/x86_64/threading-multi/visibility-hidden
+[3] gcc-12/release/x86_64/link-static/threading-multi/visibility-hidden
+
+Component configuration:
+
+    - atomic                   : building
+    - charconv                 : not building
+    - chrono                   : not building
+    - cobalt                   : not building
+    - container                : not building
+    - context                  : not building
+    - contract                 : not building
+    - coroutine                : not building
+    - date_time                : building
+    - exception                : not building
+    - fiber                    : not building
+    - filesystem               : building
+    - graph                    : not building
+    - graph_parallel           : not building
+    - headers                  : not building
+    - iostreams                : not building
+    - json                     : not building
+    - locale                   : not building
+    - log                      : not building
+    - math                     : not building
+    - mpi                      : not building
+    - nowide                   : not building
+    - process                  : not building
+    - program_options          : not building
+    - python                   : not building
+    - random                   : not building
+    - regex                    : building
+    - serialization            : not building
+    - stacktrace               : not building
+    - system                   : building
+    - test                     : not building
+    - thread                   : building
+    - timer                    : not building
+    - type_erasure             : not building
+    - url                      : not building
+    - wave                     : not building
+    - predef                   : not building
+
+...patience...
+...patience...
+...found 36513 targets...
+log /tmp/libPSI/out/libOTe/out/coproto/thirdparty/log-boost.txt
+==========================================
+
+
+Boost_LIB: Boost::system;Boost::thread;Boost::regex
+Boost_INC: 
+
+
+libdivide already fetched.
+-- LIBDIVIDE_INCLUDE_DIRS:  /tmp/libPSI/out/libOTe/out/install/linux/include
+-- General Options
+=======================================================
+-- Option: FETCH_BITPOLYMUL      = ON
+-- Option: ENABLE_BITPOLYMUL     = ON
+-- Option: ENABLE_ALL_OT         = ON/OFF
+
+
+-- Base OT protocols
+=======================================================
+-- Option: ENABLE_SIMPLESTOT     = ON
+-- Option: ENABLE_SIMPLESTOT_ASM = ON
+-- Option: ENABLE_MRR            = ON
+-- Option: ENABLE_MRR_TWIST      = OFF
+-- Option: ENABLE_MR             = ON
+-- Option: ENABLE_MR_KYBER       = ON
+-- Option: ENABLE_NP             = ON
+
+
+-- 1-out-of-2 OT Extension protocols
+=======================================================
+-- Option: ENABLE_KOS            = ON
+-- Option: ENABLE_IKNP           = ON
+-- Option: ENABLE_SILENTOT       = ON
+
+
+-- Option: ENABLE_SOFTSPOKEN_OT  = ON
+
+
+-- 1-out-of-2 Delta-OT Extension protocols
+=======================================================
+-- Option: ENABLE_DELTA_KOS      = ON
+
+
+-- 1-out-of-N OT Extension protocols
+=======================================================
+-- Option: ENABLE_OOS            = ON
+-- Option: ENABLE_KKRT           = ON
+-- Option: ENABLE_RR             = ON
+
+
+-- CRYPTO_TOOLS_STD_VER=20
+bitpolymul already fetched.
+-- bitpolymul_INCLUDE_DIRS=/tmp/libPSI/out/libOTe/out/install/linux/include
+-- bitpolymul_LIBRARIES=/tmp/libPSI/out/libOTe/out/install/linux/lib/libbitpolymul.a
+
+LIBOTE_STD_VER=20
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/libPSI/out/libOTe/out/build/linux
+Build
+[  1%] Built target macoro
+[  2%] Building CXX object macoro/tests/CMakeFiles/macoroTests.dir/task_tests.cpp.o
+In file included from /tmp/libPSI/out/libOTe/out/macoro/tests/task_tests.cpp:3:
+/tmp/libPSI/out/libOTe/out/macoro/macoro/../macoro/sync_wait.h: In instantiation of ‘macoro::blocking_task<Awaitable> macoro::make_blocking(Awaitable, std::source_location) [with Awaitable = task<int>&]’:
+/tmp/libPSI/out/libOTe/out/macoro/macoro/../macoro/sync_wait.h:210:61:   required from ‘decltype(auto) macoro::sync_wait(Awaitable&&, std::source_location) [with Awaitable = task<int>&]’
+/tmp/libPSI/out/libOTe/out/macoro/tests/task_tests.cpp:319:22:   required from here
+/tmp/libPSI/out/libOTe/out/macoro/macoro/../macoro/sync_wait.h:187:17: error: use of deleted function ‘macoro::detail::blocking_promise<macoro::task<int>&>::blocking_promise(const macoro::detail::blocking_promise<macoro::task<int>&>&)’
+  187 |                 co_await static_cast<Awaitable&&>(awaitable);
+      |                 ^~~~~~~~
+compilation terminated due to -Wfatal-errors.
+gmake[2]: *** [macoro/tests/CMakeFiles/macoroTests.dir/build.make:104: macoro/tests/CMakeFiles/macoroTests.dir/task_tests.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:403: macoro/tests/CMakeFiles/macoroTests.dir/all] Error 2
+gmake: *** [Makefile:136: all] Error 2
+CMake Error at thirdparty/fetch.cmake:31 (message):
+  Build failed
+Call Stack (most recent call first):
+  thirdparty/getLibOTe.cmake:53 (run)
+  cmake/findDependancies.cmake:134 (include)
+  CMakeLists.txt:12 (include)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/tmp/libPSI/out/build/linux/CMakeFiles/CMakeOutput.log".
+gmake: Makefile: No such file or directory
+gmake: *** No rule to make target 'Makefile'.  Stop.
+
+
+====== build.py (LIBPSI) ========
+mkdir -p out/build/linux
+cmake   -S . -B out/build/linux   -DSUDO_FETCH=OFF -DENABLE_ALL_PSI=ON -DFETCH_AUTO=ON -DPARALLEL_FETCH=8 -DCMAKE_BUILD_TYPE=Release 
+cmake --build out/build/linux   --parallel 8 
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+

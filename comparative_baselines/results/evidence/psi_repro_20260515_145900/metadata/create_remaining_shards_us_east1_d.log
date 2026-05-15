@@ -1,0 +1,52 @@
+== create lepsi-shard-0-rerun-d shard_id=0 in us-east1-d ==
+Created [https://www.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-d/instances/lepsi-shard-0-rerun-d].
+WARNING: Some requests generated warnings:
+ - Disk size: '20 GB' is larger than image size: '10 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
+
+NAME                   ZONE        MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+lepsi-shard-0-rerun-d  us-east1-d  e2-highmem-4               10.142.0.25  34.138.41.101  RUNNING
+== create lepsi-shard-1-rerun-d shard_id=1 in us-east1-d ==
+Created [https://www.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-d/instances/lepsi-shard-1-rerun-d].
+WARNING: Some requests generated warnings:
+ - Disk size: '20 GB' is larger than image size: '10 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
+
+NAME                   ZONE        MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP   STATUS
+lepsi-shard-1-rerun-d  us-east1-d  e2-highmem-4               10.142.0.26  34.73.50.103  RUNNING
+== create lepsi-shard-4-rerun-d shard_id=4 in us-east1-d ==
+Created [https://www.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-d/instances/lepsi-shard-4-rerun-d].
+WARNING: Some requests generated warnings:
+ - Disk size: '20 GB' is larger than image size: '10 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
+
+NAME                   ZONE        MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP   STATUS
+lepsi-shard-4-rerun-d  us-east1-d  e2-highmem-4               10.142.0.27  34.74.112.61  RUNNING
+== create lepsi-shard-5-rerun-d shard_id=5 in us-east1-d ==
+Created [https://www.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-d/instances/lepsi-shard-5-rerun-d].
+WARNING: Some requests generated warnings:
+ - Disk size: '20 GB' is larger than image size: '10 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
+
+NAME                   ZONE        MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP   STATUS
+lepsi-shard-5-rerun-d  us-east1-d  e2-highmem-4               10.142.0.28  34.24.87.216  RUNNING
+== create lepsi-shard-6-rerun-d shard_id=6 in us-east1-d ==
+Created [https://www.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-d/instances/lepsi-shard-6-rerun-d].
+WARNING: Some requests generated warnings:
+ - Disk size: '20 GB' is larger than image size: '10 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
+
+NAME                   ZONE        MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+lepsi-shard-6-rerun-d  us-east1-d  e2-highmem-4               10.142.0.29  34.24.151.124  RUNNING
+NAME                   ZONE        MACHINE_TYPE                          STATUS      ROLE         SHARD_ID  NETWORK_IP
+lepsi-coord            us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  coordinator            10.142.0.12
+lepsi-shard-0          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        0         10.142.0.13
+lepsi-shard-1          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        1         10.142.0.15
+lepsi-shard-2          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        2         10.142.0.17
+lepsi-shard-3          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        3         10.142.0.14
+lepsi-shard-4          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        4         10.142.0.16
+lepsi-shard-5          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        5         10.142.0.19
+lepsi-shard-6          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        6         10.142.0.18
+lepsi-coord-rerun      us-east1-c  us-east1-c/machineTypes/e2-highmem-4  RUNNING     coordinator            10.142.0.24
+lepsi-shard-2-rerun    us-east1-c  us-east1-c/machineTypes/e2-highmem-4  RUNNING     shard        2         10.142.0.23
+lepsi-shard-3-rerun    us-east1-c  us-east1-c/machineTypes/e2-highmem-4  RUNNING     shard        3         10.142.0.22
+lepsi-shard-0-rerun-d  us-east1-d  us-east1-d/machineTypes/e2-highmem-4  RUNNING     shard        0         10.142.0.25
+lepsi-shard-1-rerun-d  us-east1-d  us-east1-d/machineTypes/e2-highmem-4  RUNNING     shard        1         10.142.0.26
+lepsi-shard-4-rerun-d  us-east1-d  us-east1-d/machineTypes/e2-highmem-4  RUNNING     shard        4         10.142.0.27
+lepsi-shard-5-rerun-d  us-east1-d  us-east1-d/machineTypes/e2-highmem-4  RUNNING     shard        5         10.142.0.28
+lepsi-shard-6-rerun-d  us-east1-d  us-east1-d/machineTypes/e2-highmem-4  RUNNING     shard        6         10.142.0.29

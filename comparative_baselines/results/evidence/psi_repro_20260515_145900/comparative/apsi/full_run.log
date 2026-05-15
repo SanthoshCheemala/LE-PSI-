@@ -1,0 +1,122 @@
+==== Microsoft APSI 10K benchmark ====
+results=/tmp/psi_repro_20260515_145900/comparative/apsi m=10000 n=100 overlap=10 threads=8
+machine=psi-compare cpus=8 ram_gb=62 date=2026-05-15T15:05:28Z
+Computing installation plan...
+The following packages are already installed:
+    cppzmq:x64-linux@4.11.0
+    flatbuffers:x64-linux@25.12.19
+    jsoncpp:x64-linux@1.9.6
+    kuku:x64-linux@3.0.0
+    log4cplus:x64-linux@2.1.2
+    seal[core,zstd,zlib,no-throw-tran,ms-gsl]:x64-linux@4.3.2
+    tclap:x64-linux@1.2.5
+Total install time: 193 us
+All requested installations completed successfully in: 193 us
+-- Build type (CMAKE_BUILD_TYPE): Release
+-- APSI debug mode: OFF
+-- APSI_USE_CXX17: ON
+-- Microsoft SEAL: found
+-- Microsoft Kuku: found
+-- Flatbuffers: found
+-- flatc path: /tmp/vcpkg/installed/x64-linux/tools/flatbuffers/flatc
+-- jsoncpp: found
+-- log4cplus: found
+-- ZeroMQ: found
+-- cppzmq: found
+-- TCLAP: found
+-- TCLAP_INCLUDE_DIRS: /tmp/vcpkg/installed/x64-linux/include
+-- FourQlib optimization: arch=AMD64
+-- FourQlib optimization: simd=AVX2
+-- FourQlib optimization: asm=ON
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/apsi_build/build
+[  6%] Building CXX object CMakeFiles/apsi.dir/common/apsi/network/result_package.cpp.o
+[  6%] Building CXX object CMakeFiles/apsi.dir/common/apsi/psi_params.cpp.o
+[  4%] Building CXX object CMakeFiles/apsi.dir/common/apsi/network/sender_operation.cpp.o
+[ 10%] Building CXX object CMakeFiles/apsi.dir/common/apsi/network/stream_channel.cpp.o
+[ 10%] Building CXX object CMakeFiles/apsi.dir/common/apsi/network/sender_operation_response.cpp.o
+[ 13%] Building CXX object CMakeFiles/apsi.dir/common/apsi/network/zmq/zmq_channel.cpp.o
+[ 15%] Building CXX object CMakeFiles/apsi.dir/sender/apsi/bin_bundle.cpp.o
+[ 17%] Building CXX object CMakeFiles/apsi.dir/sender/apsi/sender_db.cpp.o
+[ 19%] Building CXX object CMakeFiles/apsi.dir/sender/apsi/util/cuckoo_filter.cpp.o
+[ 21%] Linking CXX static library lib/libapsi-0.12.a
+[ 80%] Built target apsi
+[ 82%] Linking CXX executable bin/pd_tool
+[ 86%] Built target common_cli
+[ 89%] Linking CXX executable bin/receiver_cli
+[ 91%] Linking CXX executable bin/sender_cli
+[ 93%] Built target pd_tool
+/usr/bin/ld: warning: fp2_1271_AVX2.S.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: fp2_1271_AVX2.S.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+[ 95%] Built target receiver_cli
+[100%] Built target sender_cli
+Done creating sender's set
+Done creating receiver's set
+Wrote sender's set
+Wrote receiver's set
+INFO  15:05:48:124.309: Connecting to tcp://127.0.0.1:1213
+INFO  15:05:48:124.701: Successfully connected to tcp://127.0.0.1:1213
+INFO  15:05:48:124.715: Sending parameter request
+INFO  15:05:48:124.727: Created parameter request
+INFO  15:05:48:141.593: Received valid parameters
+INFO  15:05:48:141.710: Setting thread count to 8
+INFO  15:05:48:148.509: Sending OPRF request for 100 items
+INFO  15:05:48:152.925: Created OPRFReceiver for 100 items
+INFO  15:05:48:152.943: Created OPRF request for 100 items
+INFO  15:05:48:191.211: Extracted OPRF hashes for 100 items
+INFO  15:05:48:191.260: Received OPRF response for 100 items
+INFO  15:05:48:191.267: Sending APSI query
+INFO  15:05:48:191.835: Creating encrypted query for 100 items
+INFO  15:05:48:213.490: Finished creating encrypted query
+INFO  15:05:48:252.400: Launching 1 result worker tasks to handle 1 result parts
+INFO  15:05:48:434.747: Found 10 matches
+INFO  15:05:48:435.205: Received APSI query response
+INFO  15:05:48:435.227: [1;32mkLOyIQcU[0m (FOUND)
+INFO  15:05:48:435.247: [1;32mMiOYzuLr[0m (FOUND)
+INFO  15:05:48:435.260: [1;32mkiBJyzyQ[0m (FOUND)
+INFO  15:05:48:435.273: [1;32mtEYfbqEp[0m (FOUND)
+INFO  15:05:48:435.282: [1;32mxiHIbzug[0m (FOUND)
+INFO  15:05:48:435.301: [1;32mUBDzaweJ[0m (FOUND)
+INFO  15:05:48:435.311: [1;32mhlqPztJE[0m (FOUND)
+INFO  15:05:48:435.324: [1;32mCnyYdWXd[0m (FOUND)
+INFO  15:05:48:435.334: [1;32mogjZmait[0m (FOUND)
+INFO  15:05:48:435.349: [1;32mkzxERqDG[0m (FOUND)
+INFO  15:05:48:435.447: Wrote output to /tmp/psi_repro_20260515_145900/comparative/apsi/matches_m10000.txt
+INFO  15:05:48:435.488: Communication R->S: 1049 KB
+INFO  15:05:48:435.497: Communication S->R: 35 KB
+INFO  15:05:48:435.505: Communication total: 1085 KB
+INFO  15:05:48:435.532: Timespan event information
+INFO  15:05:48:435.541: Receiver::CreateOPRFReceiver                     :     1 instances. Duration:      4ms
+INFO  15:05:48:435.549: Receiver::ExtractHashes                          :     1 instances. Duration:      2ms
+INFO  15:05:48:435.556: Receiver::create_query                           :     1 instances. Duration:     21ms
+INFO  15:05:48:435.564: Receiver::create_query::cuckoo_hashing           :     1 instances. Duration:      0ms
+INFO  15:05:48:435.571: Receiver::create_query::encrypt_data             :     1 instances. Duration:     18ms
+INFO  15:05:48:435.578: Receiver::create_query::prepare_data             :     1 instances. Duration:      2ms
+INFO  15:05:48:435.585: Receiver::initialize                             :     1 instances. Duration:      6ms
+INFO  15:05:48:435.592: Receiver::process_result_part                    :     1 instances. Duration:      0ms
+INFO  15:05:48:435.599: Receiver::process_result_worker [140615417329344]:     1 instances. Duration:    182ms
+{
+  "protocol": "Microsoft APSI (BFV/SEAL)",
+  "source_url": "https://github.com/microsoft/APSI",
+  "source_commit": "b967a12",
+  "timestamp": "2026-05-15T15:05:48Z",
+  "machine": "psi-compare",
+  "machine_type": "e2-highmem-8",
+  "vcpus": 8,
+  "ram_gb": 62,
+  "server_dataset_size": 10000,
+  "client_dataset_size": 100,
+  "expected_intersection": 10,
+  "matches_found": 10,
+  "online_time_ms": 319,
+  "sender_peak_rss_kb": 0,
+  "receiver_peak_rss_kb": 19956,
+  "communication_r_to_s_kb": 1049,
+  "communication_s_to_r_kb": 35,
+  "communication_total_kb": 1085,
+  "threads": 8,
+  "params_file": "1M-256.json"
+}

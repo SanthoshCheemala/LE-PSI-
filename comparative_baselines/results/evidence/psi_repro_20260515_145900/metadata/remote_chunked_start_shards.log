@@ -1,0 +1,8 @@
+starting shard-0 on lepsi-shard-0-rerun-d us-east1-d ip=10.142.0.25
+{"shard_id":0,"ready":false,"records":0}starting shard-1 on lepsi-shard-1-rerun-d us-east1-d ip=10.142.0.26
+{"shard_id":1,"ready":false,"records":0}starting shard-2 on lepsi-shard-2-rerun us-east1-c ip=10.142.0.23
+{"shard_id":2,"ready":false,"records":0}starting shard-3 on lepsi-shard-3-rerun us-east1-c ip=10.142.0.22
+{"shard_id":3,"ready":false,"records":0}starting shard-4 on lepsi-shard-4-rerun-d us-east1-d ip=10.142.0.27
+{"shard_id":4,"ready":false,"records":0}starting shard-5 on lepsi-shard-5-rerun-d us-east1-d ip=10.142.0.28
+{"shard_id":5,"ready":false,"records":0}starting shard-6 on lepsi-shard-6-rerun-d us-east1-d ip=10.142.0.29
+{"shard_id":6,"ready":false,"records":0}

@@ -1,0 +1,168 @@
+2026/05/15 17:08:17 LE-PSI shard server starting on :8081 (GOMAXPROCS=4)
+2026/05/15 17:10:18 [shard 2] /init received: 143 records
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Security Level: Fast Evaluation (Low Security)
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 12 (slots = 4096)
+ - Load Factor: 0.034912 (items/slot)
+ - Placement: 2-choice Cuckoo hashing (collision-resistant)
+2026/05/15 17:10:18 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 143 records (est. RAM: 0.1 GB)
+       💾 Building Merkle Tree directly in RAM for chunked benchmark...
+       ✓ In-memory tree built in 4.404648363s
+2026/05/15 17:10:23        Chunked mode: witness generation deferred to active chunks
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 4
+Total Execution Time: 4.999022164s
+Key Generation Time: 506.923521ms (10.1%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 0s (0.0%)
+Intersection Detection Time: 0s (0.0%)
+==================================================
+2026/05/15 17:10:23 [shard 2] chunked init done in 5.0s
+2026/05/15 17:12:52 [shard 2] /intersect: 200 ciphertexts vs 143 records
+2026/05/15 17:12:53    Chunked leaf-indexed filtering: m=143, ciphertexts=200, chunk_size=143, workers=4, targeted_dec_calls=7 (all_pairs=28600)
+2026/05/15 17:12:53    ... Chunk 1: records [0,143)
+2026/05/15 17:12:53    Chunked intersection complete in 317.213997ms, matches=0
+2026/05/15 17:12:53 [shard 2] chunked intersection done: 0 matches in 0.5s mode=explicit_chunked chunks=1 actual_dec_calls=7 total_possible_dec_calls=28600
+2026/05/15 17:12:56 [shard 2] /init received: 286 records
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Security Level: Fast Evaluation (Low Security)
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 13 (slots = 8192)
+ - Load Factor: 0.034912 (items/slot)
+ - Placement: 2-choice Cuckoo hashing (collision-resistant)
+2026/05/15 17:12:56 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 286 records (est. RAM: 0.3 GB)
+       💾 Building Merkle Tree directly in RAM for chunked benchmark...
+       ✓ In-memory tree built in 8.995722049s
+2026/05/15 17:13:06        Chunked mode: witness generation deferred to active chunks
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 4
+Total Execution Time: 9.910878873s
+Key Generation Time: 830.481883ms (8.4%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 0s (0.0%)
+Intersection Detection Time: 0s (0.0%)
+==================================================
+2026/05/15 17:13:06 [shard 2] chunked init done in 9.9s
+2026/05/15 17:15:37 [shard 2] /intersect: 200 ciphertexts vs 286 records
+2026/05/15 17:15:38    Chunked leaf-indexed filtering: m=286, ciphertexts=200, chunk_size=256, workers=4, targeted_dec_calls=16 (all_pairs=57200)
+2026/05/15 17:15:38    ... Chunk 1: records [0,256)
+2026/05/15 17:15:38    ... Chunk 2: records [256,286)
+2026/05/15 17:15:39    Chunked intersection complete in 794.971666ms, matches=0
+2026/05/15 17:15:39 [shard 2] chunked intersection done: 0 matches in 1.0s mode=explicit_chunked chunks=2 actual_dec_calls=16 total_possible_dec_calls=57200
+2026/05/15 17:15:40 [shard 2] /init received: 572 records
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Security Level: Fast Evaluation (Low Security)
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 14 (slots = 16384)
+ - Load Factor: 0.034912 (items/slot)
+ - Placement: 2-choice Cuckoo hashing (collision-resistant)
+2026/05/15 17:15:40 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 572 records (est. RAM: 0.6 GB)
+       💾 Building Merkle Tree directly in RAM for chunked benchmark...
+       ✓ In-memory tree built in 17.304035824s
+2026/05/15 17:15:59        Chunked mode: witness generation deferred to active chunks
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 4
+Total Execution Time: 19.007058908s
+Key Generation Time: 1.619682812s (8.5%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 0s (0.0%)
+Intersection Detection Time: 0s (0.0%)
+==================================================
+2026/05/15 17:15:59 [shard 2] chunked init done in 19.0s
+2026/05/15 17:18:44 [shard 2] /intersect: 200 ciphertexts vs 572 records
+2026/05/15 17:18:45    Chunked leaf-indexed filtering: m=572, ciphertexts=200, chunk_size=256, workers=4, targeted_dec_calls=8 (all_pairs=114400)
+2026/05/15 17:18:45    ... Chunk 1: records [0,256)
+2026/05/15 17:18:45    ... Chunk 2: records [256,512)
+2026/05/15 17:18:46    ... Chunk 3: records [512,572)
+2026/05/15 17:18:46    Chunked intersection complete in 1.011391364s, matches=0
+2026/05/15 17:18:46 [shard 2] chunked intersection done: 0 matches in 1.3s mode=explicit_chunked chunks=3 actual_dec_calls=8 total_possible_dec_calls=114400
+2026/05/15 17:18:48 [shard 2] /init received: 1143 records
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Security Level: Fast Evaluation (Low Security)
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 15 (slots = 32768)
+ - Load Factor: 0.034882 (items/slot)
+ - Placement: 2-choice Cuckoo hashing (collision-resistant)
+2026/05/15 17:18:48 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 1143 records (est. RAM: 1.1 GB)
+       💾 Building Merkle Tree directly in RAM for chunked benchmark...
+       ✓ In-memory tree built in 35.32907742s
+2026/05/15 17:19:27        Chunked mode: witness generation deferred to active chunks
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 4
+Total Execution Time: 38.734498122s
+Key Generation Time: 3.31998179s (8.6%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 0s (0.0%)
+Intersection Detection Time: 0s (0.0%)
+==================================================
+2026/05/15 17:19:27 [shard 2] chunked init done in 38.7s
+2026/05/15 17:22:41 [shard 2] /intersect: 200 ciphertexts vs 1143 records
+2026/05/15 17:22:42    Chunked leaf-indexed filtering: m=1143, ciphertexts=200, chunk_size=256, workers=4, targeted_dec_calls=5 (all_pairs=228600)
+2026/05/15 17:22:42    ... Chunk 1: records [0,256)
+2026/05/15 17:22:42    ... Chunk 2: records [256,512)
+2026/05/15 17:22:43    ... Chunk 3: records [512,768)
+2026/05/15 17:22:43    ... Chunk 4: records [768,1024)
+2026/05/15 17:22:43    ... Chunk 5: records [1024,1143)
+2026/05/15 17:22:44    Chunked intersection complete in 1.86802412s, matches=0
+2026/05/15 17:22:44 [shard 2] chunked intersection done: 0 matches in 2.2s mode=explicit_chunked chunks=5 actual_dec_calls=5 total_possible_dec_calls=228600
+2026/05/15 17:22:45 [shard 2] /init received: 1429 records
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Security Level: Fast Evaluation (Low Security)
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 15 (slots = 32768)
+ - Load Factor: 0.043610 (items/slot)
+ - Placement: 2-choice Cuckoo hashing (collision-resistant)
+2026/05/15 17:22:45 🚀 Auto-Tuned: 4 cores detected, 80.0 GB RAM available → 4 workers for 1429 records (est. RAM: 1.4 GB)
+       💾 Building Merkle Tree directly in RAM for chunked benchmark...
+       ✓ In-memory tree built in 42.665689496s
+2026/05/15 17:23:32        Chunked mode: witness generation deferred to active chunks
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 4
+Total Execution Time: 46.955079334s
+Key Generation Time: 4.197575874s (8.9%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 0s (0.0%)
+Intersection Detection Time: 0s (0.0%)
+==================================================
+2026/05/15 17:23:32 [shard 2] chunked init done in 47.0s
+2026/05/15 17:26:35 [shard 2] /intersect: 200 ciphertexts vs 1429 records
+2026/05/15 17:26:36    Chunked leaf-indexed filtering: m=1429, ciphertexts=200, chunk_size=256, workers=4, targeted_dec_calls=10 (all_pairs=285800)
+2026/05/15 17:26:36    ... Chunk 1: records [0,256)
+2026/05/15 17:26:36    ... Chunk 2: records [256,512)
+2026/05/15 17:26:37    ... Chunk 3: records [512,768)
+2026/05/15 17:26:37    ... Chunk 4: records [768,1024)
+2026/05/15 17:26:38    ... Chunk 5: records [1024,1280)
+2026/05/15 17:26:38    ... Chunk 6: records [1280,1429)
+2026/05/15 17:26:39    Chunked intersection complete in 2.580106272s, matches=0
+2026/05/15 17:26:39 [shard 2] chunked intersection done: 0 matches in 2.9s mode=explicit_chunked chunks=6 actual_dec_calls=10 total_possible_dec_calls=285800

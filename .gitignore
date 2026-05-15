@@ -25,6 +25,12 @@ simulation/client_sim
 # Benchmark results
 benchmarks/benchmark_results_*/
 results/*.json
+/distributed_gce/results/
+
+# Local/generated artifacts preserved outside the paper artifact
+/bench_10k
+/lepsi_source.tar.gz
+/internal/storage/# APSI*
 
 # Go specific ignores
 *.exe

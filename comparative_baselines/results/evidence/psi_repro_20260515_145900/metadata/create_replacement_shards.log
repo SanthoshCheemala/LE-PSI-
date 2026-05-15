@@ -1,0 +1,12 @@
+Created [https://www.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-c/instances/lepsi-shard-2-rerun].
+Created [https://www.googleapis.com/compute/v1/projects/lepsi-distributed-493617/zones/us-east1-c/instances/lepsi-shard-3-rerun].
+WARNING: Some requests generated warnings:
+ - Disk size: '20 GB' is larger than image size: '10 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
+
+NAME                 ZONE        MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP     STATUS
+lepsi-shard-2-rerun  us-east1-c  e2-highmem-4               10.142.0.23  34.24.87.216    RUNNING
+lepsi-shard-3-rerun  us-east1-c  e2-highmem-4               10.142.0.22  35.227.105.119  RUNNING
+Updating labels of instance [lepsi-shard-2-rerun]...
+............done.
+Updating labels of instance [lepsi-shard-3-rerun]...
+............done.

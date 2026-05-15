@@ -1,0 +1,41 @@
+INFO  15:05:48:124.309: Connecting to tcp://127.0.0.1:1213
+INFO  15:05:48:124.701: Successfully connected to tcp://127.0.0.1:1213
+INFO  15:05:48:124.715: Sending parameter request
+INFO  15:05:48:124.727: Created parameter request
+INFO  15:05:48:141.593: Received valid parameters
+INFO  15:05:48:141.710: Setting thread count to 8
+INFO  15:05:48:148.509: Sending OPRF request for 100 items
+INFO  15:05:48:152.925: Created OPRFReceiver for 100 items
+INFO  15:05:48:152.943: Created OPRF request for 100 items
+INFO  15:05:48:191.211: Extracted OPRF hashes for 100 items
+INFO  15:05:48:191.260: Received OPRF response for 100 items
+INFO  15:05:48:191.267: Sending APSI query
+INFO  15:05:48:191.835: Creating encrypted query for 100 items
+INFO  15:05:48:213.490: Finished creating encrypted query
+INFO  15:05:48:252.400: Launching 1 result worker tasks to handle 1 result parts
+INFO  15:05:48:434.747: Found 10 matches
+INFO  15:05:48:435.205: Received APSI query response
+INFO  15:05:48:435.227: [1;32mkLOyIQcU[0m (FOUND)
+INFO  15:05:48:435.247: [1;32mMiOYzuLr[0m (FOUND)
+INFO  15:05:48:435.260: [1;32mkiBJyzyQ[0m (FOUND)
+INFO  15:05:48:435.273: [1;32mtEYfbqEp[0m (FOUND)
+INFO  15:05:48:435.282: [1;32mxiHIbzug[0m (FOUND)
+INFO  15:05:48:435.301: [1;32mUBDzaweJ[0m (FOUND)
+INFO  15:05:48:435.311: [1;32mhlqPztJE[0m (FOUND)
+INFO  15:05:48:435.324: [1;32mCnyYdWXd[0m (FOUND)
+INFO  15:05:48:435.334: [1;32mogjZmait[0m (FOUND)
+INFO  15:05:48:435.349: [1;32mkzxERqDG[0m (FOUND)
+INFO  15:05:48:435.447: Wrote output to /tmp/psi_repro_20260515_145900/comparative/apsi/matches_m10000.txt
+INFO  15:05:48:435.488: Communication R->S: 1049 KB
+INFO  15:05:48:435.497: Communication S->R: 35 KB
+INFO  15:05:48:435.505: Communication total: 1085 KB
+INFO  15:05:48:435.532: Timespan event information
+INFO  15:05:48:435.541: Receiver::CreateOPRFReceiver                     :     1 instances. Duration:      4ms
+INFO  15:05:48:435.549: Receiver::ExtractHashes                          :     1 instances. Duration:      2ms
+INFO  15:05:48:435.556: Receiver::create_query                           :     1 instances. Duration:     21ms
+INFO  15:05:48:435.564: Receiver::create_query::cuckoo_hashing           :     1 instances. Duration:      0ms
+INFO  15:05:48:435.571: Receiver::create_query::encrypt_data             :     1 instances. Duration:     18ms
+INFO  15:05:48:435.578: Receiver::create_query::prepare_data             :     1 instances. Duration:      2ms
+INFO  15:05:48:435.585: Receiver::initialize                             :     1 instances. Duration:      6ms
+INFO  15:05:48:435.592: Receiver::process_result_part                    :     1 instances. Duration:      0ms
+INFO  15:05:48:435.599: Receiver::process_result_worker [140615417329344]:     1 instances. Duration:    182ms

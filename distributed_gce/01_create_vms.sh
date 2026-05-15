@@ -5,10 +5,10 @@
 # ============================================================
 set -euo pipefail
 
-PROJECT="${PROJECT:-distributed-sim}"
-ZONE="${ZONE:-us-central1-a}"
+PROJECT="${PROJECT:-lepsi-distributed-493617}"
+ZONE="${ZONE:-us-east1-c}"
 K="${K:-7}"                          # number of shard VMs
-MACHINE="${MACHINE:-n2-highcpu-16}"  # 16 vCPU, ~16 GB RAM, ~$0.57/hr
+MACHINE="${MACHINE:-e2-highmem-4}"   # final distributed shard/coordinator class
 IMAGE_FAMILY="debian-12"
 IMAGE_PROJECT="debian-cloud"
 LABEL="experiment=lepsi-dist"

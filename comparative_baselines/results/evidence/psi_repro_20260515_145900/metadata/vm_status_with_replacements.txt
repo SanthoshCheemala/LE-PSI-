@@ -1,0 +1,11 @@
+NAME                 ZONE        MACHINE_TYPE                          STATUS      ROLE         SHARD_ID  NETWORK_IP
+lepsi-coord          us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     coordinator            10.142.0.12
+lepsi-shard-0        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        0         10.142.0.13
+lepsi-shard-1        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        1         10.142.0.15
+lepsi-shard-2        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        2         10.142.0.17
+lepsi-shard-3        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  TERMINATED  shard        3         10.142.0.14
+lepsi-shard-4        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        4         10.142.0.16
+lepsi-shard-5        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        5         10.142.0.19
+lepsi-shard-6        us-east1-b  us-east1-b/machineTypes/e2-highmem-4  RUNNING     shard        6         10.142.0.18
+lepsi-shard-2-rerun  us-east1-c  us-east1-c/machineTypes/e2-highmem-4  RUNNING     shard        2         10.142.0.23
+lepsi-shard-3-rerun  us-east1-c  us-east1-c/machineTypes/e2-highmem-4  RUNNING     shard        3         10.142.0.22
