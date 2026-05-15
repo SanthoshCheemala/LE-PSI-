@@ -180,6 +180,47 @@ func startMemoryMonitor(done <-chan struct{}) (*uint64, *uint64) {
 	return &peakRSS, &peakHeap
 }
 
+func buildBenchmarkClientSet(serverSet []uint64, treeIndices []uint64, layers int, n int, desiredOverlap int) ([]uint64, int) {
+	occupiedLeaves := make(map[uint64]bool, len(treeIndices))
+	for _, leaf := range treeIndices {
+		occupiedLeaves[leaf] = true
+	}
+
+	overlapValues := make([]uint64, 0, desiredOverlap)
+	for i, value := range serverSet {
+		leaf1 := psi.ReduceToTreeIndex(value, layers)
+		leaf2 := psi.ReduceToTreeIndex2(value, layers)
+		otherLeaf := leaf1
+		if treeIndices[i] == leaf1 {
+			otherLeaf = leaf2
+		}
+		if otherLeaf != treeIndices[i] && !occupiedLeaves[otherLeaf] {
+			overlapValues = append(overlapValues, value)
+			if len(overlapValues) == desiredOverlap {
+				break
+			}
+		}
+	}
+
+	clientSet := make([]uint64, n)
+	nonOverlap := n - len(overlapValues)
+	candidate := uint64(len(serverSet) + 1000)
+	for i := 0; i < nonOverlap; i++ {
+		for {
+			leaf1 := psi.ReduceToTreeIndex(candidate, layers)
+			leaf2 := psi.ReduceToTreeIndex2(candidate, layers)
+			if !occupiedLeaves[leaf1] && !occupiedLeaves[leaf2] {
+				clientSet[i] = candidate
+				candidate++
+				break
+			}
+			candidate++
+		}
+	}
+	copy(clientSet[nonOverlap:], overlapValues)
+	return clientSet, len(overlapValues)
+}
+
 func main() {
 	if len(os.Args) < 3 {
 		log.Fatal("Usage: lepsi_bench <m> <n>")
@@ -194,7 +235,7 @@ func main() {
 	peakRSS, peakHeap := startMemoryMonitor(doneRSS)
 	defer close(doneRSS)
 
-	log.Printf("LE-PSI single-node benchmark: run_id=%s m=%d n=%d mode=chunked chunk_size=%d workers=%d",
+	log.Printf("LE-PSI single-node benchmark: run_id=%s m=%d n=%d mode=explicit_chunked chunk_size=%d workers=%d",
 		runID, m, n, chunkSize, workerCount)
 
 	// Generate server dataset: {1, 2, ..., m}
@@ -203,17 +244,12 @@ func main() {
 		serverSet[i] = uint64(i + 1)
 	}
 
-	// Generate client dataset: 10 overlap with server, rest unique
-	clientSet := make([]uint64, n)
 	overlap := 10
 	if overlap > n {
 		overlap = n
 	}
-	for i := 0; i < n-overlap; i++ {
-		clientSet[i] = uint64(m + i + 1000)
-	}
-	for i := 0; i < overlap; i++ {
-		clientSet[n-overlap+i] = serverSet[i]
+	if overlap > m {
+		overlap = m
 	}
 
 	dbPath := fmt.Sprintf("/tmp/lepsi_bench_m%d.db", m)
@@ -231,6 +267,9 @@ func main() {
 	}
 	initTime := time.Since(initStart)
 	log.Printf("  Init done: %v", initTime)
+
+	clientSet, actualOverlap := buildBenchmarkClientSet(serverSet, ctx.TreeIndices, ctx.LEParams.Layers, n, overlap)
+	log.Printf("  Client set prepared: expected_intersection=%d, non-overlap leaves avoid occupied server leaves", actualOverlap)
 
 	// Phase 2: Client encrypt
 	log.Println("  Phase 2: Client encrypt...")
@@ -276,17 +315,20 @@ func main() {
 		"machine":                func() string { h, _ := os.Hostname(); return h }(),
 		"machine_type":           machineType(),
 		"vcpu":                   runtime.NumCPU(),
+		"vcpus":                  runtime.NumCPU(),
 		"ram_gb":                 ramGB(),
 		"m":                      m,
 		"n":                      n,
 		"D":                      ctx.LEParams.D,
 		"q":                      ctx.LEParams.Q,
+		"qBits":                  ctx.LEParams.QBits,
+		"N":                      ctx.LEParams.N,
 		"sigma":                  ctx.LEParams.Sigma,
 		"mode":                   detectStats.Mode,
 		"chunk_size":             detectStats.ChunkSize,
 		"worker_count":           detectStats.WorkerCount,
 		"chunks_processed":       detectStats.ChunksProcessed,
-		"expected_intersection":  overlap,
+		"expected_intersection":  actualOverlap,
 		"matches_found":          len(Z),
 		"init_sec":               initTime.Seconds(),
 		"enc_sec":                encTime.Seconds(),
@@ -299,6 +341,9 @@ func main() {
 		"leaf_indexed_filtering": detectStats.LeafIndexedFiltering,
 		"targeted_dec_calls":     detectStats.TargetedDecCalls,
 		"all_pairs_dec_calls":    detectStats.AllPairsDecCalls,
+		"actual_dec_calls":       detectStats.ActualDecCalls,
+		"total_possible_dec_calls": detectStats.TotalPossibleDecCalls,
+		"decryption_reduction_factor": detectStats.ReductionFactor,
 	}
 
 	outFile := fmt.Sprintf("/tmp/lepsi_single_results/lepsi_m%d_n%d.json", m, n)

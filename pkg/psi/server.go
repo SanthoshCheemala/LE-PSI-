@@ -60,13 +60,16 @@ type ChunkedDetectionOptions struct {
 }
 
 type ChunkedDetectionStats struct {
-	Mode                 string
-	ChunkSize            int
-	WorkerCount          int
-	ChunksProcessed      int
-	LeafIndexedFiltering bool
-	TargetedDecCalls     int
-	AllPairsDecCalls     int
+	Mode                  string
+	ChunkSize             int
+	WorkerCount           int
+	ChunksProcessed       int
+	LeafIndexedFiltering  bool
+	TargetedDecCalls      int
+	AllPairsDecCalls      int
+	ActualDecCalls        int
+	TotalPossibleDecCalls int
+	ReductionFactor       float64
 }
 
 func configureTreeBuildDB(db *sql.DB) error {
@@ -639,12 +642,17 @@ func DetectIntersectionChunkedWithContext(ctx *ServerInitContext, clientCipherte
 		X_size, len(clientCiphertexts), chunkSize, workerCount, totalChecks, X_size*len(clientCiphertexts))
 
 	stats := ChunkedDetectionStats{
-		Mode:                 "chunked",
-		ChunkSize:            chunkSize,
-		WorkerCount:          workerCount,
-		LeafIndexedFiltering: true,
-		TargetedDecCalls:     totalChecks,
-		AllPairsDecCalls:     X_size * len(clientCiphertexts),
+		Mode:                  "explicit_chunked",
+		ChunkSize:             chunkSize,
+		WorkerCount:           workerCount,
+		LeafIndexedFiltering:  true,
+		TargetedDecCalls:      totalChecks,
+		AllPairsDecCalls:      X_size * len(clientCiphertexts),
+		ActualDecCalls:        totalChecks,
+		TotalPossibleDecCalls: X_size * len(clientCiphertexts),
+	}
+	if stats.ActualDecCalls > 0 {
+		stats.ReductionFactor = float64(stats.TotalPossibleDecCalls) / float64(stats.ActualDecCalls)
 	}
 
 	var Z []uint64
