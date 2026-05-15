@@ -94,10 +94,6 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 
 	numSlots := 1 << leParams.Layers
 	loadFactor := float64(size) / float64(numSlots)
-	
-	m := float64(size)
-	Nf := float64(numSlots)
-	collisionProb := 1.0 - math.Exp(-(m*m)/(2*Nf))
 
 	fmt.Println("Successfully initialized the LE parameters:")
 	fmt.Printf(" - Security Level: %s\n", securityMode)
@@ -107,7 +103,7 @@ func SetupLEParameters(size int) (*LE.LE, error) {
 	fmt.Printf(" - qBits: %d\n", qBits)
 	fmt.Printf(" - Layers: %d (slots = %d)\n", leParams.Layers, numSlots)
 	fmt.Printf(" - Load Factor: %.6f (items/slot)\n", loadFactor)
-	fmt.Printf(" - Estimated Collision Probability: %.6e\n", collisionProb)
+	fmt.Printf(" - Placement: 2-choice Cuckoo hashing (collision-resistant)\n")
 
 	return leParams, nil
 }

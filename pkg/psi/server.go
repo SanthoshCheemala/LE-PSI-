@@ -275,6 +275,7 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 			defer wg.Done()
 			for i := range workChan {
 				publicKeys[i], privateKeys[i] = leParams.KeyGen()
+				// Compute both candidate leaves for 2-choice placement
 				hashedClient[i] = ReduceToTreeIndex(private_set_X[i], leParams.Layers)
 			}
 		}()
@@ -286,6 +287,23 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	close(workChan)
 	wg.Wait()
 	monitor.TrackKeyGeneration(keyGenStart)
+
+	// 2-choice Cuckoo leaf placement: try leaf1 first, fall back to leaf2
+	occupied := make(map[uint64]bool)
+	for i := 0; i < X_size; i++ {
+		leaf1 := ReduceToTreeIndex(private_set_X[i], leParams.Layers)
+		leaf2 := ReduceToTreeIndex2(private_set_X[i], leParams.Layers)
+		if !occupied[leaf1] {
+			hashedClient[i] = leaf1
+			occupied[leaf1] = true
+		} else if !occupied[leaf2] {
+			hashedClient[i] = leaf2
+			occupied[leaf2] = true
+		} else {
+			// Both occupied — overwrite leaf1 (collision remains for this item)
+			hashedClient[i] = leaf1
+		}
+	}
 
 	for i := 0; i < X_size; i++ {
 		LE.Upd(db, hashedClient[i], leParams.Layers, publicKeys[i], leParams)
@@ -375,20 +393,35 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 		numWorkers = 1
 	}
 
+	// ── Leaf-indexed filtering ──────────────────────────────
+	// Build a map from leaf index → list of ciphertext indices.
+	// In DKLLMR23, decryption only succeeds when the ciphertext's target
+	// leaf matches the server record's leaf. All other pairs produce
+	// noise/garbage. This reduces Dec calls from O(m × 2n) to O(m + 2n).
+	leafToCts := make(map[uint64][]int)
+	for j, ct := range clientCiphertexts {
+		leafToCts[ct.TargetLeaf] = append(leafToCts[ct.TargetLeaf], j)
+	}
+
+	totalChecks := 0
+	for k := 0; k < X_size; k++ {
+		totalChecks += len(leafToCts[ctx.TreeIndices[k]])
+	}
+	log.Printf("   Leaf-indexed filtering: %d server records × %d ciphertexts → %d targeted Dec calls (was %d all-pairs)",
+		X_size, len(clientCiphertexts), totalChecks, X_size*len(clientCiphertexts))
+
 	var Z []uint64
 	intersectionMap := make(map[int]bool)
 	var resultMutex sync.Mutex
 
-	type workItem struct {
-		j, k int
-	}
-	totalWork := len(clientCiphertexts) * X_size
-	workItems := make(chan workItem, totalWork)
+	// Job granularity: one job = one server record (not one pair).
+	// Each worker processes all matching ciphertexts for its assigned record.
+	jobs := make(chan int, numWorkers*2)
 	var detectionWg sync.WaitGroup
-	
+
 	var processedCount uint64
 	doneChan := make(chan struct{})
-	
+
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
@@ -396,8 +429,8 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 			select {
 			case <-ticker.C:
 				current := atomic.LoadUint64(&processedCount)
-				percent := float64(current) / float64(totalWork) * 100
-				log.Printf("   ... Progress: %d/%d (%.1f%%)", current, totalWork, percent)
+				percent := float64(current) / float64(X_size) * 100
+				log.Printf("   ... Progress: %d/%d server records (%.1f%%)", current, X_size, percent)
 			case <-doneChan:
 				return
 			}
@@ -414,36 +447,44 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 				}
 			}()
 			
-			for item := range workItems {
-				j, k := item.j, item.k
-				msg2 := LE.Dec(ctx.LEParams, ctx.PrivateKeys[k], ctx.WitnessVectors1[k], ctx.WitnessVectors2[k],
-					clientCiphertexts[j].C0, clientCiphertexts[j].C1, clientCiphertexts[j].C, clientCiphertexts[j].D)
+			for k := range jobs {
+				serverLeaf := ctx.TreeIndices[k]
+				ctIndices := leafToCts[serverLeaf]
+				
+				// Skip server records whose leaf has no targeting ciphertexts
+				if len(ctIndices) == 0 {
+					atomic.AddUint64(&processedCount, 1)
+					continue
+				}
+				
+				for _, j := range ctIndices {
+					msg2 := LE.Dec(ctx.LEParams, ctx.PrivateKeys[k], ctx.WitnessVectors1[k], ctx.WitnessVectors2[k],
+						clientCiphertexts[j].C0, clientCiphertexts[j].C1, clientCiphertexts[j].C, clientCiphertexts[j].D)
 
-				if CorrectnessCheck(msg2, ctx.Message, ctx.LEParams) {
-					resultMutex.Lock()
-					if !intersectionMap[k] {
-						Z = append(Z, ctx.OriginalHashes[k])
-						intersectionMap[k] = true
+					if CorrectnessCheck(msg2, ctx.Message, ctx.LEParams) {
+						resultMutex.Lock()
+						if !intersectionMap[k] {
+							Z = append(Z, ctx.OriginalHashes[k])
+							intersectionMap[k] = true
+						}
+						resultMutex.Unlock()
 					}
-					resultMutex.Unlock()
 				}
 				atomic.AddUint64(&processedCount, 1)
 			}
 		}()
 	}
 
-	for j := range clientCiphertexts {
-		for k := 0; k < X_size; k++ {
-			workItems <- workItem{j: j, k: k}
-		}
+	for k := 0; k < X_size; k++ {
+		jobs <- k
 	}
-	close(workItems)
+	close(jobs)
 	detectionWg.Wait()
 	close(doneChan)
 	
 	monitor.TrackIntersectionDetection(intersectionStart)
 
-	monitor.TotalOperations = totalWork
+	monitor.TotalOperations = totalChecks
 	monitor.PrintReport()
 
 	return Z, nil

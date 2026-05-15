@@ -1,30 +1,41 @@
-# Laconic PSI - Making Laconic Private Set Intersection Practical
+# LE-PSI: Laconic Private Set Intersection from Ring-LWE
 
-The first practical, end-to-end implementation of Laconic Private Set Intersection based on Ring Learning With Errors (Ring-LWE). This system provides **post-quantum security** with **O(n log m) communication complexity** versus classical PSI's O(n + m).
+A practical implementation of Laconic Private Set Intersection based on Ring Learning With Errors (Ring-LWE), providing lattice-based security with **O(n log m) communication complexity**.
 
-## The Problem
+## Overview
 
-Financial institutions must screen customers against sanctions lists to prevent money laundering, yet privacy regulations (GDPR) prohibit sharing customer data with third parties. Classical PSI protocols address this, but they rely on cryptography that quantum computers can break. Organizations protecting sensitive data for decades face a critical vulnerability: adversaries can intercept encrypted communications today and store them until quantum computers become available.
+Private Set Intersection (PSI) allows two parties to discover shared elements without revealing their full datasets. Classical PSI protocols rely on discrete-log or factoring assumptions vulnerable to quantum attacks. LE-PSI implements the laconic encryption framework of [DKLLMR23] using Ring-LWE, offering security under lattice hardness assumptions.
 
-## Our Solution
+**Key properties:**
+- **Lattice-based security** — Ring-LWE hardness (conjectured post-quantum resistant)
+- **O(n log m) communication** — Sublinear in server dataset size `m`
+- **Leaf-indexed filtering** — Server performs only O(n) decryptions instead of O(n·m) by matching ciphertexts to their target Merkle leaves
+- **2-choice Cuckoo placement** — Reduces collisions vs naive modular hashing
+- **Distributed scaling** — Horizontal sharding across GCE VMs
 
-We built the first complete implementation of Laconic PSI and developed memory-efficient batching and parallelization techniques that reduce peak memory from **312 GB to 6.5 GB**, enabling deployment on standard servers.
+## Cryptographic Parameters
 
-## Features
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Ring dimension (D) | 256 (fast) / 2048 (secure) | Set via `PSI_SECURITY_LEVEL=128` |
+| Modulus (Q) | 2^58 | 180143985094819841 |
+| Matrix dimension (N) | 4 | |
+| Gaussian width (σ) | 2^30 | Lattigo `SamplerGaussian` |
+| Tree expansion | 16× | `layers = ceil(log2(16·m))` |
+| Hash truncation | 64-bit | SHA-256 → uint64 leaf indices |
+| Lattigo version | v3 | `github.com/tuneinsight/lattigo/v3` |
 
-- **Post-quantum secure** based on Ring-LWE lattice problems
-- **O(n log m) communication complexity** - sublinear in server dataset size
-- **Memory-efficient architecture** - 97.9% reduction in peak RAM requirements
-- **Adaptive threading** with auto-detection of CPU/RAM
-- **Constant memory** - 6.5 GB peak RAM with batching (for 500+ records)
-- **Distributed scaling** - 15× speedup across 25 AWS nodes
-- **FLARE** - Proof-of-concept sanctions screening system for GDPR-compliant deployment
+> **Security note:** D=256 is used for fast evaluation but does NOT provide 128-bit post-quantum security for the 58-bit modulus. Set `PSI_SECURITY_LEVEL=128` to enforce D=2048 for full security.
 
 ## Installation
 
 ```bash
-go get anonymous.4open.science/anonymize/LE-PSI--5C28
+git clone https://github.com/SanthoshCheemala/LE-PSI-.git
+cd LE-PSI-
+go mod download
 ```
+
+Requires Go 1.21+ and CGO (for SQLite).
 
 ## Quick Start
 
@@ -33,218 +44,116 @@ package main
 
 import (
     "log"
-    "anonymous.4open.science/anonymize/LE-PSI--5C28/pkg/psi"
-    "anonymous.4open.science/anonymize/LE-PSI--5C28/utils"
+    "github.com/SanthoshCheemala/LE-PSI/pkg/psi"
 )
 
 func main() {
-    // Server setup
-    serverData := []interface{}{"alice", "bob", "charlie"}
-    serverStrings, _ := utils.PrepareDataForPSI(serverData)
-    serverHashes := utils.HashDataPoints(serverStrings)
-    
-    ctx, err := psi.ServerInitialize(serverHashes, "tree.db")
-    if err != nil {
-        log.Fatal(err)
-    }
-    
+    serverSet := []uint64{100, 200, 300, 400, 500}
+    clientSet := []uint64{200, 400, 600}
+
+    ctx, err := psi.ServerInitialize(serverSet, "tree.db")
+    if err != nil { log.Fatal(err) }
+
     pp, msg, le := psi.GetPublicParameters(ctx)
-    
-    // Client query
-    clientData := []interface{}{"bob", "david"}
-    clientStrings, _ := utils.PrepareDataForPSI(clientData)
-    clientHashes := utils.HashDataPoints(clientStrings)
-    
-    ciphertexts := psi.ClientEncrypt(clientHashes, pp, msg, le)
-    
-    // Find intersection
-    matches, _ := psi.DetectIntersectionWithContext(ctx, ciphertexts)
-    log.Printf("Found %d matches", len(matches))
+    ciphertexts := psi.ClientEncrypt(clientSet, pp, msg, le)
+
+    matches, err := psi.DetectIntersectionWithContext(ctx, ciphertexts)
+    if err != nil { log.Fatal(err) }
+
+    log.Printf("Intersection: %v", matches) // [200 400]
 }
 ```
 
 ## How It Works
 
-1. **Server initializes** with their dataset and generates public parameters
-2. **Server sends** public parameters to client
-3. **Client encrypts** their dataset using the public parameters
-4. **Client sends** encrypted data back to server
-5. **Server detects** intersection without learning client's full dataset
-6. **Server returns** matching elements
+1. **Server** initializes a Merkle tree over its dataset and generates LE public parameters
+2. **Client** encrypts each element toward its two Cuckoo leaf positions using Laconic Encryption
+3. **Server** uses leaf-indexed filtering to attempt decryption only on matching leaves
+4. **Server** returns the intersection elements
 
-## Performance
+### Leaf-Indexed Filtering (Optimization)
 
-| Dataset Size | Time (min) | Peak RAM (GB) |
-|--------------|------------|---------------|
-| 50           | 0.2        | 1.5           |
-| 100          | 0.6        | 3.6           |
-| 500          | 6.3        | 6.5           |
-| 1,000        | 15.7       | 6.5           |
-| 2,000        | 31.1       | 6.5           |
-| 5,000        | 76.1       | 6.5           |
-| 10,000       | 152.8      | 6.5           |
+The naive intersection requires O(m × 2n) decryption attempts. Since LE decryption only succeeds when the ciphertext's target leaf matches the server record's leaf, we build a `map[leaf] → []ciphertext_indices` and skip all non-matching pairs:
 
-**Scaling:** ~15 minutes per 1,000 records (linear scaling)  
-**Throughput:** ~1.0 ops/sec for datasets exceeding 1,000 records  
-**Worker count:** Auto-scales based on system (96-core → 77 workers)  
-**Parallelization:** 80% CPU utilization, 35 MB per worker for Ring-LWE buffers
+```
+Before: 143 server records × 200 ciphertexts = 28,600 Dec calls
+After:  Leaf-indexed filtering → 17 targeted Dec calls (99.94% reduction)
+```
 
-### Memory Optimization
-
-Without batching, 10,000 records requires **312 GB RAM**. Our constant-memory batching reduces this to **6.5 GB** (97.9% reduction), enabling execution on standard hardware.
-
-### Distributed Scaling
-
-| Configuration | Time | Cost/hr | Total Cost |
-|---------------|------|---------|------------|
-| Single node (c5.24xlarge) | 153 min | $4.08 | $10.40 |
-| Distributed (25×c5.2xlarge) | 10.2 min | $8.50 | $1.45 |
-
-**86% cost reduction** with distributed deployment.
+This is protocol-safe: the target leaf is already encoded in the ciphertext structure (path through the Merkle tree).
 
 ## Project Structure
 
 ```
-Laconic-PSI/
-├── pkg/psi/          # Core PSI implementation
-├── pkg/LE/           # Laconic Encryption primitives (Ring-LWE)
-├── pkg/matrix/       # Matrix operations for lattice crypto
-├── utils/            # Data preprocessing utilities
-├── internal/storage/ # Merkle tree storage operations
-├── cmd/Flare/        # FLARE CLI tool for sanctions screening
-├── simulation/       # HTTP server/client demo
-├── scalability_tests/# Performance benchmarks
-└── Documentation/    # API guides and research findings
+LE-PSI/
+├── pkg/psi/              # Core PSI: client, server, intersection logic
+│   ├── server.go          # ServerInitialize, DetectIntersectionWithContext
+│   ├── client.go          # ClientEncrypt (2-choice Cuckoo)
+│   ├── helpers.go         # Cxtx struct, hash functions, CorrectnessCheck
+│   ├── parameters.go      # SetupLEParameters (Ring-LWE config)
+│   └── cxtx_serial.go     # JSON serialization for distributed mode
+├── pkg/LE/               # Laconic Encryption primitives
+│   ├── le.go              # LE.Setup (key generation)
+│   └── LE_upd.go          # Enc, Dec, TreeHash, WitGen, MemoryTree
+├── pkg/matrix/           # Ring-LWE matrix/vector operations
+├── scalability_tests/    # Single-node benchmarks (1K–10K)
+├── distributed_gce/      # Multi-shard distributed benchmarks on GCE
+│   ├── coordinator/       # Fan-out coordinator
+│   ├── shard/             # Per-shard intersection server
+│   └── results/           # Benchmark JSON results
+├── comparative_baselines/ # APSI comparison scripts
+└── cmd/Flare/            # CLI demo tool
 ```
 
-## FLARE: Sanctions Screening System
+## Performance (Single Node, D=256)
 
-FLARE is a proof-of-concept sanctions screening system demonstrating GDPR-compliant deployment:
+| Server (m) | Client (n) | Ciphertexts | Init (s) | Intersect (s) | Total (min) |
+|-----------|-----------|-------------|----------|---------------|-------------|
+| 1,000     | 100       | 200         | ~55      | < 1           | ~1          |
+| 2,000     | 100       | 200         | ~110     | < 1           | ~2          |
+| 4,000     | 100       | 200         | ~220     | < 1           | ~4          |
 
-- **Scale:** 100 customer records against 10,000 sanctions entries
-- **Performance:** 153-minute screening latency (acceptable for overnight batch processing)
-- **Communication:** 415 KB total bandwidth (4.15 KB per record)
-- **Distributed:** 25 AWS EC2 nodes enable screening against 100,000 entries in 10 minutes
+> Note: Init time (key generation + Merkle tree) dominates. With leaf-indexed filtering, intersection is near-instant.
 
-**GDPR Compliance by Design:**
-- **Data Minimization (Art. 5.1c):** Only 256-bit encrypted hashes transmitted
-- **Purpose Limitation (Art. 5.1b):** Provider learns only aggregate match count
-- **Storage Minimization (Art. 5.1e):** No persistent customer data stored by third parties
-- **Security (Art. 32):** Post-quantum encryption protects against future quantum attacks
+## Distributed Mode (GCE)
 
-## CLI Tool
+For large datasets, the server set is sharded across K VMs:
 
 ```bash
-cd cmd/Flare && go build -o flare
+# Deploy to 7 shards
+PROJECT=lepsi-distributed-493617 ZONE=us-east1-b bash distributed_gce/deploy_latest.sh
 
-./flare -mode inline -server-data "1,2,3,4,5" -client-data "2,4,7"
+# Run benchmarks
+PROJECT=lepsi-distributed-493617 ZONE=us-east1-b K=7 bash distributed_gce/run_all_benchmarks.sh
 ```
 
-## Bottleneck Analysis
+Each shard initializes independently and processes intersection in parallel via streaming JSON.
 
-Profiling reveals the intersection phase consumes 53-70% of execution time:
+## Security Model
 
-| Component | % of Time | Bound |
-|-----------|-----------|-------|
-| Witness fetching (Merkle proofs) | 35% | Memory-bound |
-| NTT operations | 25% | CPU-bound (parallelizable) |
-| Ring-LWE decryption | 10% | CPU-bound |
-
-The memory-bound witness fetching bottleneck explains why throughput stabilizes at ~1.0 ops/sec—adding more workers cannot overcome memory bandwidth limits.
-
-## Security
-
-- **Post-quantum resistant** - Based on Ring-LWE lattice cryptography
-- **Ring dimension:** n = 256
-- **Modulus:** q ≈ 2^58
-- **Error standard deviation:** σ = 3.2
-- **64-bit quantum security** - Trade-off between security and performance
-- **Semi-honest adversary model** - Secure against honest-but-curious parties
-- **Client Privacy:** Server learns only |C| (number of client elements)
-- **Server Privacy:** Client learns only C ∩ S (intersection)
-
-> **Note:** For 128-bit quantum security, larger ring dimensions (n = 512 or 1024) would be required, resulting in ~4× larger ciphertexts and ~4× slower computation.
-
-## Use Cases
-
-- **FLARE Sanctions Screening** - GDPR-compliant regulatory verification for financial institutions
-- **Privacy-preserving compliance** - Screen customers against watchlists without exposing customer data
-- **Long-term data protection** - Security guarantees that remain valid as quantum computers advance
-- **Healthcare data matching** - Hospitals finding common patients with post-quantum security
-- **Government archives** - Protecting sensitive data with 30+ year lifespans
-- **Financial records** - Quantum-resistant screening for regulated institutions
+- **Semi-honest** (honest-but-curious) adversary model
+- **Client privacy:** Server learns only |C| (client set size)
+- **Server privacy:** Client learns only C ∩ S
+- **Leakage:** Target leaf indices are visible to server (inherent in laconic encryption)
 
 ## Comparison with Classical PSI
 
-| Protocol | Time (10⁴ records) | Communication | Memory | Post-Quantum |
-|----------|-------------------|---------------|--------|--------------|
-| KKRT     | 0.04 s            | 0.5 MB        | 0.1 GB | No           |
-| OKVS     | 0.02 s            | 0.4 MB        | 0.1 GB | No           |
-| **Laconic PSI (Ours)** | 153 min | 41 MB | 6.5 GB | **Yes** |
+| Protocol | Security | Comm. Complexity | Time (m=10⁴) | Post-Quantum |
+|----------|----------|-----------------|---------------|--------------|
+| KKRT     | DL-based | O(n + m)        | ~0.04 s       | No           |
+| OKVS/VOLE| DL-based | O(n + m)        | ~0.02 s       | No           |
+| Microsoft APSI | BFV/SEAL | O(n)     | TBD           | Lattice-based|
+| **LE-PSI (Ours)** | Ring-LWE | **O(n log m)** | TBD    | **Yes**      |
 
-Laconic PSI is ~10,000× slower than classical PSI due to:
-- Ring-LWE operations (~1,000× overhead)
-- Laconic protocol structure (~10× overhead)
-
-### When to Use Laconic PSI
-
-1. **Long-term data protection:** Applications with 30+ year data lifespans (medical records, government archives)
-2. **Highly unbalanced datasets:** When m ≫ n (e.g., 10,000 queries against 1 million records), O(n log m) provides 5× communication savings
-3. **Overnight batch processing:** Applications with loose latency requirements where quantum resistance is mandatory
-
-## Building from Source
-
-```bash
-git clone anonymous.4open.science/anonymize/LE-PSI--5C28
-cd LE-PSI--5C28
-go mod download
-go build -o flare ./cmd/Flare
-```
-
-## Technical Details
-
-### Communication Analysis
-
-For 10,000 records:
-- Ciphertext: 3.7 KB per record
-- Merkle proof: 0.45 KB per record (⌈log₂ m⌉ hashes)
-- **Total:** 4.15 KB per record → 41 MB total
-
-This reflects O(n log m) complexity, providing significant savings when m ≫ n.
-
-### Worker Calculation
-
-Worker count is determined dynamically:
-```
-w = min(CPUs × 0.8, Available RAM / 35MB)
-```
-
-On a 96-core, 256 GB system with 6.5 GB batch memory: 77 workers (CPU-limited, not memory-limited).
-
-## Documentation
-
-- [API Documentation](API.md) - Complete API reference
-- [Scalability Tests](scalability_tests/README.md) - Performance benchmarks
-- [Research Findings](Documentation/RESEARCH_PAPER_FINDINGS.md) - Detailed analysis
-
-## Future Work
-
-- **Hardware Acceleration:** GPU/FPGA implementations for NTT operations (25% of execution time)
-- **Parameter Optimization:** Exploring n = 512/1024 for 128-bit quantum security
-- **Scalability Research:** Testing beyond 10⁴ records to validate asymptotic advantages
-- **Malicious Security:** Extensions to defend against protocol deviations
-
-## License
-
-MIT License - See [LICENSE](LICENSE) for details.
+> LE-PSI is slower than classical PSI due to Ring-LWE arithmetic overhead. The advantage is in the asymptotic communication savings when m ≫ n, and lattice-based security.
 
 ## References
 
-- **Laconic PSI:** Döttling et al., "Trapdoor Hash Functions and Their Applications," Cryptology ePrint Archive, Paper 2023/404, 2023. [Link](https://eprint.iacr.org/2023/404)
-- **Lattigo:** Mouchet et al., "Lattigo: A Multiparty Homomorphic Encryption Library in Go," EPFL-LDS. [GitHub](https://github.com/tuneinsight/lattigo)
-- **Ring-LWE:** Lyubashevsky, Peikert, Regev, "On Ideal Lattices and Learning with Errors over Rings," EUROCRYPT 2010.
-- **Classical PSI (KKRT):** Kolesnikov et al., "Efficient Batched Oblivious PRF with Applications to Private Set Intersection," CCS 2016.
+- **[DKLLMR23]** Döttling, Garg, Ishai, Malavolta, Mour, Ostrovsky. "Trapdoor Hash Functions and Their Applications." Crypto 2019 / ePrint 2023/404.
+- **[Lattigo]** Mouchet et al. "Lattigo: A Multiparty Homomorphic Encryption Library in Go." EPFL-LDS. v3.
+- **[Ring-LWE]** Lyubashevsky, Peikert, Regev. "On Ideal Lattices and Learning with Errors over Rings." EUROCRYPT 2010.
+- **[APSI]** Microsoft. "Asymmetric PSI." ePrint 2021/1116.
 
-## Contributing
+## License
 
-Contributions are welcome! Please open an issue or submit a pull request.
+MIT License — see [LICENSE](LICENSE).

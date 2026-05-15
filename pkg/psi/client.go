@@ -34,18 +34,21 @@ func ClientEncrypt(private_set_Y []uint64, pp *matrix.Vector, msg *ring.Poly, le
 func Client(private_set_Y []uint64, pp *matrix.Vector, msg *ring.Poly, le *LE.LE) []Cxtx {
 	Y_size := len(private_set_Y)
 
-	treeIndices := make([]uint64, Y_size)
+	// 2-choice Cuckoo: each client item produces 2 ciphertexts (one per candidate leaf)
+	treeIndices := make([]uint64, 2*Y_size)
 	for i := 0; i < Y_size; i++ {
-		treeIndices[i] = ReduceToTreeIndex(private_set_Y[i], le.Layers)
+		treeIndices[2*i] = ReduceToTreeIndex(private_set_Y[i], le.Layers)
+		treeIndices[2*i+1] = ReduceToTreeIndex2(private_set_Y[i], le.Layers)
 	}
 
-	C := make([]Cxtx, Y_size)
-	cipherChan := make(chan int, Y_size)
+	totalCiphertexts := 2 * Y_size
+	C := make([]Cxtx, totalCiphertexts)
+	cipherChan := make(chan int, totalCiphertexts)
 	var cipherWg sync.WaitGroup
 
 	numWorkers := runtime.NumCPU()
-	if numWorkers > Y_size {
-		numWorkers = Y_size
+	if numWorkers > totalCiphertexts {
+		numWorkers = totalCiphertexts
 	}
 
 	for w := 0; w < numWorkers; w++ {
@@ -75,12 +78,12 @@ func Client(private_set_Y []uint64, pp *matrix.Vector, msg *ring.Poly, le *LE.LE
 				}
 
 				c0, c1, cvec, dpoly := LE.Enc(le, pp, treeIndices[i], msg, r, e0, e1, e)
-				C[i] = Cxtx{C0: c0, C1: c1, C: cvec, D: dpoly}
+				C[i] = Cxtx{C0: c0, C1: c1, C: cvec, D: dpoly, TargetLeaf: treeIndices[i]}
 			}
 		}()
 	}
 
-	for i := 0; i < Y_size; i++ {
+	for i := 0; i < totalCiphertexts; i++ {
 		cipherChan <- i
 	}
 	close(cipherChan)

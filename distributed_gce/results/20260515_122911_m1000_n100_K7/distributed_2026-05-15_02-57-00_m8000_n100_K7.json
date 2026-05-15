@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-05-15_02-57-00",
+  "server_dataset_size": 8000,
+  "client_dataset_size": 100,
+  "shards": 7,
+  "total_time_ns": 0,
+  "init_time_ns": 608053841248,
+  "intersect_time_ns": 0,
+  "matches_found": 0,
+  "peak_ram_per_shard_mb": 0,
+  "success": false,
+  "error_message": "shard-0 intersect: Post \"http://10.142.0.13:8081/intersect\": write tcp 10.142.0.12:54354-\u003e10.142.0.13:8081: write: connection timed out"
+}

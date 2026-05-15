@@ -61,13 +61,19 @@ var VerboseMode = os.Getenv("PSI_VERBOSE") == "false"
 //   - C1: Vector of encrypted path components (second part of dual ciphertext)
 //   - C: Compressed vector representation for efficient transmission
 //   - D: Polynomial component for message encoding
+//   - TargetLeaf: The Merkle tree leaf index this ciphertext encrypts towards.
+//     Used for leaf-indexed filtering: the server only attempts decryption
+//     when a ciphertext's TargetLeaf matches the server record's leaf.
+//     This is safe in the DKLLMR23 security model because the target leaf
+//     is already implicit in the ciphertext structure (path encoding).
 //
 // This structure is produced by ClientEncrypt and consumed by DetectIntersectionWithContext.
 type Cxtx struct {
-	C0 []*matrix.Vector
-	C1 []*matrix.Vector
-	C  *matrix.Vector
-	D  *ring.Poly
+	C0         []*matrix.Vector
+	C1         []*matrix.Vector
+	C          *matrix.Vector
+	D          *ring.Poly
+	TargetLeaf uint64
 }
 
 // ReduceToTreeIndex reduces a hash value to a tree index based on the number of layers.
@@ -92,6 +98,23 @@ func ReduceToTreeIndex(rawHash uint64, layers int) uint64 {
 		mask = (uint64(1) << bits) - 1
 	}
 	return rawHash & mask
+}
+
+// ReduceToTreeIndex2 provides a second independent hash-to-leaf mapping for
+// 2-choice Cuckoo placement. Uses golden-ratio bit scrambling to produce an
+// independent leaf index from the same raw hash.
+func ReduceToTreeIndex2(rawHash uint64, layers int) uint64 {
+	// Golden-ratio scramble: multiply by phi-derived constant, XOR with shift
+	scrambled := rawHash * 0x9E3779B97F4A7C15
+	scrambled ^= scrambled >> 17
+	var mask uint64
+	bits := uint(layers)
+	if bits == 0 || bits >= 64 {
+		mask = ^uint64(0)
+	} else {
+		mask = (uint64(1) << bits) - 1
+	}
+	return scrambled & mask
 }
 
 // CorrectnessCheck verifies decryption correctness using threshold-based matching.

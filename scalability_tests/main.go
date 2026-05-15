@@ -377,9 +377,25 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 	privateKeys := make([]*matrix.Vector, X_size)
 	hashedClient := make([]uint64, X_size)
 
+	var initWG sync.WaitGroup
+	initSem := make(chan struct{}, runtime.NumCPU())
 	for i := 0; i < X_size; i++ {
-		publicKeys[i], privateKeys[i] = leParams.KeyGen()
-		hashedClient[i] = psi.ReduceToTreeIndex(serverHashes[i], leParams.Layers)
+		initWG.Add(1)
+		go func(idx int) {
+			defer initWG.Done()
+			initSem <- struct{}{}
+			pk, sk := leParams.KeyGen()
+			hash := psi.ReduceToTreeIndex(serverHashes[idx], leParams.Layers)
+
+			publicKeys[idx] = pk
+			privateKeys[idx] = sk
+			hashedClient[idx] = hash
+			<-initSem
+		}(i)
+	}
+	initWG.Wait()
+
+	for i := 0; i < X_size; i++ {
 		LE.Upd(db, hashedClient[i], leParams.Layers, publicKeys[i], leParams)
 	}
 
@@ -449,38 +465,21 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 
 	fmt.Printf("       ⚡ Running PARALLEL intersection (workers: %d, all cores)...\n", numWorkers)
 
-	// Generate ALL witnesses in parallel (fits in RAM at D=256)
-	wit1All := make([][]*matrix.Vector, X_size)
-	wit2All := make([][]*matrix.Vector, X_size)
+	fmt.Printf("       ⚡ Running STREAMING parallel intersection (workers: %d)...\n", numWorkers)
 
-	var witWG sync.WaitGroup
+	var streamWG sync.WaitGroup
 	for i := 0; i < X_size; i++ {
-		witWG.Add(1)
-		go func(idx int, hash uint64) {
-			defer witWG.Done()
-			workerSem <- struct{}{}
-			w1, w2 := LE.WitGenMemory(memoryTree, leParams, hash)
-			wit1All[idx] = w1
-			wit2All[idx] = w2
-			<-workerSem
-		}(i, hashedClient[i])
-	}
-	witWG.Wait()
-	fmt.Printf("       ✓ All %d witnesses generated in %v\n", X_size, time.Since(intStart))
-
-	// Perform ALL decryption checks in parallel
-	var decWG sync.WaitGroup
-	for i := 0; i < X_size; i++ {
-		decWG.Add(1)
+		streamWG.Add(1)
 		go func(idx int) {
-			defer decWG.Done()
+			defer streamWG.Done()
 			workerSem <- struct{}{}
 			defer func() { <-workerSem }()
 
-			w1 := wit1All[idx]
-			w2 := wit2All[idx]
+			// 1. Generate witness "On The Fly"
+			w1, w2 := LE.WitGenMemory(memoryTree, leParams, hashedClient[idx])
 			sk := privateKeys[idx]
 
+			// 2. Stream through all client queries
 			for j := 0; j < len(ciphertexts); j++ {
 				msg2 := LE.Dec(leParams, sk, w1, w2,
 					ciphertexts[j].C0, ciphertexts[j].C1,
@@ -495,13 +494,10 @@ func runScalabilityTest(test ScalabilityTest) TestResult {
 					matchesMutex.Unlock()
 				}
 			}
+			// w1 and w2 naturally fall out of scope for GC
 		}(i)
 	}
-	decWG.Wait()
-
-	// Free witnesses after intersection
-	wit1All = nil
-	wit2All = nil
+	streamWG.Wait()
 
 	result.IntersectionTime = time.Since(intStart)
 

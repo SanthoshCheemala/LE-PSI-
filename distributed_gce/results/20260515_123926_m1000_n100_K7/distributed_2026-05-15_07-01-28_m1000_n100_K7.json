@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-05-15_07-01-28",
+  "server_dataset_size": 1000,
+  "client_dataset_size": 100,
+  "shards": 7,
+  "total_time_ns": 223954382021,
+  "init_time_ns": 59248688637,
+  "intersect_time_ns": 106490982287,
+  "matches_found": 16,
+  "peak_ram_per_shard_mb": 0,
+  "success": true
+}
