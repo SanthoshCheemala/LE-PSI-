@@ -82,9 +82,10 @@ func (mat *Matrix) MulVecRight(vec1 *Vector, r *ring.Ring) (vec2 *Vector) {
 	for i := 0; i < n; i++ {
 		p1 := r.NewPoly()
 		for j := 0; j < m; j++ {
-			p2 := r.NewPoly()
+			p2 := getPoolPoly(r)
 			r.MulCoeffsConstant(mat.Elements[i][j], vec1.Elements[j], p2)
 			r.Add(p1, p2, p1)
+			putPoolPoly(p2)
 		}
 		vec2.Elements[i] = p1
 	}
@@ -100,9 +101,10 @@ func (mat *Matrix) MulVecLeft(vec1 *Vector, r *ring.Ring) (vec2 *Vector) {
 	for i := 0; i < m; i++ {
 		p1 := r.NewPoly()
 		for j := 0; j < n; j++ {
-			p2 := r.NewPoly()
+			p2 := getPoolPoly(r)
 			r.MulCoeffs(mat.Elements[j][i], vec1.Elements[j], p2)
 			r.Add(p1, p2, p1)
+			putPoolPoly(p2)
 		}
 		vec2.Elements[i] = p1
 	}

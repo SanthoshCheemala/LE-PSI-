@@ -46,6 +46,23 @@ type ServerInitContext struct {
 	DBPath          string
 }
 
+func configureTreeBuildDB(db *sql.DB) error {
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+
+	pragmas := []string{
+		"PRAGMA journal_mode = MEMORY",
+		"PRAGMA synchronous = OFF",
+		"PRAGMA temp_store = MEMORY",
+	}
+	for _, pragma := range pragmas {
+		if _, err := db.Exec(pragma); err != nil {
+			return fmt.Errorf("%s: %w", pragma, err)
+		}
+	}
+	return nil
+}
+
 // GetPublicParameters extracts the public parameters from the server context.
 // These parameters need to be shared with the client for encryption.
 //
@@ -219,10 +236,10 @@ func DeserializeParameters(params *SerializableParams) (*matrix.Vector, *ring.Po
 //
 // Returns:
 //   - *ServerInitContext: Initialized server context containing:
-//     - Lattice encryption parameters (LE)
-//     - Public parameters (PP)
-//     - Message polynomial (Msg)
-//     - Witness tree for efficient lookup
+//   - Lattice encryption parameters (LE)
+//   - Public parameters (PP)
+//   - Message polynomial (Msg)
+//   - Witness tree for efficient lookup
 //   - error: Returns error if parameter setup fails or tree creation fails
 //
 // Example:
@@ -252,6 +269,10 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	}
 	defer db.Close()
 
+	if err := configureTreeBuildDB(db); err != nil {
+		return nil, fmt.Errorf("configure tree db: %w", err)
+	}
+
 	if err := storage.InitializeTreeDB(db, leParams.Layers); err != nil {
 		log.Printf("warning: InitializeTreeDB returned: %v\n", err)
 	}
@@ -265,7 +286,7 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	if numWorkers > X_size {
 		numWorkers = X_size
 	}
-	
+
 	workChan := make(chan int, X_size)
 	var wg sync.WaitGroup
 
@@ -305,9 +326,24 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 		}
 	}
 
+	if _, err := db.Exec("BEGIN IMMEDIATE"); err != nil {
+		return nil, fmt.Errorf("begin tree build transaction: %w", err)
+	}
+	treeBuildTxOpen := true
+	defer func() {
+		if treeBuildTxOpen {
+			_, _ = db.Exec("ROLLBACK")
+		}
+	}()
+
 	for i := 0; i < X_size; i++ {
 		LE.Upd(db, hashedClient[i], leParams.Layers, publicKeys[i], leParams)
 	}
+
+	if _, err := db.Exec("COMMIT"); err != nil {
+		return nil, fmt.Errorf("commit tree build transaction: %w", err)
+	}
+	treeBuildTxOpen = false
 
 	pp := LE.ReadFromDB(db, 0, 0, leParams).NTT(leParams.R)
 	msg := matrix.NewRandomPolyBinary(leParams.R)
@@ -323,7 +359,7 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 	witnessStart := time.Now()
 	witnessesVec1 := make([][]*matrix.Vector, X_size)
 	witnessesVec2 := make([][]*matrix.Vector, X_size)
-	
+
 	witnessChan := make(chan int, X_size)
 	var witnessWg sync.WaitGroup
 
@@ -382,7 +418,7 @@ func ServerInitialize(private_set_X []uint64, Treepath string) (*ServerInitConte
 //	fmt.Printf("Found %d common elements\n", len(intersection))
 func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []Cxtx) ([]uint64, error) {
 	runtime.GC()
-	
+
 	monitor := NewPerformanceMonitor()
 	intersectionStart := time.Now()
 
@@ -446,17 +482,17 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 					log.Printf("CRITICAL: Worker panic: %v", r)
 				}
 			}()
-			
+
 			for k := range jobs {
 				serverLeaf := ctx.TreeIndices[k]
 				ctIndices := leafToCts[serverLeaf]
-				
+
 				// Skip server records whose leaf has no targeting ciphertexts
 				if len(ctIndices) == 0 {
 					atomic.AddUint64(&processedCount, 1)
 					continue
 				}
-				
+
 				for _, j := range ctIndices {
 					msg2 := LE.Dec(ctx.LEParams, ctx.PrivateKeys[k], ctx.WitnessVectors1[k], ctx.WitnessVectors2[k],
 						clientCiphertexts[j].C0, clientCiphertexts[j].C1, clientCiphertexts[j].C, clientCiphertexts[j].D)
@@ -481,7 +517,7 @@ func DetectIntersectionWithContext(ctx *ServerInitContext, clientCiphertexts []C
 	close(jobs)
 	detectionWg.Wait()
 	close(doneChan)
-	
+
 	monitor.TrackIntersectionDetection(intersectionStart)
 
 	monitor.TotalOperations = totalChecks

@@ -10,6 +10,38 @@ import (
 	"github.com/tuneinsight/lattigo/v3/utils"
 )
 
+// polyPool reduces GC pressure by reusing ring.Poly scratch buffers.
+// Key insight: Dec calls Mul in a tight loop, and each Mul allocates N
+// temporary polys. With leaf-indexed filtering we have ~200 Dec calls,
+// each with ~14 layers × 2 Mul calls × 4 inner iterations = ~11,200
+// poly allocations. The pool recycles these instead of letting GC collect.
+var polyPool = sync.Pool{
+	New: func() interface{} {
+		// Placeholder — will be replaced with correct-size poly on first use.
+		// We can't call r.NewPoly() here because we don't have the ring.
+		return (*ring.Poly)(nil)
+	},
+}
+
+// getPoolPoly gets a poly from the pool, or allocates a new one if the
+// pooled poly is nil or wrong size. Caller must putPoolPoly after use.
+func getPoolPoly(r *ring.Ring) *ring.Poly {
+	if p, ok := polyPool.Get().(*ring.Poly); ok && p != nil && len(p.Coeffs) > 0 && len(p.Coeffs[0]) == r.N {
+		// Zero out for reuse
+		for i := range p.Coeffs[0] {
+			p.Coeffs[0][i] = 0
+		}
+		return p
+	}
+	return r.NewPoly()
+}
+
+func putPoolPoly(p *ring.Poly) {
+	if p != nil {
+		polyPool.Put(p)
+	}
+}
+
 type Vector struct {
 	Elements []*ring.Poly
 }
@@ -126,11 +158,10 @@ func Mul(vec1, vec2 *Vector, r *ring.Ring) (p *ring.Poly) {
 	n := len(vec1.Elements)
 	p = r.NewPoly()
 	for i := 0; i < n; i++ {
-
-		//fmt.Println(p.Coeffs[0][0])
-		p1 := r.NewPoly()
+		p1 := getPoolPoly(r)
 		r.MulCoeffs(vec1.Elements[i], vec2.Elements[i], p1)
 		r.Add(p, p1, p)
+		putPoolPoly(p1)
 	}
 	return p
 }
