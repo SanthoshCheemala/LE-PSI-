@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"runtime"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -323,7 +325,128 @@ func ServerInitializeChunked(private_set_X []uint64, Treepath string) (*ServerIn
 	return serverInitialize(private_set_X, Treepath, false)
 }
 
+func buildMemoryTreeBottomUp(leParams *LE.LE, treeIndices []uint64, publicKeys []*matrix.Vector) (*LE.MemoryTree, error) {
+	memoryTree := LE.NewMemoryTree(leParams.Layers)
+	leafLayer := leParams.Layers
+
+	for i, leaf := range treeIndices {
+		if _, exists := memoryTree.Layers[leafLayer][leaf]; exists {
+			return nil, fmt.Errorf("duplicate cuckoo leaf %d while building memory tree", leaf)
+		}
+		memoryTree.Layers[leafLayer][leaf] = publicKeys[i]
+	}
+
+	for layer := leafLayer; layer > 0; layer-- {
+		parentSet := make(map[uint64]struct{}, len(memoryTree.Layers[layer]))
+		for row := range memoryTree.Layers[layer] {
+			parentSet[row>>1] = struct{}{}
+		}
+
+		parents := make([]uint64, 0, len(parentSet))
+		for parent := range parentSet {
+			parents = append(parents, parent)
+		}
+		sort.Slice(parents, func(i, j int) bool { return parents[i] < parents[j] })
+
+		for _, parent := range parents {
+			left := leParams.YDefault
+			if vec, ok := memoryTree.Layers[layer][parent<<1]; ok {
+				left = vec
+			}
+
+			right := leParams.YDefault
+			if vec, ok := memoryTree.Layers[layer][(parent<<1)+1]; ok {
+				right = vec
+			}
+
+			memoryTree.Layers[layer-1][parent] = LE.TreeHash(left, right, leParams)
+		}
+	}
+
+	if _, ok := memoryTree.Layers[0][0]; !ok {
+		return nil, errors.New("memory tree build produced no root")
+	}
+
+	return memoryTree, nil
+}
+
+func serverInitializeChunkedMemory(private_set_X []uint64, Treepath string) (*ServerInitContext, error) {
+	monitor := NewPerformanceMonitor()
+
+	X_size := len(private_set_X)
+	if X_size == 0 {
+		return nil, errors.New("server set is empty")
+	}
+
+	leParams, err := SetupLEParameters(len(private_set_X))
+	if err != nil {
+		return nil, fmt.Errorf("SetupLEParameters: %w", err)
+	}
+
+	publicKeys := make([]*matrix.Vector, X_size)
+	privateKeys := make([]*matrix.Vector, X_size)
+	keyGenStart := time.Now()
+
+	numWorkers := CalculateOptimalWorkers(X_size)
+	if numWorkers > X_size {
+		numWorkers = X_size
+	}
+
+	workChan := make(chan int, X_size)
+	var wg sync.WaitGroup
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range workChan {
+				publicKeys[i], privateKeys[i] = leParams.KeyGen()
+			}
+		}()
+	}
+	for i := 0; i < X_size; i++ {
+		workChan <- i
+	}
+	close(workChan)
+	wg.Wait()
+	monitor.TrackKeyGeneration(keyGenStart)
+
+	placement, placementStats, err := placeCuckooLeaves(private_set_X, leParams.Layers)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("       💾 Building Merkle Tree directly in RAM for chunked benchmark...")
+	treeStart := time.Now()
+	memoryTree, err := buildMemoryTreeBottomUp(leParams, placement, publicKeys)
+	if err != nil {
+		return nil, fmt.Errorf("build memory tree: %w", err)
+	}
+	fmt.Printf("       ✓ In-memory tree built in %v\n", time.Since(treeStart))
+	log.Printf("       Chunked mode: witness generation deferred to active chunks")
+
+	pp := memoryTree.Layers[0][0].NTT(leParams.R)
+	msg := matrix.NewRandomPolyBinary(leParams.R)
+
+	monitor.PrintReport()
+
+	return &ServerInitContext{
+		PublicParams:   pp,
+		Message:        msg,
+		LEParams:       leParams,
+		PrivateKeys:    privateKeys,
+		MemoryTree:     memoryTree,
+		TreeIndices:    placement,
+		OriginalHashes: private_set_X,
+		DBPath:         Treepath,
+		CuckooRebuilds: placementStats.Rebuilds,
+	}, nil
+}
+
 func serverInitialize(private_set_X []uint64, Treepath string, precomputeWitnesses bool) (*ServerInitContext, error) {
+	if !precomputeWitnesses && os.Getenv("LEPSI_TREE_BUILD_MODE") != "sqlite" {
+		return serverInitializeChunkedMemory(private_set_X, Treepath)
+	}
+
 	monitor := NewPerformanceMonitor()
 
 	X_size := len(private_set_X)
