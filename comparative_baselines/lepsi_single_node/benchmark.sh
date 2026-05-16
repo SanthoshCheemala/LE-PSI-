@@ -266,6 +266,29 @@ func buildRandomClientSet(serverSet []uint64, n int, desiredOverlap int, seed in
 	return clientSet, desiredOverlap
 }
 
+func matchCorrectness(clientSet []uint64, matches []uint64, expectedIntersection int) (int, int, bool) {
+	clientValues := make(map[uint64]bool, len(clientSet))
+	for _, value := range clientSet {
+		clientValues[value] = true
+	}
+
+	matchedExpected := 0
+	falsePositives := 0
+	for _, match := range matches {
+		if clientValues[match] {
+			matchedExpected++
+		} else {
+			falsePositives++
+		}
+	}
+
+	falseNegatives := expectedIntersection - matchedExpected
+	if falseNegatives < 0 {
+		falseNegatives = 0
+	}
+	return falsePositives, falseNegatives, falsePositives == 0 && falseNegatives == 0 && len(matches) == expectedIntersection
+}
+
 func main() {
 	if len(os.Args) < 3 {
 		log.Fatal("Usage: lepsi_bench <m> <n>")
@@ -351,6 +374,7 @@ func main() {
 	}
 	intTime := time.Since(intStart)
 	log.Printf("  Intersection done: %v, matches=%d", intTime, len(Z))
+	falsePositives, falseNegatives, correctnessPassed := matchCorrectness(clientSet, Z, actualOverlap)
 
 	totalTime := time.Since(totalStart)
 
@@ -392,6 +416,9 @@ func main() {
 		"non_overlap_avoids_occupied_leaves": nonOverlapAvoidsLeaves,
 		"expected_intersection":  actualOverlap,
 		"matches_found":          len(Z),
+		"false_positive_count":   falsePositives,
+		"false_negative_count":   falseNegatives,
+		"correctness_passed":     correctnessPassed,
 		"init_sec":               initTime.Seconds(),
 		"enc_sec":                encTime.Seconds(),
 		"intersect_sec":          intTime.Seconds(),

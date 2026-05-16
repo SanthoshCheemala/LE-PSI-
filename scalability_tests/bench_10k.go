@@ -42,6 +42,9 @@ type BenchmarkResult struct {
 	IntersectSec           float64 `json:"intersect_sec"`
 	TotalSec               float64 `json:"total_sec"`
 	MatchesFound           int     `json:"matches_found"`
+	FalsePositiveCount     int     `json:"false_positive_count"`
+	FalseNegativeCount     int     `json:"false_negative_count"`
+	CorrectnessPassed      bool    `json:"correctness_passed"`
 	ActualDecCalls         int     `json:"actual_dec_calls"`
 	TotalPossibleDecCalls  int     `json:"total_possible_dec_calls"`
 	ReductionFactor        float64 `json:"decryption_reduction_factor"`
@@ -156,6 +159,29 @@ func buildRandomClientSet(serverSet []uint64, n int, desiredOverlap int, seed in
 	return clientSet, desiredOverlap
 }
 
+func matchCorrectness(clientSet []uint64, matches []uint64, expectedIntersection int) (int, int, bool) {
+	clientValues := make(map[uint64]bool, len(clientSet))
+	for _, value := range clientSet {
+		clientValues[value] = true
+	}
+
+	matchedExpected := 0
+	falsePositives := 0
+	for _, match := range matches {
+		if clientValues[match] {
+			matchedExpected++
+		} else {
+			falsePositives++
+		}
+	}
+
+	falseNegatives := expectedIntersection - matchedExpected
+	if falseNegatives < 0 {
+		falseNegatives = 0
+	}
+	return falsePositives, falseNegatives, falsePositives == 0 && falseNegatives == 0 && len(matches) == expectedIntersection
+}
+
 func main() {
 	serverSize := envInt("M", 10000)
 	clientSize := envInt("N", 100)
@@ -241,6 +267,7 @@ func main() {
 	intersectSec := time.Since(intersectStart).Seconds()
 	updatePeak(&peakHeap)
 	fmt.Printf("  ✓ Intersection done: %.1f s\n", intersectSec)
+	falsePositives, falseNegatives, correctnessPassed := matchCorrectness(clientSet, matches, actualOverlap)
 
 	totalSec := time.Since(start).Seconds()
 	resultObj := BenchmarkResult{
@@ -269,6 +296,9 @@ func main() {
 		IntersectSec:           intersectSec,
 		TotalSec:               totalSec,
 		MatchesFound:           len(matches),
+		FalsePositiveCount:     falsePositives,
+		FalseNegativeCount:     falseNegatives,
+		CorrectnessPassed:      correctnessPassed,
 		ActualDecCalls:         stats.ActualDecCalls,
 		TotalPossibleDecCalls:  stats.TotalPossibleDecCalls,
 		ReductionFactor:        stats.ReductionFactor,
@@ -278,6 +308,7 @@ func main() {
 	fmt.Printf("  TOTAL WALL TIME : %.2f min (%.1f sec)\n", totalSec/60, totalSec)
 	fmt.Printf("  PEAK HEAP       : %d MB\n", peakHeap)
 	fmt.Printf("  MATCHES         : %d / %d expected\n", len(matches), actualOverlap)
+	fmt.Printf("  CORRECTNESS     : passed=%v false_pos=%d false_neg=%d\n", correctnessPassed, falsePositives, falseNegatives)
 	fmt.Printf("  TARGETED DEC    : %d vs %d all-pairs\n", stats.TargetedDecCalls, stats.AllPairsDecCalls)
 	fmt.Println("==================================================")
 
