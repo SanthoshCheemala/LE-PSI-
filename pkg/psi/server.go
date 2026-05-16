@@ -160,6 +160,9 @@ type SerializableParams struct {
 	Layers int          `json:"layers"`
 	M      int          `json:"m"`
 	M2     int          `json:"m2"`
+	QBits  int          `json:"q_bits"`
+	Sigma  float64      `json:"sigma"`
+	Bound  int          `json:"bound"`
 	A0NTT  [][][]uint64 `json:"a0ntt"`
 	A1NTT  [][][]uint64 `json:"a1ntt"`
 	BNTT   [][][]uint64 `json:"bntt"`
@@ -216,6 +219,9 @@ func SerializeParameters(pp *matrix.Vector, msg *ring.Poly, le *LE.LE) *Serializ
 		Layers: le.Layers,
 		M:      le.M,
 		M2:     le.M2,
+		QBits:  le.QBits,
+		Sigma:  le.Sigma,
+		Bound:  le.Bound,
 		A0NTT:  serializeMatrix(le.A0NTT),
 		A1NTT:  serializeMatrix(le.A1NTT),
 		BNTT:   serializeMatrix(le.BNTT),
@@ -284,11 +290,23 @@ func DeserializeParameters(params *SerializableParams) (*matrix.Vector, *ring.Po
 		Layers: params.Layers,
 		M:      params.M,
 		M2:     params.M2,
+		QBits:  params.QBits,
+		Sigma:  params.Sigma,
+		Bound:  params.Bound,
 		R:      r,
 		A0NTT:  deserializeMatrix(params.A0NTT),
 		A1NTT:  deserializeMatrix(params.A1NTT),
 		BNTT:   deserializeMatrix(params.BNTT),
 		GNTT:   deserializeMatrix(params.GNTT),
+	}
+	if le.QBits == 0 {
+		le.QBits = 58
+	}
+	if le.Sigma == 0 {
+		le.Sigma = 1073741824
+	}
+	if le.Bound == 0 {
+		le.Bound = int(^uint(0) >> 1)
 	}
 
 	return ppVec, msgPoly, le, nil

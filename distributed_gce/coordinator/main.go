@@ -164,49 +164,58 @@ func initShards(cfg Config, serverSet []uint64) ([]ShardInitResp, error) {
 
 // ── Phase 2: Client encryption — writes to disk to avoid OOM ─
 
-const ctsPayloadPath = "/tmp/cts_payload.json"
+func ctsPayloadPath(shard int) string {
+	return fmt.Sprintf("/tmp/cts_payload_shard_%d.json", shard)
+}
 
 func runClientToDisk(initResps []ShardInitResp, clientSet []uint64, cfg Config) error {
-	// Use public params from shard-0 (all shards share same LE params)
-	pp0, msg0, le0, err := psi.DeserializeParameters(initResps[0].Params)
-	if err != nil {
-		return fmt.Errorf("deserialize params: %w", err)
-	}
-
-	// Build tree indices for client set
-	treeIndices := make([]uint64, cfg.N)
-	for j, c := range clientSet {
-		treeIndices[j] = psi.ReduceToTreeIndex(c, le0.Layers)
-	}
-
-	// Encrypt
-	rawCts := psi.Client(treeIndices, pp0, msg0, le0)
-	log.Printf("[coord] client: encrypted %d ciphertexts", len(rawCts))
-
-	// Write the full request payload directly to disk, serializing one
-	// ciphertext at a time so we never hold the entire serialized array
-	// in RAM alongside the raw ciphertexts.
-	f, err := os.Create(ctsPayloadPath)
-	if err != nil {
-		return fmt.Errorf("create payload file: %w", err)
-	}
-	defer f.Close()
-
-	// Write opening JSON: {"ciphertexts":[
-	f.WriteString(`{"ciphertexts":[`)
-	enc := json.NewEncoder(f)
-	for i, ct := range rawCts {
-		if i > 0 {
-			f.WriteString(",")
+	for shard, initResp := range initResps {
+		pp, msg, le, err := psi.DeserializeParameters(initResp.Params)
+		if err != nil {
+			return fmt.Errorf("deserialize params for shard-%d: %w", shard, err)
 		}
-		if err := enc.Encode(psi.SerializeCxtx(ct)); err != nil {
-			return fmt.Errorf("encode ct[%d]: %w", i, err)
+
+		rawCts := psi.ClientEncrypt(clientSet, pp, msg, le)
+		log.Printf("[coord] client: encrypted %d ciphertexts for shard-%d", len(rawCts), shard)
+
+		// Write the full request payload directly to disk, serializing one
+		// ciphertext at a time so we never hold the entire serialized array
+		// in RAM alongside the raw ciphertexts.
+		path := ctsPayloadPath(shard)
+		f, err := os.Create(path)
+		if err != nil {
+			return fmt.Errorf("create payload file for shard-%d: %w", shard, err)
 		}
-		// Allow GC to reclaim this ciphertext's polynomials immediately
-		rawCts[i] = psi.Cxtx{}
+
+		if _, err := f.WriteString(`{"ciphertexts":[`); err != nil {
+			f.Close()
+			return fmt.Errorf("write payload header for shard-%d: %w", shard, err)
+		}
+		enc := json.NewEncoder(f)
+		for i, ct := range rawCts {
+			if i > 0 {
+				if _, err := f.WriteString(","); err != nil {
+					f.Close()
+					return fmt.Errorf("write payload separator for shard-%d ct[%d]: %w", shard, i, err)
+				}
+			}
+			if err := enc.Encode(psi.SerializeCxtx(ct)); err != nil {
+				f.Close()
+				return fmt.Errorf("encode shard-%d ct[%d]: %w", shard, i, err)
+			}
+			// Allow GC to reclaim this ciphertext's polynomials immediately.
+			rawCts[i] = psi.Cxtx{}
+		}
+		if _, err := f.WriteString("]}"); err != nil {
+			f.Close()
+			return fmt.Errorf("write payload footer for shard-%d: %w", shard, err)
+		}
+		if err := f.Close(); err != nil {
+			return fmt.Errorf("close payload file for shard-%d: %w", shard, err)
+		}
+		log.Printf("[coord] wrote shard-%d ciphertext payload to %s", shard, path)
+		runtime.GC()
 	}
-	f.WriteString("]}")
-	log.Printf("[coord] Wrote ciphertext payload to %s", ctsPayloadPath)
 	return nil
 }
 
@@ -227,7 +236,7 @@ func fanOutIntersect(cfg Config) ([]ShardIntersectResp, error) {
 			defer wg.Done()
 			log.Printf("[coord] → shard-%d /intersect", k)
 
-			f, err := os.Open(ctsPayloadPath)
+			f, err := os.Open(ctsPayloadPath(k))
 			if err != nil {
 				errs[k] = fmt.Errorf("open payload for shard-%d: %w", k, err)
 				return
@@ -334,8 +343,10 @@ func runBenchmark(cfg Config) (*DistributedResult, error) {
 	}
 	res.IntersectTimeNS = time.Since(intersectStart).Nanoseconds()
 
-	// Cleanup temp file
-	os.Remove(ctsPayloadPath)
+	// Cleanup temp files
+	for k := 0; k < cfg.K; k++ {
+		os.Remove(ctsPayloadPath(k))
+	}
 
 	// Aggregate
 	totalMatches := 0
@@ -371,8 +382,12 @@ func main() {
 	// Read config from env
 	m, _ := strconv.Atoi(os.Getenv("M"))
 	n, _ := strconv.Atoi(os.Getenv("N"))
-	if m == 0 { m = 10000 }
-	if n == 0 { n = 100   }
+	if m == 0 {
+		m = 10000
+	}
+	if n == 0 {
+		n = 100
+	}
 
 	// SHARD_URLS: comma-separated "http://10.x.x.x:8081,http://10.x.x.y:8081,..."
 	shardURLsRaw := os.Getenv("SHARD_URLS")
@@ -383,7 +398,9 @@ func main() {
 	k := len(shardURLs)
 
 	resultDir := os.Getenv("RESULT_DIR")
-	if resultDir == "" { resultDir = "/tmp/lepsi_results" }
+	if resultDir == "" {
+		resultDir = "/tmp/lepsi_results"
+	}
 	os.MkdirAll(resultDir, 0755)
 
 	cfg := Config{

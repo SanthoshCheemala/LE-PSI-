@@ -1,0 +1,26 @@
+════════════════════════════════════════════════════════
+  LE-PSI SINGLE-NODE BENCHMARK (Comparative)
+  Machine: psi-compare | CPUs: 8 | RAM: 62G
+  Date: 2026-05-16T03:41:55Z
+════════════════════════════════════════════════════════
+
+[Step 1] Building LE-PSI benchmark binary...
+✓ Built and ready: /tmp/lepsi_bench
+
+[Step 2] Running benchmarks...
+
+╔══════════════════════════════════════════════════╗
+║  LE-PSI chunked: m=10000, n=100, chunk=256, workers=8, client_mode=random
+╚══════════════════════════════════════════════════╝
+  Peak RSS: 21939 MB
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+════════════════════════════════════════════════════════
+  ALL LE-PSI SINGLE-NODE BENCHMARKS COMPLETE
+  Results: /tmp/lepsi_single_results/
+════════════════════════════════════════════════════════
+-rw-r--r-- 1 santhoshcheemala santhoshcheemala 1193 May 16 03:43 /tmp/lepsi_single_results/lepsi_m10000_n100_random.json

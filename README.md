@@ -91,9 +91,13 @@ Mode: `explicit_chunked`, `chunk_size=256`, `leaf_indexed_filtering=true`.
 The single-node benchmark uses a controlled client generator whose non-overlap
 items avoid occupied server leaves. This is useful for auditing the
 leaf-filtered optimized path, but should be described as a controlled benchmark.
-For stress-testing random target-leaf collisions, the benchmark scripts also
-support `CLIENT_MODE=random`; that mode was added as a follow-up and is not part
-of the final 2026-05-15 evidence tables unless rerun on the same GCE VM.
+For stress-testing random target-leaf collisions, the benchmark scripts support
+`CLIENT_MODE=random`. A follow-up same-machine 10K diagnostic run on 2026-05-16
+found `13` reported matches for `10` expected matches
+(`false_positive_count=3`, `correctness_passed=false`). That diagnostic run is
+evidence that the current leaf-only optimized path is not a complete random
+workload PSI correctness result without an additional item-equality check or
+collision-handling layer.
 
 ## Distributed LE-PSI Results
 

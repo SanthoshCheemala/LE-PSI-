@@ -25,6 +25,29 @@ Hardware: `psi-compare`, `e2-highmem-8`, 8 vCPUs, ~62.8 GiB RAM.
 
 Important caveat: the benchmark client generator uses controlled non-overlap items whose candidate leaves avoid occupied server leaves. This makes the targeted-decryption count exactly the intended overlap count. The runtime is real, but the paper should describe this as a controlled leaf-filtered benchmark or rerun with random non-overlap clients for a less favorable collision profile.
 
+## Single-Node Random-Client Diagnostic
+
+A follow-up random-client 10K diagnostic was run on 2026-05-16 on the same
+`psi-compare` `e2-highmem-8` machine after adding explicit correctness counters
+in commit `80a0527`.
+
+Evidence:
+
+- `lepsi_single_random/lepsi_single_random_20260516_rerun/lepsi_m10000_n100_random.json`
+- `lepsi_single_random/lepsi_single_random_20260516_rerun/run_m10000_random.log`
+- `lepsi_single_random/lepsi_single_random_20260516_rerun/full_run.log`
+
+| m | n | client_mode | total_sec | peak_rss_mb | expected_intersection | matches_found | false_positive_count | false_negative_count | correctness_passed | actual_dec_calls |
+|---:|---:|---|---:|---:|---:|---:|---:|---:|---|---:|
+| 10000 | 100 | random | 89.553 | 21938 | 10 | 13 | 3 | 0 | false | 13 |
+
+This is diagnostic evidence, not a replacement final performance row. It shows
+that random non-overlap client items can collide with occupied target leaves and
+be counted as matches by the current leaf-only optimized path. The paper should
+not claim random-workload PSI correctness for this optimized path unless an
+additional item-equality check or collision-handling layer is implemented and
+rerun.
+
 ## Comparative Baselines
 
 Microsoft APSI 10K was rerun on the same `psi-compare` VM.

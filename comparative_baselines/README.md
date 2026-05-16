@@ -76,6 +76,11 @@ gcloud compute ssh psi-compare --zone=us-east1-b --command="
 "
 ```
 
+The 2026-05-16 same-machine random diagnostic produced
+`correctness_passed=false` with `false_positive_count=3`, so use this mode as a
+correctness stress test for the current leaf-only optimized path, not as a
+headline performance row.
+
 ### 5. Collect Results
 
 ```bash

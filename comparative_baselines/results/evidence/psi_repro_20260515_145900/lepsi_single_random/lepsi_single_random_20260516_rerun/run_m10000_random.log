@@ -1,0 +1,142 @@
+2026/05/16 03:41:56 LE-PSI single-node benchmark: run_id=lepsi_single_20260516_034156_m10000_n100 m=10000 n=100 mode=explicit_chunked chunk_size=256 workers=8 client_mode=random
+2026/05/16 03:41:56   Phase 1: Server init...
+Setting up LE with Parameters Q = 180143985094819841 qBits = 58 D = 256 N = 4
+Successfully initialized the LE parameters:
+ - Security Level: Fast Evaluation (Low Security)
+ - Ring Dimension: 256
+ - Modulus Q: 180143985094819841
+ - Matrix Dimension N: 4
+ - qBits: 58
+ - Layers: 18 (slots = 262144)
+ - Load Factor: 0.038147 (items/slot)
+ - Placement: 2-choice Cuckoo hashing (collision-resistant)
+2026/05/16 03:41:56 🚀 Auto-Tuned: 8 cores detected, 80.0 GB RAM available → 8 workers for 10000 records (est. RAM: 10.0 GB)
+       💾 Building Merkle Tree directly in RAM for chunked benchmark...
+       ✓ In-memory tree built in 40.50206226s
+2026/05/16 03:42:47        Chunked mode: witness generation deferred to active chunks
+
+LE-PSI Performance Report (Parallelized)
+==================================================
+CPU Cores Used: 8
+Total Execution Time: 51.016881676s
+Key Generation Time: 10.444063533s (20.5%)
+Hashing Time: 0s (0.0%)
+Witness Generation Time: 0s (0.0%)
+Intersection Detection Time: 0s (0.0%)
+==================================================
+2026/05/16 03:42:47   Init done: 51.016920998s
+2026/05/16 03:42:47   Client set prepared: mode=random seed=20260515 expected_intersection=10, non-overlap leaves are random
+2026/05/16 03:42:47   Phase 2: Client encrypt...
+2026/05/16 03:42:58   Encrypt done: 10.726334669s (200 ciphertexts)
+2026/05/16 03:42:58   Phase 3: Intersection...
+2026/05/16 03:42:59    Chunked leaf-indexed filtering: m=10000, ciphertexts=200, chunk_size=256, workers=8, targeted_dec_calls=13 (all_pairs=2000000)
+2026/05/16 03:42:59    ... Chunk 1: records [0,256)
+2026/05/16 03:43:00    ... Chunk 2: records [256,512)
+2026/05/16 03:43:01    ... Chunk 3: records [512,768)
+2026/05/16 03:43:02    ... Chunk 4: records [768,1024)
+2026/05/16 03:43:02    ... Chunk 5: records [1024,1280)
+2026/05/16 03:43:03    ... Chunk 6: records [1280,1536)
+2026/05/16 03:43:03    ... Chunk 7: records [1536,1792)
+2026/05/16 03:43:04    ... Chunk 8: records [1792,2048)
+2026/05/16 03:43:05    ... Chunk 9: records [2048,2304)
+2026/05/16 03:43:05    ... Chunk 10: records [2304,2560)
+2026/05/16 03:43:06    ... Chunk 11: records [2560,2816)
+2026/05/16 03:43:07    ... Chunk 12: records [2816,3072)
+2026/05/16 03:43:07    ... Chunk 13: records [3072,3328)
+2026/05/16 03:43:08    ... Chunk 14: records [3328,3584)
+2026/05/16 03:43:09    ... Chunk 15: records [3584,3840)
+2026/05/16 03:43:09    ... Chunk 16: records [3840,4096)
+2026/05/16 03:43:10    ... Chunk 17: records [4096,4352)
+2026/05/16 03:43:11    ... Chunk 18: records [4352,4608)
+2026/05/16 03:43:11    ... Chunk 19: records [4608,4864)
+2026/05/16 03:43:12    ... Chunk 20: records [4864,5120)
+2026/05/16 03:43:13    ... Chunk 21: records [5120,5376)
+2026/05/16 03:43:13    ... Chunk 22: records [5376,5632)
+2026/05/16 03:43:14    ... Chunk 23: records [5632,5888)
+2026/05/16 03:43:15    ... Chunk 24: records [5888,6144)
+2026/05/16 03:43:15    ... Chunk 25: records [6144,6400)
+2026/05/16 03:43:16    ... Chunk 26: records [6400,6656)
+2026/05/16 03:43:17    ... Chunk 27: records [6656,6912)
+2026/05/16 03:43:17    ... Chunk 28: records [6912,7168)
+2026/05/16 03:43:18    ... Chunk 29: records [7168,7424)
+2026/05/16 03:43:19    ... Chunk 30: records [7424,7680)
+2026/05/16 03:43:19    ... Chunk 31: records [7680,7936)
+2026/05/16 03:43:20    ... Chunk 32: records [7936,8192)
+2026/05/16 03:43:21    ... Chunk 33: records [8192,8448)
+2026/05/16 03:43:21    ... Chunk 34: records [8448,8704)
+2026/05/16 03:43:22    ... Chunk 35: records [8704,8960)
+2026/05/16 03:43:23    ... Chunk 36: records [8960,9216)
+2026/05/16 03:43:23    ... Chunk 37: records [9216,9472)
+2026/05/16 03:43:24    ... Chunk 38: records [9472,9728)
+2026/05/16 03:43:25    ... Chunk 39: records [9728,9984)
+2026/05/16 03:43:25    ... Chunk 40: records [9984,10000)
+2026/05/16 03:43:26    Chunked intersection complete in 26.445863782s, matches=13
+2026/05/16 03:43:26   Intersection done: 27.809786831s, matches=13
+2026/05/16 03:43:26 ✓ Results: /tmp/lepsi_single_results/lepsi_m10000_n100_random.json
+{
+  "D": 256,
+  "N": 4,
+  "actual_dec_calls": 13,
+  "all_pairs_dec_calls": 2000000,
+  "chunk_size": 256,
+  "chunks_processed": 40,
+  "client_mode": "random",
+  "client_seed": 20260515,
+  "correctness_passed": false,
+  "cuckoo_rebuilds": 0,
+  "decryption_reduction_factor": 153846.15384615384,
+  "enc_sec": 10.726334669,
+  "expected_intersection": 10,
+  "false_negative_count": 0,
+  "false_positive_count": 3,
+  "git_commit": "80a0527",
+  "init_sec": 51.016920998,
+  "intersect_sec": 27.809786831,
+  "leaf_indexed_filtering": true,
+  "m": 10000,
+  "machine": "psi-compare",
+  "machine_type": "e2-highmem-8",
+  "matches_found": 13,
+  "mode": "explicit_chunked",
+  "n": 100,
+  "non_overlap_avoids_occupied_leaves": false,
+  "peak_heap_mb": 21332,
+  "peak_rss_mb": 21938,
+  "protocol": "LE-PSI (single-node, chunked, leaf-filtered)",
+  "q": 180143985094819841,
+  "qBits": 58,
+  "ram_gb": 62.80588912963867,
+  "run_id": "lepsi_single_20260516_034156_m10000_n100",
+  "sigma": 1073741824,
+  "targeted_dec_calls": 13,
+  "timestamp": "2026-05-16T03:43:26Z",
+  "total_alloc_mb": 55110,
+  "total_possible_dec_calls": 2000000,
+  "total_sec": 89.553163215,
+  "vcpu": 8,
+  "vcpus": 8,
+  "worker_count": 8
+}
+	Command being timed: "/tmp/lepsi_bench 10000 100"
+	User time (seconds): 304.58
+	System time (seconds): 28.92
+	Percent of CPU this job got: 371%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:29.79
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 22466124
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 613668
+	Voluntary context switches: 1696519
+	Involuntary context switches: 5686
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 80
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

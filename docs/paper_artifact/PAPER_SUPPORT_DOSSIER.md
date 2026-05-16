@@ -59,8 +59,11 @@ Repository state used for this dossier:
      non-overlap items avoid occupied server leaves, so it understates random
      target-leaf collisions by design. Use it as a controlled audit of the
      optimized path. Current code also supports `CLIENT_MODE=random` for a
-     follow-up random-client run; see `scalability_tests/bench_10k.go:123-157`
+     follow-up random-client run; see `scalability_tests/bench_10k.go:126-160`
      and `comparative_baselines/lepsi_single_node/benchmark.sh:233-267`.
+     That follow-up was run on 2026-05-16 at commit `80a0527`; it found
+     `matches_found=13` for `expected_intersection=10`, with
+     `false_positive_count=3` and `correctness_passed=false`.
    - Distributed matches are not directly comparable to controlled
      single-node matches. The distributed coordinator uses a seeded random
      workload with 10% intended client overlap at
@@ -140,7 +143,10 @@ Correctness:
 - False positives: `0` for the controlled benchmark generator.
 - False negatives: `0` for the controlled benchmark generator.
 - Important caveat: the single-node benchmark deliberately chooses non-overlap client items whose candidate leaves avoid occupied server leaves. This makes `actual_dec_calls` equal the intended overlap count. This is valid for proving the optimized path ran, but the paper should describe it as a controlled leaf-filtered benchmark.
-- Follow-up support: current benchmark code supports `CLIENT_MODE=random` and `CLIENT_SEED=<int>` for random non-overlap client items. This mode is implemented in `scalability_tests/bench_10k.go:123-157` and selected at `scalability_tests/bench_10k.go:164-220`; the GCE script mirrors it in `comparative_baselines/lepsi_single_node/benchmark.sh:233-267` and `comparative_baselines/lepsi_single_node/benchmark.sh:277-330`. It was added after the final 2026-05-15 evidence bundle, so random-client results should be rerun on the same VM before citing.
+- Follow-up support: current benchmark code supports `CLIENT_MODE=random` and `CLIENT_SEED=<int>` for random non-overlap client items. This mode is implemented in `scalability_tests/bench_10k.go:126-160` and selected at `scalability_tests/bench_10k.go:190-245`; the GCE script mirrors it in `comparative_baselines/lepsi_single_node/benchmark.sh:233-267` and `comparative_baselines/lepsi_single_node/benchmark.sh:300-353`.
+- Random-client diagnostic result: `comparative_baselines/results/evidence/psi_repro_20260515_145900/lepsi_single_random/lepsi_single_random_20260516_rerun/lepsi_m10000_n100_random.json`.
+- Random-client diagnostic values: `m=10000`, `n=100`, `total_sec=89.553163215`, `peak_rss_mb=21938`, `expected_intersection=10`, `matches_found=13`, `false_positive_count=3`, `false_negative_count=0`, `correctness_passed=false`, `actual_dec_calls=13`.
+- Interpretation: this confirms that random target-leaf collisions can create false positives in the current leaf-only optimized path. Do not claim full random-workload PSI correctness for this optimized path unless an additional item-equality check or collision-handling layer is implemented and rerun.
 
 Single-node final table:
 
@@ -158,10 +164,10 @@ The final single-node benchmark uses explicit chunk-batched witness processing.
 
 Evidence:
 
-- Benchmark entry point: `scalability_tests/bench_10k.go:159-300`.
-- It calls chunked server initialization at `scalability_tests/bench_10k.go:198-206`.
-- It selects the controlled or random client generator at `scalability_tests/bench_10k.go:208-220`.
-- It calls chunked intersection at `scalability_tests/bench_10k.go:231-243`.
+- Benchmark entry point: `scalability_tests/bench_10k.go:185-323`.
+- It calls chunked server initialization at `scalability_tests/bench_10k.go:224-232`.
+- It selects the controlled or random client generator at `scalability_tests/bench_10k.go:234-245`.
+- It calls chunked intersection at `scalability_tests/bench_10k.go:257-269`.
 - The chunk loop is in `pkg/psi/server.go:786-840`.
 - Witnesses are generated inside the chunk worker at `pkg/psi/server.go:813-816`.
 - Chunk-local state is released after `wg.Wait()`, and `runtime.GC()` is optionally called at `pkg/psi/server.go:835-839`.

@@ -55,9 +55,10 @@ shasum -a 256 -c SHA256SUMS
   filtering; this is an explicit implementation leakage term.
 - The single-node benchmark uses a controlled non-overlap client generator, so
   the targeted-decryption count equals the intended overlap count.
-- The benchmark scripts now also support `CLIENT_MODE=random` for a follow-up
-  random-client run, but the final 2026-05-15 tables are the controlled
-  single-node evidence unless that mode is rerun on the same GCE VM.
+- The benchmark scripts support `CLIENT_MODE=random`. The 2026-05-16
+  same-machine 10K diagnostic found `13` reported matches for `10` expected
+  matches (`false_positive_count=3`, `correctness_passed=false`), so it should
+  be treated as a correctness warning for the current leaf-only optimized path.
 - The distributed workload is generated differently from the controlled
   single-node workload; do not compare the 24 distributed 10K matches as the
   same workload as the 10 controlled single-node matches.

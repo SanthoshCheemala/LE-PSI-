@@ -58,6 +58,16 @@
 ./lepsi_single/run_m4000.log
 ./lepsi_single/run_m8000.log
 ./lepsi_single/summary.json
+./lepsi_single_random/lepsi_single_random_20260516_rerun/free_h.txt
+./lepsi_single_random/lepsi_single_random_20260516_rerun/full_run.log
+./lepsi_single_random/lepsi_single_random_20260516_rerun/git_commit.txt
+./lepsi_single_random/lepsi_single_random_20260516_rerun/go_test_pkg.log
+./lepsi_single_random/lepsi_single_random_20260516_rerun/go_version.txt
+./lepsi_single_random/lepsi_single_random_20260516_rerun/hostname.txt
+./lepsi_single_random/lepsi_single_random_20260516_rerun/lepsi_m10000_n100_random.json
+./lepsi_single_random/lepsi_single_random_20260516_rerun/machine_type.txt
+./lepsi_single_random/lepsi_single_random_20260516_rerun/run_m10000_random.log
+./lepsi_single_random/lepsi_single_random_20260516_rerun/vcpus.txt
 ./metadata/create_remaining_rerun_cluster_us_east1_c.log
 ./metadata/create_remaining_shards_us_east1_d.log
 ./metadata/create_replacement_shards.log
